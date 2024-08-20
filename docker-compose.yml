@@ -28,32 +28,32 @@ services:
     env_file: ./.env
 
   web:
-    container_name: web1_c
+    container_name: auth_api_c
     build:
       context: ./srcs/django_builds
-      target: django_base
+      target: django_restapi
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
-      - ./srcs/backend/webapp/code:/code
+      - ./srcs/backend/auth/:/code
     ports:
       - "8000:8000"
     env_file: ./.env
     depends_on:
       - db
 
-  web2:
-    container_name: web2_c
-    build:
-      context: ./srcs/django_builds
-      target: django_main
-    command: python manage.py runserver 0.0.0.0:8001
-    volumes:
-      - ./srcs/backend/webapp/code:/code
-    ports:
-      - "8001:8001"
-    env_file: ./.env
-    depends_on:
-      - db
+  # web2:
+  #   container_name: web2_c
+  #   build:
+  #     context: ./srcs/django_builds
+  #     target: django_main
+  #   command: python manage.py runserver 0.0.0.0:8001
+  #   volumes:
+  #     - ./srcs/backend/webapp/code:/code
+  #   ports:
+  #     - "8001:8001"
+  #   env_file: ./.env
+  #   depends_on:
+  #     - db
 
 secrets:
   ssl-key:

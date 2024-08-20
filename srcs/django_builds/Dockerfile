@@ -6,5 +6,8 @@ WORKDIR /code
 COPY requirements.txt /code/
 RUN pip install -r requirements.txt
 
-FROM django_base AS django_main
+FROM django_base AS django_restapi
+RUN python -m pip install -U  djangorestframework
+	
+FROM django_base AS django_websocketapi
 RUN python -m pip install -U 'channels[daphne]'

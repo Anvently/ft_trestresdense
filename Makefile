@@ -2,7 +2,7 @@ TARGET		=	compose
 
 DATA_DIR	= ./data/
 
-DATA_DEPS	= $(DATA_DIR) $(DATA_DIR)/db/ srcs/nginx/ssl.crt srcs/nginx/ssl.key srcs/nginx/logs/
+DATA_DEPS	= $(DATA_DIR) $(DATA_DIR)db/ srcs/nginx/ssl.crt srcs/nginx/ssl.key srcs/nginx/logs/
 
 all: build compose
 
@@ -25,11 +25,11 @@ compose: $(DATA_DEPS)
 build: $(DATA_DEPS)
 	docker compose build
 
-$(DATA_DIR)/db:
-	mkdir -f $(DATA_DIR)/db
+$(DATA_DIR)db:
+	-mkdir $(DATA_DIR)db
 
 $(DATA_DIR):
-	mkdir -f $(DATA_DIR)
+	-mkdir $(DATA_DIR)
 
 stop:
 	docker compose down
