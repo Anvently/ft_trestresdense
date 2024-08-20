@@ -1,0 +1,60 @@
+name: transcendence
+
+#Env file template
+# POSTGRES_DB=postgres
+# POSTGRES_NAME=postgres
+# POSTGRES_USER=postgres
+# POSTGRES_PASSWORD=postgres
+
+services:
+
+  nginx:
+    container_name: nginx_c
+    build: ./srcs/nginx/
+    ports:
+      - 8083:443
+      - 8080:80
+    volumes:
+      - ./frontend/:/www/html/
+      - ./srcs/nginx/logs/:/var/log/nginx/:rw
+    secrets:
+      - ssl-key
+
+  db:
+    container_name: db_c
+    image: postgres
+    volumes:
+      - ./data/db:/var/lib/postgresql/data
+    env_file: ./.env
+
+  web:
+    container_name: web1_c
+    build:
+      context: ./srcs/django_builds
+      target: django_base
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./srcs/backend/webapp/code:/code
+    ports:
+      - "8000:8000"
+    env_file: ./.env
+    depends_on:
+      - db
+
+  web2:
+    container_name: web2_c
+    build:
+      context: ./srcs/django_builds
+      target: django_main
+    command: python manage.py runserver 0.0.0.0:8001
+    volumes:
+      - ./srcs/backend/webapp/code:/code
+    ports:
+      - "8001:8001"
+    env_file: ./.env
+    depends_on:
+      - db
+
+secrets:
+  ssl-key:
+    file: ./srcs/nginx/ssl.key
