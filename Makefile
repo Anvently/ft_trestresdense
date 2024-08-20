@@ -20,7 +20,7 @@ gen_ssl:
 		-subj="/CN=npirard"
 
 compose: $(DATA_DEPS)
-	docker compose up
+	docker compose up --remove-orphans
 
 build: $(DATA_DEPS)
 	docker compose build
