@@ -4,10 +4,10 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 WORKDIR /code
 COPY requirements.txt /code/
-RUN pip install -r requirements.txt
+RUN pip3 install -r requirements.txt
 
 FROM django_base AS django_restapi
-RUN python -m pip install -U  djangorestframework
+RUN pip3 install -U  djangorestframework
 	
 FROM django_base AS django_websocketapi
-RUN python -m pip install -U 'channels[daphne]'
+RUN pip3 install -U 'channels[daphne]'
