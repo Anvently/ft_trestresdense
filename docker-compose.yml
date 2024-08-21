@@ -58,7 +58,7 @@ services:
     build:
       context: ./srcs/django_builds
       target: django_restapi
-    command: python3 manage.py runserver 0.0.0.0:8000
+    command: python3 manage.py runserver 0.0.0.0:8001
     volumes:
       - ./srcs/backend/users/:/code
     ports:
