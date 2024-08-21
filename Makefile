@@ -25,11 +25,14 @@ compose: $(DATA_DEPS)
 build: $(DATA_DEPS)
 	docker compose build
 
-$(DATA_DIR)db:
+$(DATA_DIR)db/:
 	-mkdir $(DATA_DIR)db
 
 $(DATA_DIR):
 	-mkdir $(DATA_DIR)
+
+root_rm:
+	docker run -v ./data:/data/ -it --rm alpine rm "-rf" "/data/"
 
 stop:
 	docker compose down

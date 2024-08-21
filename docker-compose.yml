@@ -1,10 +1,13 @@
 name: transcendence
 
 #Env file template
-# POSTGRES_DB=postgres
-# POSTGRES_NAME=postgres
 # POSTGRES_USER=postgres
 # POSTGRES_PASSWORD=postgres
+# POSTGRES_HOST=db
+# POSTGRES_PORT=5432
+
+# POSTGRES_DB_AUTH=auth
+# POSTGRES_DB_USERS=users
 
 services:
 
@@ -25,9 +28,13 @@ services:
     image: postgres
     volumes:
       - ./data/db:/var/lib/postgresql/data
-    env_file: ./.env
+      - ./srcs/scripts/db_entrypoint:/docker-entrypoint-initdb.d
+    environment:
+      - POSTGRES_MULTIPLE_DATABASES=${POSTGRES_DB_AUTH},${POSTGRES_DB_USERS}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
 
-  web:
+  auth_api:
     container_name: auth_api_c
     build:
       context: ./srcs/django_builds
@@ -37,9 +44,14 @@ services:
       - ./srcs/backend/auth/:/code
     ports:
       - "8000:8000"
-    env_file: ./.env
     depends_on:
       - db
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_DB=${POSTGRES_DB_AUTH}
 
   # web2:
   #   container_name: web2_c
