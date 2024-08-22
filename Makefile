@@ -2,22 +2,36 @@ TARGET		=	compose
 
 DATA_DIR	= ./data/
 
-DATA_DEPS	= $(DATA_DIR) $(DATA_DIR)db/ srcs/nginx/ssl.crt srcs/nginx/ssl.key srcs/nginx/logs/
+DATA_DEPS	= $(DATA_DIR) $(DATA_DIR)db/ \
+				data/keys/ssl/ssl.crt data/keys/ssl/ssl.key \
+				data/keys/rsa/key.pem data/keys/rsa/pub.pem \
+				data/logs/
 
 all: build compose
 
-srcs/nginx/ssl.crt:
+data/keys/ssl/ssl.crt:
 	$(MAKE) gen_ssl
 
-srcs/nginx/ssl.key:
+data/keys/ssl/ssl.key:
 	$(MAKE) gen_ssl
 
-srcs/nginx/logs/:
-	mkdir srcs/nginx/logs
+data/logs/:
+	mkdir -p data/logs
 
 gen_ssl:
-	@openssl req -x509 -nodes -newkey rsa:4096 -keyout srcs/nginx/ssl.key -out srcs/nginx/ssl.crt -sha256 -days 365 \
+	-mkdir -p data/keys/ssl
+	@openssl req -x509 -nodes -newkey rsa:4096 -keyout data/keys/ssl/ssl.key -out data/keys/ssl/ssl.crt -sha256 -days 365 \
 		-subj="/CN=npirard"
+
+gen_rsa:
+	-mkdir -p data/keys/rsa
+	openssl genpkey -out data/keys/rsa/key.pem -algorithm rsa -pkeyopt rsa_keygen_bits:2048
+	openssl rsa -in data/keys/rsa/key.pem -out data/keys/rsa/pub.pem -pubout 
+	# openssl rsa -in data/keys/rsa/key.pem -outform PEM -pubout -out data/keys/rsa/pub.pem
+	# openssl pkcs8 -topk8 -inform PEM -outform PEM -nocrypt -in keypair.pem -out pkcs8.key
+
+gen_rsa2:
+	ssh-keygen -f key.pub -e -m pem
 
 compose: $(DATA_DEPS)
 	docker compose up --remove-orphans
@@ -29,7 +43,7 @@ $(DATA_DIR)db/:
 	-mkdir $(DATA_DIR)db
 
 $(DATA_DIR):
-	-mkdir $(DATA_DIR)
+	-mkdir -p $(DATA_DIR)
 
 root_rm:
 	docker run -v ./data:/data/ -it --rm alpine rm "-rf" "/data/"

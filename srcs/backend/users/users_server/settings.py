@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 	'rest_framework',
 	'users_api',
+	'rest_framework.authtoken',
 ]
 
 MIDDLEWARE = [
@@ -69,6 +70,50 @@ TEMPLATES = [
         },
     },
 ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ]
+}
+
+# from cryptography.hazmat.backends import default_backend
+# from cryptography.hazmat.primitives import serialization
+
+# with open('/run/secrets/rsa-key', 'rb') as key_file:
+#     secret_key = serialization.load_pem_private_key(
+#         key_file.read(),
+#         password=None,
+#         backend=default_backend()
+#     )
+
+# with open('/etc/certificate/pub.pem', 'rb') as key_file:
+#     public_key = serialization.load_pem_public_key(
+#         key_file.read(),
+#         backend=default_backend()
+#     )
+
+with open('/run/secrets/rsa-key', 'rb') as file:
+    RSA_SECRET_KEY = file.read()
+
+with open('/etc/certificate/pub.pem', 'rb') as file:
+    RSA_PUBLIC_KEY = file.read()
+
+print(RSA_PUBLIC_KEY)
+print(RSA_SECRET_KEY)
+
+SIMPLE_JWT = {
+	"ALGORITHM": 'RS256',
+	"SIGNING_KEY": RSA_SECRET_KEY,
+	"VERIFY_KEY": RSA_PUBLIC_KEY,
+
+    "AUTH_HEADER_TYPES": ("Bearer",),
+    "AUTH_HEADER_NAME": "HTTP_AUTHORIZATION",
+    "USER_ID_FIELD": "id",
+    "USER_ID_CLAIM": "user_id",
+}
+
+
 
 WSGI_APPLICATION = 'users_server.wsgi.application'
 
