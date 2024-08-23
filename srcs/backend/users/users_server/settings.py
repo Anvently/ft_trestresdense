@@ -40,7 +40,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 	'rest_framework',
 	'users_api',
-	'rest_framework.authtoken',
 ]
 
 MIDDLEWARE = [
@@ -71,11 +70,11 @@ TEMPLATES = [
     },
 ]
 
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ]
-}
+# REST_FRAMEWORK = {
+#     'DEFAULT_AUTHENTICATION_CLASSES': [
+#         'users_api.authentication.TTLBasedJWTAuthentication',
+#     ]
+# }
 
 # from cryptography.hazmat.backends import default_backend
 # from cryptography.hazmat.primitives import serialization
@@ -94,26 +93,13 @@ REST_FRAMEWORK = {
 #     )
 
 with open('/run/secrets/rsa-key', 'rb') as file:
-    RSA_SECRET_KEY = file.read()
+    RSA_PRIVATE_KEY = file.read()
 
 with open('/etc/certificate/pub.pem', 'rb') as file:
     RSA_PUBLIC_KEY = file.read()
 
 print(RSA_PUBLIC_KEY)
-print(RSA_SECRET_KEY)
-
-SIMPLE_JWT = {
-	"ALGORITHM": 'RS256',
-	"SIGNING_KEY": RSA_SECRET_KEY,
-	"VERIFY_KEY": RSA_PUBLIC_KEY,
-
-    "AUTH_HEADER_TYPES": ("Bearer",),
-    "AUTH_HEADER_NAME": "HTTP_AUTHORIZATION",
-    "USER_ID_FIELD": "id",
-    "USER_ID_CLAIM": "user_id",
-}
-
-
+print(RSA_PRIVATE_KEY)
 
 WSGI_APPLICATION = 'users_server.wsgi.application'
 
@@ -167,7 +153,10 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = "/static/"
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+
+# STATICFILES_DIRS = (os.path.join(BASE_DIR, "localhost:8083", "api/static"))
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field

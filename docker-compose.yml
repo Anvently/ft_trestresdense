@@ -24,6 +24,8 @@ services:
       - ./data/keys/ssl/ssl.crt:/etc/certificate/ssl.crt
     secrets:
       - ssl-key
+    depends_on:
+      - users_api
 
   db:
     container_name: db_c

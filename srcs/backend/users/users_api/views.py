@@ -1,38 +1,63 @@
 from django.contrib.auth.models import User
+from django.contrib.auth import authenticate
 from django.shortcuts import get_object_or_404
-from rest_framework import viewsets, mixins
+from rest_framework import viewsets
 from rest_framework import status
+from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.renderers import JSONRenderer
-from rest_framework_simplejwt.authentication import JWTAuthentication
-from users_api.serializers import UserSerializer
-from rest_framework.authtoken.views import ObtainAuthToken
-from rest_framework.authtoken.models import Token
+from users_api.serializers import UserSerializer, LoginSerializer
+from users_api.authentication import TTLBasedJWTAuthentication
+from users_api.crypt import generate_jwt_token
+import time
 
 # Create your models here.
 class UserViewSet(viewsets.ModelViewSet):
 	# renderer_classes = [JSONRenderer]
 	permission_classes = [IsAuthenticated]
-	authentication_classes = [JWTAuthentication]
+	authentication_classes = [TTLBasedJWTAuthentication]
 	serializer_class = UserSerializer
 	queryset = User.objects.all()
 	lookup_field = "username"
 	pass
 
-class CustomAuthToken(ObtainAuthToken):
+class GenerateToken(APIView):
 
-    def post(self, request, *args, **kwargs):
-        serializer = self.serializer_class(data=request.data,
-                                           context={'request': request})
-        serializer.is_valid(raise_exception=True)
-        user = serializer.validated_data['user']
-        token, created = Token.objects.get_or_create(user=user)
-        return Response({
-            'token': token.key,
-            'user_id': user.pk,
-            'email': user.email
-        })
+    def post(self, request):
+        try:
+            data = request.data
+            token = generate_jwt_token(data, ttl_based=True)
+        except Exception as e:
+            return Response(
+                {"error": f"Failed to generate token: {e}"}, status=status.HTTP_400_BAD_REQUEST
+            )
+        return Response({"token": token}, status=status.HTTP_200_OK)
+
+class LoginView(APIView):
+
+    serializer_classes = [LoginSerializer]
+    def post(self, request):
+        try:
+            user = User.objects.get(username=request.data["username"])
+        except:
+            return Response({"Invalid username."}, status=status.HTTP_400_BAD_REQUEST)
+        if user.check_password(request.data["password"]) == False:
+            return Response({"Invalid credentials."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            data = {"user_id": user.username, "exp": time.time() + 15 * 60}
+            token = generate_jwt_token(data, ttl_based=True)
+        except Exception as e:
+            return Response(
+                {"error": f"Failed to generate token: {e}"}, status=status.HTTP_400_BAD_REQUEST
+            )
+        return Response({"token": token}, status=status.HTTP_200_OK)
+
+
+class VerifyToken(APIView):
+    authentication_classes = [TTLBasedJWTAuthentication]
+
+    def get(self, request):
+        return Response({"message": "Token verified", "data": request.jwt_data}, status=status.HTTP_200_OK)
 
 # # Create your models here.
 # class UserViewSet(viewsets.ModelViewSet):

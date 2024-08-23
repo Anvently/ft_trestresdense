@@ -17,10 +17,9 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 
-from users_api.views import UserViewSet, CustomAuthToken
+from users_api.views import UserViewSet, GenerateToken, VerifyToken, LoginView
 from rest_framework.routers import DefaultRouter
 from rest_framework.authtoken import views
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenVerifyView
 
 router = DefaultRouter()
 router.register(r'users', UserViewSet)
@@ -32,7 +31,10 @@ urlpatterns = [
 	# path('users/', UserViewSet.as_view({'get': 'list'})),
 	# path('user/<username>', UserViewSet.as_view({'get': 'retrieve'})),
 	# path('api-token-auth/', CustomAuthToken.as_view()),
-    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-	path('api/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
+    # path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    # path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+	# path('api/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
+	path("generate-token/", GenerateToken.as_view(), name="generate-token"),
+    path("verify-token/", VerifyToken.as_view(), name="verify-token"),
+	path("login/", LoginView.as_view(), name="login"),
 ]

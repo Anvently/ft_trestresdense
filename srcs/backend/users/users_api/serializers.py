@@ -7,4 +7,8 @@ class UserSerializer(serializers.HyperlinkedModelSerializer):
 		fields = ['username', 'first_name', 'last_name', 'email', \
 			'password', 'groups', 'is_staff', 'last_login', 'is_superuser']
 
+class LoginSerializer(serializers.HyperlinkedModelSerializer):
+	class Meta:
+		model = User
+		fields = ['username', 'password']
 
