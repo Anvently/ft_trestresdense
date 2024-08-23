@@ -8,7 +8,7 @@ class TTLBasedJWTAuthentication(BaseAuthentication):
     def authenticate(self, request):
         token = request.headers.get("Authorization")
         if not token:
-            raise AuthenticationFailed("Token not provided")
+            raise AuthenticationFailed("Auth token not provided")
         try:
             token = token.removeprefix("Bearer ")
             data = verify_jwt(token, is_ttl_based=True)
@@ -21,3 +21,5 @@ class TTLBasedJWTAuthentication(BaseAuthentication):
             raise AuthenticationFailed('No such user')
         return (user, None)
     
+    def authenticate_header(self, request):
+        return "Bearer"

@@ -17,7 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from rest_framework import routers
-from auth_api.views import UserView, GenerateToken, VerifyToken, LoginView, RegisterView, UpdateView
+from auth_api.views import UserView, GenerateToken, VerifyToken, LoginView, RegisterView, UpdateView, DeleteView
 
 # router = routers.DefaultRouter()
 # router.register(r'users', UserView)
@@ -30,4 +30,5 @@ urlpatterns = [
 	path("login/", LoginView.as_view(), name="login"),
 	path("register/", RegisterView.as_view(), name="register"),
 	path("update/", UpdateView.as_view(), name="update"),
+	path("delete/<username>", DeleteView.as_view(), name="delete"),
 ]

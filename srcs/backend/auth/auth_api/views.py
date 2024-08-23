@@ -10,10 +10,24 @@ import time
 
 class UserView(APIView):
 
+	permission_classes = [IsAuthenticated]
+	authentication_classes = [TTLBasedJWTAuthentication]
+
 	def get(self, request):
 		users = User.objects.all()
 		serializer = UserSerializer(users, many=True)
 		return Response(serializer.data)
+	
+class DeleteView(APIView):
+
+	permission_classes = [IsAuthenticated]
+	authentication_classes = [TTLBasedJWTAuthentication]
+
+	def delete(self, request, username):
+		if request.user.username != username:
+			return Response({"Not authorized."}, status=status.HTTP_401_UNAUTHORIZED)
+		request.user.delete()
+		return Response(status=status.HTTP_204_NO_CONTENT)
 
 class UpdateView(APIView):
 
@@ -51,10 +65,13 @@ class GenerateToken(APIView):
 class LoginView(APIView):
 
 	def post(self, request):
+		
 		try:
 			user = User.objects.get(username=request.data["username"])
 		except:
 			return Response({"Invalid username."}, status=status.HTTP_400_BAD_REQUEST)
+		if not "password" in request.data:
+			return Response({"Missing password."}, status=status.HTTP_400_BAD_REQUEST)
 		if user.check_password(request.data["password"]) == False:
 			return Response({"Invalid credentials."}, status=status.HTTP_400_BAD_REQUEST)
 		try:
@@ -65,7 +82,6 @@ class LoginView(APIView):
 				{"error": f"Failed to generate token: {e}"}, status=status.HTTP_400_BAD_REQUEST
 			)
 		return Response({"token": token}, status=status.HTTP_200_OK)
-
 
 class VerifyToken(APIView):
 	authentication_classes = [TTLBasedJWTAuthentication]

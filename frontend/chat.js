@@ -5,8 +5,8 @@ export function lancementChat ()
 	
 	const chatSocket = new WebSocket(
 		'ws://'
-		+ 'localhost:8000'
-		+ '/ws/mysite/'
+		+ 'localhost:8083'
+		+ '/ws/websocket_example/'
 	+ roomName
 	+ '/'
 );
