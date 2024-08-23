@@ -103,6 +103,7 @@ print(RSA_PRIVATE_KEY)
 
 WSGI_APPLICATION = 'users_server.wsgi.application'
 
+RSA_KEY_EXPIRATION = 15 * 60
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases

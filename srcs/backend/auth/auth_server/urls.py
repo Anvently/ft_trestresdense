@@ -17,12 +17,17 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from rest_framework import routers
-from auth_api.views import UserView
+from auth_api.views import UserView, GenerateToken, VerifyToken, LoginView, RegisterView, UpdateView
 
 # router = routers.DefaultRouter()
 # router.register(r'users', UserView)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-	path('', UserView.as_view(), name='users')
+	path('', UserView.as_view(), name='users'),
+	path("generate-token/", GenerateToken.as_view(), name="generate-token"),
+    path("verify-token/", VerifyToken.as_view(), name="verify-token"),
+	path("login/", LoginView.as_view(), name="login"),
+	path("register/", RegisterView.as_view(), name="register"),
+	path("update/", UpdateView.as_view(), name="update"),
 ]

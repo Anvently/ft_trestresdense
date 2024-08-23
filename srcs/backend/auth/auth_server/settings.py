@@ -72,6 +72,18 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'auth_server.wsgi.application'
 
+with open('/run/secrets/rsa-key', 'rb') as file:
+    RSA_PRIVATE_KEY = file.read()
+
+with open('/etc/certificate/pub.pem', 'rb') as file:
+    RSA_PUBLIC_KEY = file.read()
+
+print(RSA_PUBLIC_KEY)
+print(RSA_PRIVATE_KEY)
+
+WSGI_APPLICATION = 'auth_server.wsgi.application'
+
+RSA_KEY_EXPIRATION = 15 * 60
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
