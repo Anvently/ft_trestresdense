@@ -8,6 +8,7 @@ RUN pip3 install -r requirements.txt
 
 FROM django_base AS django_restapi
 RUN pip3 install -U  djangorestframework pyjwt[crypto]
-	
+
 FROM django_base AS django_websocketapi
 RUN pip3 install -U 'channels[daphne]'
+RUN pip3 install -U channels_redis
