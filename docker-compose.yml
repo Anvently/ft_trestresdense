@@ -79,6 +79,27 @@ services:
     secrets:
       - rsa-key
 
+  redis:
+    container_name: redis_c
+    image: redis
+    ports:
+      - "8008:6379"
+
+  websocket_example:
+    container_name: websocket_c
+    build:
+      context: ./srcs/django_builds
+      target: django_websocketapi
+    ports:
+      - "8002:8002"
+    command: python3 manage.py runserver 0.0.0.0:8002
+    depends_on:
+        - redis
+    volumes:
+      - ./srcs/backend/websocket_example/:/code
+
+
+
   # web2:
   #   container_name: web2_c
   #   build:
