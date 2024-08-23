@@ -15,6 +15,11 @@ data/keys/ssl/ssl.crt:
 data/keys/ssl/ssl.key:
 	$(MAKE) gen_ssl
 
+data/keys/rsa/key.pem:
+	$(MAKE) gen_rsa
+data/keys/rsa/pub.pem:
+	$(MAKE) gen_rsa
+
 data/logs/:
 	mkdir -p data/logs
 

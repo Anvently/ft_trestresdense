@@ -44,7 +44,7 @@ class LoginView(APIView):
         if user.check_password(request.data["password"]) == False:
             return Response({"Invalid credentials."}, status=status.HTTP_400_BAD_REQUEST)
         try:
-            data = {"user_id": user.username, "exp": time.time() + 15 * 60}
+            data = {"username": user.username, "exp": time.time() + 15 * 60}
             token = generate_jwt_token(data, ttl_based=True)
         except Exception as e:
             return Response(
