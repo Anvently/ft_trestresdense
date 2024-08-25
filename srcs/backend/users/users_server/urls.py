@@ -17,24 +17,21 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 
-from users_api.views import UserViewSet, GenerateToken, VerifyToken, LoginView
-from rest_framework.routers import DefaultRouter
+from users_api.views import UserViewSet, LobbyViewSet, ScoreViewSet
+from rest_framework.routers import SimpleRouter
+from rest_framework_nested.routers import NestedSimpleRouter
 from rest_framework.authtoken import views
 
-router = DefaultRouter()
-router.register(r'users', UserViewSet)
-urlpatterns = router.urls
+router = SimpleRouter()
+router.register(r'users', UserViewSet, basename='users')
+router.register(r'lobbys', LobbyViewSet, basename='lobbys')
+nested_router = NestedSimpleRouter(router, r'users', lookup='user')
+nested_router.register(r'scores', ScoreViewSet, basename='user_scores')
+
+# urlpatterns = router.urls
 
 urlpatterns = [
     path('', include(router.urls)),
+	path('', include(nested_router.urls)),
     path('admin/', admin.site.urls),
-	# path('users/', UserViewSet.as_view({'get': 'list'})),
-	# path('user/<username>', UserViewSet.as_view({'get': 'retrieve'})),
-	# path('api-token-auth/', CustomAuthToken.as_view()),
-    # path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    # path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-	# path('api/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
-	path("generate-token/", GenerateToken.as_view(), name="generate-token"),
-    path("verify-token/", VerifyToken.as_view(), name="verify-token"),
-	path("login/", LoginView.as_view(), name="login"),
 ]

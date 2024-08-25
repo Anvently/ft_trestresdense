@@ -1,8 +1,17 @@
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import AuthenticationFailed
 from django.contrib.auth.models import User
+import time
+import jwt
 
-from users_api.crypt import verify_jwt
+from django.conf import settings
+
+def verify_jwt(token, is_ttl_based=False, ttl_key="exp"):
+	data = jwt.decode(token, settings.RSA_PUBLIC_KEY, algorithms=["RS512"])
+	if is_ttl_based:
+		if data[ttl_key] < time.time():
+			raise ValueError("Token expired")
+	return data
 
 class TTLBasedJWTAuthentication(BaseAuthentication):
     def authenticate(self, request):

@@ -79,29 +79,25 @@ services:
     volumes:
       - ./srcs/backend/websocket_example/:/code
 
-
-
-  # users_api:
-  #   container_name: users_api_c
-  #   build:
-  #     context: ./srcs/django_builds
-  #     target: django_restapi
-  #   command: python3 manage.py runserver 0.0.0.0:8001
-  #   volumes:
-  #     - ./srcs/backend/users/:/code
-  #     - ./data/keys/rsa/pub.pem:/etc/certificate/pub.pem
-  #   ports:
-  #     - "8001:8001"
-  #   depends_on:
-  #     - db
-  #   environment:
-  #     - POSTGRES_USER=${POSTGRES_USER}
-  #     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-  #     - POSTGRES_HOST=${POSTGRES_HOST}
-  #     - POSTGRES_PORT=${POSTGRES_PORT}
-  #     - POSTGRES_DB=${POSTGRES_DB_USERS}
-  #   secrets:
-  #     - rsa-key
+  users_api:
+    container_name: users_api_c
+    build:
+      context: ./srcs/django_builds
+      target: django_usersapi
+    command: python3 manage.py runserver 0.0.0.0:8001
+    volumes:
+      - ./srcs/backend/users/:/code
+      - ./data/keys/rsa/pub.pem:/etc/certificate/pub.pem
+    ports:
+      - "8001:8001"
+    depends_on:
+      - db
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_DB=${POSTGRES_DB_USERS}
 
   # web2:
   #   container_name: web2_c

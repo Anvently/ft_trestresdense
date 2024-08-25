@@ -1,14 +1,39 @@
-from django.contrib.auth.models import User
+from users_api.models import User, Score, Lobby
 from rest_framework import serializers
 
+class DynamicFieldsSerializer(serializers.ModelSerializer):
+	def __init__(self, *args, **kwargs):
+		# Don't pass the 'fields' arg up to the superclass
+		fields = kwargs.pop('fields', None)
+
+		# Instantiate the superclass normally
+		super().__init__(*args, **kwargs)
+
+		if fields is not None:
+			# Drop any fields that are not specified in the `fields` argument.
+			allowed = set(fields)
+			existing = set(self.fields)
+			for field_name in existing - allowed:
+				self.fields.pop(field_name)
+
+class ScoreSerializer(DynamicFieldsSerializer):
+	user = 	serializers.CharField(source='user.username')
+	lobby = serializers.IntegerField(source='lobby.lobby_id')
+
+	class Meta:
+		model = Score
+		fields = ['user', 'lobby', 'score', 'has_win',]
+
+class LobbySerializer(serializers.HyperlinkedModelSerializer):
+	scores_set = ScoreSerializer(many=True, fields=['user', 'score', 'has_win'])
+
+	class Meta:
+		model = Lobby
+		fields = ('lobby_id', 'game_name', 'scores_set')
+
 class UserSerializer(serializers.HyperlinkedModelSerializer):
+	scores_set = ScoreSerializer(many=True, read_only=True, fields=['lobby', 'score', 'has_win'])
+
 	class Meta:
 		model = User
-		fields = ['username', 'first_name', 'last_name', 'email', \
-			'password', 'groups', 'is_staff', 'last_login', 'is_superuser']
-
-class LoginSerializer(serializers.HyperlinkedModelSerializer):
-	class Meta:
-		model = User
-		fields = ['username', 'password']
-
+		fields = ['username', 'avatar', 'scores_set']
