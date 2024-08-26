@@ -25,7 +25,7 @@ from auth_api.views import UserView, GenerateToken, VerifyToken, LoginView, Regi
 urlpatterns = [
     path('admin/', admin.site.urls),
 	path('', UserView.as_view(), name='users'),
-	path("generate-token/", GenerateToken.as_view(), name="generate-token"),
+	# path("generate-token/", GenerateToken.as_view(), name="generate-token"),
     path("verify-token/", VerifyToken.as_view(), name="verify-token"),
 	path("login/", LoginView.as_view(), name="login"),
 	path("register/", RegisterView.as_view(), name="register"),

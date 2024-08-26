@@ -1,12 +1,24 @@
+from typing import Any
 from django.db import models
+from django.urls import reverse
 
 # Create your models here.
 class	User(models.Model):
 	username = models.CharField(max_length=150)
-	avatar = models.ImageField(upload_to="avatars/", blank=True)
+	uploaded_avatar = models.ImageField(upload_to="", blank=True, default="__default__.png")
+	external_avatar = models.URLField(blank=True)
 
 	def __str__(self) -> str:
 		return self.username
+	
+	def get_avatar_url(self) -> str:
+		if self.uploaded_avatar:
+			return self.uploaded_avatar.url
+		return self.external_avatar
+	
+	def delete(self):
+		self.uploaded_avatar.delete()
+		return super().delete()
 
 class	Lobby(models.Model):
 	lobby_id = models.BigIntegerField(verbose_name="lobby unique id")

@@ -4,14 +4,14 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from auth_api.serializers import UserSerializer, UserInfosSerializer
-from auth_api.authentication import TTLBasedJWTAuthentication
+from auth_api.authentication import CookieJWTAuthentication, HeaderJWTAuthentication
 from auth_api.crypt import generate_jwt_token
 import time
 
 class UserView(APIView):
 
 	permission_classes = [IsAuthenticated]
-	authentication_classes = [TTLBasedJWTAuthentication]
+	authentication_classes = [CookieJWTAuthentication, HeaderJWTAuthentication]
 
 	def get(self, request):
 		users = User.objects.all()
@@ -21,7 +21,7 @@ class UserView(APIView):
 class DeleteView(APIView):
 
 	permission_classes = [IsAuthenticated]
-	authentication_classes = [TTLBasedJWTAuthentication]
+	authentication_classes = [CookieJWTAuthentication, HeaderJWTAuthentication]
 
 	def delete(self, request, username):
 		if request.user.username != username:
@@ -32,7 +32,7 @@ class DeleteView(APIView):
 class UpdateView(APIView):
 
 	permission_classes = [IsAuthenticated]
-	authentication_classes = [TTLBasedJWTAuthentication]
+	authentication_classes = [CookieJWTAuthentication, HeaderJWTAuthentication]
 
 	def post(self, request):
 		serializer = UserInfosSerializer(data=request.data, instance=request.user)
@@ -81,12 +81,12 @@ class LoginView(APIView):
 			return Response(
 				{"error": f"Failed to generate token: {e}"}, status=status.HTTP_400_BAD_REQUEST
 			)
-		response = Response({"success"}, status=status.HTTP_200_OK)
-		response.set_cookie('auth-token', token)
+		response = Response({"token":token}, status=status.HTTP_200_OK)
+		response.set_cookie('auth-token', token, expires=data["exp"])
 		return response
 
 class VerifyToken(APIView):
-	authentication_classes = [TTLBasedJWTAuthentication]
+	authentication_classes = [CookieJWTAuthentication, HeaderJWTAuthentication]
 
 	def get(self, request):
 		return Response({"message": "Token verified", "data": request.jwt_data}, status=status.HTTP_200_OK)

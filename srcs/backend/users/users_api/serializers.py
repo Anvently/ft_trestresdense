@@ -33,7 +33,11 @@ class LobbySerializer(serializers.HyperlinkedModelSerializer):
 
 class UserSerializer(serializers.HyperlinkedModelSerializer):
 	scores_set = ScoreSerializer(many=True, read_only=True, fields=['lobby', 'score', 'has_win'])
+	avatar = serializers.SerializerMethodField()
 
 	class Meta:
 		model = User
 		fields = ['username', 'avatar', 'scores_set']
+
+	def get_avatar(self, obj: User):
+		return obj.get_avatar_url()

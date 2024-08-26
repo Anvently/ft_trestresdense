@@ -153,6 +153,9 @@ USE_TZ = True
 STATIC_URL = "/static/"
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
+MEDIA_URL   = "/avatars/"
+MEDIA_ROOT  = "/avatars/"
+
 # STATICFILES_DIRS = (os.path.join(BASE_DIR, "localhost:8083", "api/static"))
 
 # Default primary key field type

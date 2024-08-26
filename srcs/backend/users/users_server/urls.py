@@ -16,8 +16,10 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
 
-from users_api.views import UserViewSet, LobbyViewSet, ScoreViewSet
+from users_api.views import UserViewSet, LobbyViewSet, ScoreViewSet, AvatarView
 from rest_framework.routers import SimpleRouter
 from rest_framework_nested.routers import NestedSimpleRouter
 from rest_framework.authtoken import views
@@ -34,4 +36,5 @@ urlpatterns = [
     path('', include(router.urls)),
 	path('', include(nested_router.urls)),
     path('admin/', admin.site.urls),
-]
+	path('users/<username>/avatar/', AvatarView.as_view())
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

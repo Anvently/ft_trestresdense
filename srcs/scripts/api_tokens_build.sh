@@ -5,18 +5,6 @@ generate_jwt() {
   local api_name="$1"
   local private_key_path="$2"
 
-  # Vérifier si les paramètres sont fournis
-  if [ -z "$api_name" ] || [ -z "$private_key_path" ]; then
-    echo "Usage: generate_jwt <API_NAME> <PRIVATE_KEY_PATH>"
-    return 1
-  fi
-
-  # Vérifier si la clé privée existe
-  if [ ! -f "$private_key_path" ]; then
-    echo "Clé privée non trouvée: $private_key_path"
-    return 1
-  fi
-
   # Générer l'en-tête et le payload
   local header=$(echo -n '{"alg":"RS512","typ":"jwt"}' | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
   local payload=$(echo -n "{\"api\":\"$api_name\",\"exp\":\"never\"}" | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
@@ -34,16 +22,30 @@ generate_jwt() {
   echo "$jwt_token"
 }
 
-# Si le script est exécuté directement avec des paramètres
-if [ "$#" -eq 2 ]; then
-  generate_jwt "$1" "$2"
+# Fonction principale pour traiter la liste des API et générer les fichiers correspondants
+generate_tokens_for_apis() {
+  local api_name_list="$1"
+  local private_key_path="$2"
+  local output_dir="$3"
+
+  # Vérifier si le dossier de sortie existe, sinon le créer
+  if [ ! -d "$output_dir" ]; then
+    mkdir -p "$output_dir"
+  fi
+
+  # Séparer la liste des API par des virgules et traiter chaque API
+  IFS=',' read -ra api_names <<< "$api_name_list"
+  for api_name in "${api_names[@]}"; do
+    local token=$(generate_jwt "$api_name" "$private_key_path")
+    echo "$token" > "$output_dir/$api_name"
+    echo "Token généré pour $api_name: $output_dir/$api_name"
+  done
+}
+
+# Si le script est exécuté directement avec les paramètres nécessaires
+if [ "$#" -eq 3 ]; then
+  generate_tokens_for_apis "$1" "$2" "$3"
 else
-  echo "Usage: $0 <API_NAME> <PRIVATE_KEY_PATH>"
+  echo "Usage: $0 <API_NAME_LIST> <PRIVATE_KEY_PATH> <OUTPUT_DIR>"
   exit 1
 fi
-
-# Exemple d'utilisation de la fonction
-# API_NAME="your_api_name" 
-# PRIVATE_KEY_PATH="/path/to/your/private_key.pem"
-# token=$(generate_jwt "$API_NAME" "$PRIVATE_KEY_PATH")
-# echo "Generated JWT Token: $token"

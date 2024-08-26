@@ -3,36 +3,45 @@ TARGET		=	compose
 DATA_DIR	= ./data/
 
 DATA_DEPS	= $(DATA_DIR) $(DATA_DIR)db/ \
-				data/keys/ssl/ssl.crt data/keys/ssl/ssl.key \
-				data/keys/rsa/key.pem data/keys/rsa/pub.pem \
-				data/logs/
+				$(DATA_DIR)keys/ssl/ssl.crt $(DATA_DIR)keys/ssl/ssl.key \
+				$(DATA_DIR)keys/rsa/key.pem $(DATA_DIR)keys/rsa/pub.pem \
+				$(DATA_DIR)logs/ \
+				$(API_TOKENS_FILES)
+
+API_TOKENS		=	"auth,pong,users"
+
+API_TOKENS_FILES	=	$(addprefix $(DATA_DIR)keys/api-tokens/,$(API_TOKENS))
 
 all: build compose
 
-data/keys/ssl/ssl.crt:
+$(DATA_DIR)keys/ssl/ssl.crt:
 	$(MAKE) gen_ssl
 
-data/keys/ssl/ssl.key:
+$(DATA_DIR)keys/ssl/ssl.key:
 	$(MAKE) gen_ssl
 
-data/keys/rsa/key.pem:
+$(DATA_DIR)keys/rsa/key.pem:
 	$(MAKE) gen_rsa
-data/keys/rsa/pub.pem:
+$(DATA_DIR)keys/rsa/pub.pem:
 	$(MAKE) gen_rsa
 
-data/logs/:
-	mkdir -p data/logs
+$(DATA_DIR)logs/:
+	mkdir -p $(DATA_DIR)logs
+
+$(API_TOKENS_FILES): $(DATA_DIR)keys/rsa/key.pem
+	-mkdir -p $(DATA_DIR)keys/api-tokens/
+	./srcs/scripts/api_tokens_build.sh $(API_TOKENS) $(DATA_DIR)keys/ssl/ssl.key $(DATA_DIR)keys/api-tokens/
 
 gen_ssl:
-	-mkdir -p data/keys/ssl
-	@openssl req -x509 -nodes -newkey rsa:4096 -keyout data/keys/ssl/ssl.key -out data/keys/ssl/ssl.crt -sha256 -days 365 \
+	-mkdir -p $(DATA_DIR)keys/ssl
+	@openssl req -x509 -nodes -newkey rsa:4096 -keyout $(DATA_DIR)keys/ssl/ssl.key -out $(DATA_DIR)keys/ssl/ssl.crt -sha256 -days 365 \
 		-subj="/CN=npirard"
 
 gen_rsa:
-	-mkdir -p data/keys/rsa
-	openssl genpkey -out data/keys/rsa/key.pem -algorithm rsa -pkeyopt rsa_keygen_bits:2048
-	openssl rsa -in data/keys/rsa/key.pem -out data/keys/rsa/pub.pem -pubout 
-	# openssl rsa -in data/keys/rsa/key.pem -outform PEM -pubout -out data/keys/rsa/pub.pem
+	-mkdir -p $(DATA_DIR)keys/rsa
+	openssl genpkey -out $(DATA_DIR)keys/rsa/key.pem -algorithm rsa -pkeyopt rsa_keygen_bits:2048
+	openssl rsa -in $(DATA_DIR)keys/rsa/key.pem -out $(DATA_DIR)keys/rsa/pub.pem -pubout 
+	# openssl rsa -in $(DATA_DIR)keys/rsa/key.pem -outform PEM -pubout -out $(DATA_DIR)keys/rsa/pub.pem
 	# openssl pkcs8 -topk8 -inform PEM -outform PEM -nocrypt -in keypair.pem -out pkcs8.key
 
 gen_rsa2:
@@ -51,7 +60,7 @@ $(DATA_DIR):
 	-mkdir -p $(DATA_DIR)
 
 root_rm:
-	docker run -v ./data:/data/ -it --rm alpine rm "-rf" "/data/"
+	docker run -v ./data:/$(DATA_DIR) -it --rm alpine rm "-rf" "/$(DATA_DIR)"
 
 stop:
 	docker compose down
