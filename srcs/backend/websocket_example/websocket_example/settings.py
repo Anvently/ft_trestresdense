@@ -131,7 +131,14 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [("redis_c", 8008)],
+            "hosts": [("redis", 6379)],
         },
     },
 }
+
+# should be deleted once redis works fine
+# CHANNEL_LAYERS = {
+#     "default": {
+#         "BACKEND": "channels.layers.InMemoryChannelLayer"
+#     }
+# }

@@ -5,7 +5,7 @@ const LoginButt = document.getElementById("login-form-submit");
 
 
 function foo() {
-	
+
 	console.log("username : %s | password: %s", loginForm.username.value, loginForm.password.value);
 }
 
@@ -13,14 +13,14 @@ LoginButt.addEventListener("click", e => {
 	e.preventDefault();
 	foo();
 
-	
+
 	fetch('https://localhost:8083/api/auth/login/', {
         method: 'POST',
         headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
             "username": loginForm.username.value,
             "password": loginForm.password.value
         })

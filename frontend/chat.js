@@ -2,7 +2,7 @@ export function lancementChat ()
 {
 
 	const roomName = 'lobby';
-	
+
 	const chatSocket = new WebSocket(
 		'wss://'
 		+ 'localhost:8083'

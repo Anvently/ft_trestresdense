@@ -14,4 +14,4 @@ RUN pip3 install -U Pillow drf-nested-routers
 
 FROM django_base AS django_websocketapi
 RUN pip3 install -U 'channels[daphne]'
-RUN pip3 install -U channels_redis
+RUN pip3 install -U channels-redis
