@@ -5,7 +5,7 @@ const LoginButt = document.getElementById("login-form-submit");
 
 
 function foo() {
-	
+
 	console.log("username : %s | password: %s", loginForm.username.value, loginForm.password.value);
 }
 
@@ -13,14 +13,14 @@ LoginButt.addEventListener("click", e => {
 	e.preventDefault();
 	foo();
 
-	
-	fetch('https://localhost:8083/api/login/', {
+
+	fetch('https://localhost:8083/api/auth/login/', {
         method: 'POST',
         headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
             "username": loginForm.username.value,
             "password": loginForm.password.value
         })
@@ -35,9 +35,9 @@ LoginButt.addEventListener("click", e => {
         {
             localStorage.setItem('authToken', data.token);
             console.log('Token saved: ', data.token);
-            console.log("is a token"); 
+            console.log("is a token");
             document.querySelector("#app").innerHTML = '<textarea id="chat-log" cols="100" rows="20"></textarea><br> <input id="chat-message-input" type="text" size="100"><br> <input id="chat-message-submit" type="button" value="Send"> {lobby}';
-            lancementChat();
+            lancementChat(data.token);
         }
         else
             console.error('Token not found in response');

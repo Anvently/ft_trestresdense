@@ -2,13 +2,13 @@ export function lancementChat ()
 {
 
 	const roomName = 'lobby';
-	
+
 	const chatSocket = new WebSocket(
-		'ws://'
+		'wss://'
 		+ 'localhost:8083'
 		+ '/ws/websocket_example/'
 	+ roomName
-	+ '/'
+	+ '/', ["realProtocol", "authToken"]
 );
 
 chatSocket.onmessage = function(e) {

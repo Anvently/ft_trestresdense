@@ -5,6 +5,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         # Accept the WebSocket connection
         await self.accept()
+        print(self.scope)
         await self.send(json.dumps({
            'message': 'Hello, how can I help you?'
 		}))
