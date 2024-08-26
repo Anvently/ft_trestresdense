@@ -81,7 +81,9 @@ class LoginView(APIView):
 			return Response(
 				{"error": f"Failed to generate token: {e}"}, status=status.HTTP_400_BAD_REQUEST
 			)
-		return Response({"token": token}, status=status.HTTP_200_OK)
+		response = Response({"success"}, status=status.HTTP_200_OK)
+		response.set_cookie('auth-token', token)
+		return response
 
 class VerifyToken(APIView):
 	authentication_classes = [TTLBasedJWTAuthentication]

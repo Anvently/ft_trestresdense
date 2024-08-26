@@ -31,16 +31,8 @@ LoginButt.addEventListener("click", e => {
             return response.json();
        })
        .then(data=> {
-        if (data.token)
-        {
-            localStorage.setItem('authToken', data.token);
-            console.log('Token saved: ', data.token);
-            console.log("is a token");
-            document.querySelector("#app").innerHTML = '<textarea id="chat-log" cols="100" rows="20"></textarea><br> <input id="chat-message-input" type="text" size="100"><br> <input id="chat-message-submit" type="button" value="Send"> {lobby}';
-            lancementChat(data.token);
-        }
-        else
-            console.error('Token not found in response');
+        document.querySelector("#app").innerHTML = '<textarea id="chat-log" cols="100" rows="20"></textarea><br> <input id="chat-message-input" type="text" size="100"><br> <input id="chat-message-submit" type="button" value="Send"> {lobby}';
+        lancementChat();
        })
        .catch(error => {
             console.error('There was a problem with the fetch operation: ', error);

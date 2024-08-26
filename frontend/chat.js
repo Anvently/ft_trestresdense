@@ -8,7 +8,7 @@ export function lancementChat ()
 		+ 'localhost:8083'
 		+ '/ws/websocket_example/'
 	+ roomName
-	+ '/', ["realProtocol", "authToken"]
+	+ '/', ["realProtocol", "yourAccessTokenOrSimilar"]
 );
 
 chatSocket.onmessage = function(e) {
