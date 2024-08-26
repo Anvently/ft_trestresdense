@@ -72,6 +72,8 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'auth_server.wsgi.application'
 
+ISSUER_URL = os.getenv('ISSUER_URL')
+
 with open('/run/secrets/rsa-key', 'rb') as file:
     RSA_PRIVATE_KEY = file.read()
 
