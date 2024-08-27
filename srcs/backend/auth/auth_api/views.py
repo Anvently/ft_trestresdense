@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from auth_api.serializers import UserSerializer, UserInfosSerializer
 from auth_api.authentication import CookieJWTAuthentication, HeaderJWTAuthentication
 from auth_api.crypt import generate_jwt_token
+from django.conf import settings
 import time
 
 class UserView(APIView):
@@ -73,14 +74,14 @@ class LoginView(APIView):
 		if user.check_password(request.data["password"]) == False:
 			return Response({"Invalid credentials."}, status=status.HTTP_400_BAD_REQUEST)
 		try:
-			data = {"username": user.username, "exp": time.time() + 15 * 60}
+			data = {"username": user.username}
 			token = generate_jwt_token(data, ttl_based=True)
 		except Exception as e:
 			return Response(
 				{"error": f"Failed to generate token: {e}"}, status=status.HTTP_400_BAD_REQUEST
 			)
 		response = Response({"token":token}, status=status.HTTP_200_OK)
-		response.set_cookie('auth-token', token, expires=data["exp"])
+		response.set_cookie('auth-token', token, expires=time.time() + settings.RSA_KEY_EXPIRATION)
 		return response
 
 class VerifyToken(APIView):

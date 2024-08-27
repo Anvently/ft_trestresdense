@@ -32,9 +32,9 @@ class ScoreViewSet(viewsets.ReadOnlyModelViewSet):
 		return super().get_serializer(*args, **kwargs, fields = ['lobby', 'score', 'has_win'])
 	
 class AvatarView(APIView):
-	parser_classes = [FileUploadParser, MultiPartParser]
 	permission_classes = [IsAuthenticatedOrReadOnly]
 	authentication_classes = [CookieUserJWTAuthentication, HeaderUserJWTAuthentication]
+
 
 	def	get(self, *args, **kargs):
 		try:
@@ -44,7 +44,9 @@ class AvatarView(APIView):
 		return HttpResponseRedirect(user.get_avatar_url())
 	
 	def post(self, *args, **kargs):
-		serializer = AvatarUploadSerializer(self.request.data, self.request.user)
+		if self.request.user.username != kargs['username']:
+			return Response('You are not logged as {}'.format(kargs['username']), status=status.HTTP_403_FORBIDDEN)
+		serializer = AvatarUploadSerializer(data=self.request.data,instance=self.request.user)
 		if serializer.is_valid():
 			serializer.save()
 			return Response(self.request.user.get_avatar_url(), status=status.HTTP_200_OK)
