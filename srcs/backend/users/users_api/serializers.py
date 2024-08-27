@@ -41,3 +41,11 @@ class UserSerializer(serializers.HyperlinkedModelSerializer):
 
 	def get_avatar(self, obj: User):
 		return obj.get_avatar_url()
+
+class AvatarUploadSerializer(serializers.HyperlinkedModelSerializer):
+	uploaded_avatar = serializers.ImageField(required = False, write_only = True)
+	external_avatar = serializers.URLField(required = False, write_only = True)
+
+	class Meta:
+		model = User
+		fields = ['external_avatar', 'uploaded_avatar']

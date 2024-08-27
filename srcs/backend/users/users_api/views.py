@@ -6,7 +6,7 @@ from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.parsers import MultiPartParser, FileUploadParser
 from rest_framework.response import Response
 from users_api.models import User, Lobby, Score
-from users_api.serializers import UserSerializer, LobbySerializer, ScoreSerializer
+from users_api.serializers import UserSerializer, LobbySerializer, ScoreSerializer, AvatarUploadSerializer
 from users_api.authentication import CookieUserJWTAuthentication, HeaderUserJWTAuthentication, ApiJWTAuthentication
 from django.http import HttpResponseRedirect
 
@@ -35,14 +35,19 @@ class AvatarView(APIView):
 	parser_classes = [FileUploadParser, MultiPartParser]
 	permission_classes = [IsAuthenticatedOrReadOnly]
 	authentication_classes = [CookieUserJWTAuthentication, HeaderUserJWTAuthentication]
-	serializer = serializers.ImageField
 
-	def	get(self, username):
+	def	get(self, *args, **kargs):
 		try:
-			user = User.objects.get(username=username)
+			user = User.objects.get(username=kargs['username'])
 		except:
 			return Response({"No such user."}, status=status.HTTP_404_NOT_FOUND)
 		return HttpResponseRedirect(user.get_avatar_url())
 	
+	def post(self, *args, **kargs):
+		serializer = AvatarUploadSerializer(self.request.data, self.request.user)
+		if serializer.is_valid():
+			serializer.save()
+			return Response(self.request.user.get_avatar_url(), status=status.HTTP_200_OK)
+		return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 

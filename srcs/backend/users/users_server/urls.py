@@ -33,8 +33,8 @@ nested_router.register(r'scores', ScoreViewSet, basename='user_scores')
 # urlpatterns = router.urls
 
 urlpatterns = [
-    path('', include(router.urls)),
-	path('', include(nested_router.urls)),
+    path('api/', include(router.urls)),
+	path('api/', include(nested_router.urls)),
     path('admin/', admin.site.urls),
-	path('users/<username>/avatar/', AvatarView.as_view())
+	path('api/users/<username>/avatar/', AvatarView.as_view())
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

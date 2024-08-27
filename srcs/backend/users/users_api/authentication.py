@@ -1,6 +1,6 @@
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import AuthenticationFailed
-from django.contrib.auth.models import User
+from users_api.models import User
 import time
 import jwt
 
@@ -34,7 +34,7 @@ class CookieUserJWTAuthentication(BaseAuthentication):
 		# token = request.headers.get("Authorization")
 		token = request.COOKIES.get('auth-token')
 		if not token:
-			raise AuthenticationFailed("Auth token not provided")
+			return None
 		try:
 			# token = token.removeprefix("Bearer ")
 			data = verify_jwt(token, is_ttl_based=True)
@@ -55,7 +55,7 @@ class HeaderUserJWTAuthentication(BaseAuthentication):
 	def authenticate(self, request):
 		token = request.headers.get("Authorization")
 		if not token:
-			raise AuthenticationFailed("Auth token not provided")
+			return None
 		try:
 			token = token.removeprefix("Bearer ")
 			data = verify_jwt(token, is_ttl_based=True)

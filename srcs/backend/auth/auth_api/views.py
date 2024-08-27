@@ -23,9 +23,7 @@ class DeleteView(APIView):
 	permission_classes = [IsAuthenticated]
 	authentication_classes = [CookieJWTAuthentication, HeaderJWTAuthentication]
 
-	def delete(self, request, username):
-		if request.user.username != username:
-			return Response({"Not authorized."}, status=status.HTTP_401_UNAUTHORIZED)
+	def delete(self, request):
 		request.user.delete()
 		return Response(status=status.HTTP_204_NO_CONTENT)
 
