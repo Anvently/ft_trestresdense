@@ -17,7 +17,8 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from rest_framework import routers
-from auth_api.views import UserView, GenerateToken, VerifyToken, LoginView, RegisterView, UpdateView, DeleteView
+from auth_api.views import UserView, VerifyToken, LoginView, \
+            RegisterView, UpdateView, DeleteView, SignIn42CallbackView
 
 # router = routers.DefaultRouter()
 # router.register(r'users', UserView)
@@ -31,4 +32,5 @@ urlpatterns = [
 	path("api/auth/register/", RegisterView.as_view(), name="register"),
 	path("api/auth/update/", UpdateView.as_view(), name="update"),
 	path("api/auth/delete/", DeleteView.as_view(), name="delete"),
+	path("api/auth/42-api-callback", SignIn42CallbackView.as_view(), name="42-callback"),
 ]

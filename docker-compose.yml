@@ -61,6 +61,8 @@ services:
       - POSTGRES_DB=${POSTGRES_DB_AUTH}
       - ISSUER_URL=${AUTH_ISSUER_URL}
       - ALLOWED_APIS=${AUTH_API_ALLOWED_APIS}
+      - API42_UUID=${API42_UUID}
+      - API42_SECRET=${API42_SECRET}
     secrets:
       - rsa-key
 

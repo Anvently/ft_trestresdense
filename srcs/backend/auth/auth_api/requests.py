@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 from django.conf import settings
 from rest_framework.exceptions import APIException
 from rest_framework import status
+from django.http.request import HttpRequest
 
 class StatusException(APIException):
 	status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -52,3 +53,21 @@ def delete_user(username: str) -> bool:
 	if response == None or (response.status_code != 204 and response.status_code != 404):
 		raise StatusException("deleting_user", response.status_code, response.content)
 	return True
+
+def obtain_oauth_token(request:HttpRequest, code:str) -> str:
+	data = {
+		'grant_type':'authorization_code',
+		'client_id':settings.API42_UUID,
+		'client_secret':settings.API42_SECRET,
+		'code': code,
+		'redirect_uri': 'https://localhost:8083/home.html'
+	}
+	try:
+		response = requests.post("https://api.intra.42.fr/oauth/token",
+						data=data,
+						headers={'Host': 'localhost', 'Content-Type':'application/x-www-form-urlencoded'}
+		)
+	except:
+		raise StatusException("Obtaining oauth token on user behalf.")
+	print(response.content)
+	return "pouet"

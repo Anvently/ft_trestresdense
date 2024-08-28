@@ -83,6 +83,9 @@ with open('/etc/certificate/pub.pem', 'rb') as file:
 with open('/etc/certificate/api-token', 'rb') as file:
     API_TOKEN = file.read()
 
+API42_UUID = os.getenv('API42_UUID')
+API42_SECRET = os.getenv('API42_SECRET')
+
 # print(RSA_PUBLIC_KEY)
 # print(RSA_PRIVATE_KEY)
 

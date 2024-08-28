@@ -8,7 +8,8 @@ from auth_api.serializers import UserSerializer, UserInfosSerializer
 from auth_api.authentication import CookieJWTAuthentication, HeaderJWTAuthentication
 from auth_api.crypt import generate_jwt_token
 from django.conf import settings
-from auth_api.requests import delete_user, post_new_user
+from auth_api.requests import delete_user, post_new_user, obtain_oauth_token
+
 import time
 
 class UserView(APIView):
@@ -98,4 +99,15 @@ class VerifyToken(APIView):
 
 	def get(self, request):
 		return Response({"message": "Token verified", "data": request.jwt_data}, status=status.HTTP_200_OK)
+
+class SignIn42CallbackView(APIView):
+	# authentication_classes = [Api]
+
+	def get(self, request):
+		code = request.GET.get('code')
+		
+		if code == None:
+			return Response("Missing authorization code.", status=status.HTTP_400_BAD_REQUEST)
+		token = obtain_oauth_token(request, code)
+		return Response("Login successfull. Token:{}".format(token), status=status.HTTP_200_OK)
 
