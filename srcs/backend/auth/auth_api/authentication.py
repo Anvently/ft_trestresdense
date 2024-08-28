@@ -45,3 +45,4 @@ class HeaderJWTAuthentication(BaseAuthentication):
 	
 	def authenticate_header(self, request):
 		return "Bearer"
+	
