@@ -1,4 +1,5 @@
 from django.contrib.auth.models import User
+from django.contrib.auth import logout
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
@@ -7,6 +8,7 @@ from auth_api.serializers import UserSerializer, UserInfosSerializer
 from auth_api.authentication import CookieJWTAuthentication, HeaderJWTAuthentication
 from auth_api.crypt import generate_jwt_token
 from django.conf import settings
+from auth_api.requests import delete_user, post_new_user
 import time
 
 class UserView(APIView):
@@ -25,8 +27,12 @@ class DeleteView(APIView):
 	authentication_classes = [CookieJWTAuthentication, HeaderJWTAuthentication]
 
 	def delete(self, request):
+		delete_user(request.user)
 		request.user.delete()
-		return Response(status=status.HTTP_204_NO_CONTENT)
+		logout(request)
+		response = Response(status=status.HTTP_204_NO_CONTENT)
+		response.delete_cookie('auth-token')
+		return response
 
 class UpdateView(APIView):
 
@@ -46,6 +52,9 @@ class RegisterView(APIView):
 		serializer = UserInfosSerializer(data=request.data)
 		if not serializer.is_valid():
 			return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+		post_new_user(request.data["username"],
+				(request.data["url_avatar"] if "url_avatar" in request.data else None),
+				(request.data["display_name"] if "display_name" in request.data else request.data["username"]))
 		serializer.save()
 		return Response(serializer.data, status=status.HTTP_201_CREATED)
 

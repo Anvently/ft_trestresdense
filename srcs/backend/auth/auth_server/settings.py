@@ -80,8 +80,11 @@ with open('/run/secrets/rsa-key', 'rb') as file:
 with open('/etc/certificate/pub.pem', 'rb') as file:
     RSA_PUBLIC_KEY = file.read()
 
-print(RSA_PUBLIC_KEY)
-print(RSA_PRIVATE_KEY)
+with open('/etc/certificate/api-token', 'rb') as file:
+    API_TOKEN = file.read()
+
+# print(RSA_PUBLIC_KEY)
+# print(RSA_PRIVATE_KEY)
 
 WSGI_APPLICATION = 'auth_server.wsgi.application'
 

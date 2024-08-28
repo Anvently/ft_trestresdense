@@ -1,0 +1,3 @@
+Failles possibles :
+	- si on obtient un token valide pour un user "xyz", on supprime le compte, et quelqu'un recreait le compte "xyz", notre token est toujours valide.
+	

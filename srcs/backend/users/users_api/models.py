@@ -11,6 +11,8 @@ class	User(user_models.AbstractUser):
 
 	uploaded_avatar = models.ImageField(upload_to=upload_to, blank=True, default="__default__.png")
 	external_avatar = models.URLField(blank=True)
+	display_name = models.CharField(max_length=30, default="DisplayName")
+
 	api_name: str = None
 
 	def __str__(self) -> str:
@@ -38,11 +40,12 @@ class	User(user_models.AbstractUser):
 					self.uploaded_avatar = "__default__.png"
 		except: pass
 		return super(User, self).save(*args, **kwargs)
-		
+	
 
 class	Lobby(models.Model):
 	lobby_id = models.BigIntegerField(verbose_name="lobby unique id")
 	game_name = models.CharField(max_length=50)
+	date = models.DateTimeField(auto_now_add=True, editable=False)
 
 	def __str__(self) -> str:
 		return self.lobby_id.__str__()
@@ -60,6 +63,7 @@ class	Score(models.Model):
 		on_delete=models.CASCADE,
 		related_name="scores_set"
 	)
+	date = models.DateTimeField(auto_now_add=True, editable=False)
 	score = models.IntegerField(default=0)
 	has_win = models.BooleanField(default=False)
 

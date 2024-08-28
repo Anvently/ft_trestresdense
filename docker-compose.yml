@@ -43,7 +43,7 @@ services:
     container_name: auth_api_c
     build:
       context: ./srcs/django_builds
-      target: django_restapi
+      target: django_authapi
     command: python3 manage.py runserver 0.0.0.0:8000
     volumes:
       - ./srcs/backend/auth/:/code
