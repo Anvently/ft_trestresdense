@@ -8,7 +8,11 @@ DATA_DEPS	= $(DATA_DIR) $(DATA_DIR)db/ \
 				$(DATA_DIR)logs/ \
 				$(API_TOKENS_FILES)
 
-API_TOKENS		=	"auth,pong,users"
+space := $(empty) $(empty)
+comma := ,
+
+API_TOKENS			=	auth pong users
+API_TOKENS_PARAMS	=	$(subst $(space),$(comma),$(API_TOKENS))
 
 API_TOKENS_FILES	=	$(addprefix $(DATA_DIR)keys/api-tokens/,$(API_TOKENS))
 
@@ -30,7 +34,7 @@ $(DATA_DIR)logs/:
 
 $(API_TOKENS_FILES): $(DATA_DIR)keys/rsa/key.pem
 	-mkdir -p $(DATA_DIR)keys/api-tokens/
-	./srcs/scripts/api_tokens_build.sh $(API_TOKENS) $(DATA_DIR)keys/ssl/ssl.key $(DATA_DIR)keys/api-tokens/
+	./srcs/scripts/api_tokens_build.sh $(API_TOKENS_PARAMS) $(DATA_DIR)keys/rsa/key.pem $(DATA_DIR)keys/api-tokens/
 
 gen_ssl:
 	-mkdir -p $(DATA_DIR)keys/ssl
@@ -40,7 +44,8 @@ gen_ssl:
 gen_rsa:
 	-mkdir -p $(DATA_DIR)keys/rsa
 	openssl genpkey -out $(DATA_DIR)keys/rsa/key.pem -algorithm rsa -pkeyopt rsa_keygen_bits:2048
-	openssl rsa -in $(DATA_DIR)keys/rsa/key.pem -out $(DATA_DIR)keys/rsa/pub.pem -pubout 
+	openssl rsa -in $(DATA_DIR)keys/rsa/key.pem -out $(DATA_DIR)keys/rsa/pub.pem -pubout
+	$(MAKE) $(API_TOKENS_FILES)
 	# openssl rsa -in $(DATA_DIR)keys/rsa/key.pem -outform PEM -pubout -out $(DATA_DIR)keys/rsa/pub.pem
 	# openssl pkcs8 -topk8 -inform PEM -outform PEM -nocrypt -in keypair.pem -out pkcs8.key
 

@@ -11,6 +11,7 @@ class	User(user_models.AbstractUser):
 
 	uploaded_avatar = models.ImageField(upload_to=upload_to, blank=True, default="__default__.png")
 	external_avatar = models.URLField(blank=True)
+	api_name: str = None
 
 	def __str__(self) -> str:
 		return self.username
@@ -37,6 +38,7 @@ class	User(user_models.AbstractUser):
 					self.uploaded_avatar = "__default__.png"
 		except: pass
 		return super(User, self).save(*args, **kwargs)
+		
 
 class	Lobby(models.Model):
 	lobby_id = models.BigIntegerField(verbose_name="lobby unique id")

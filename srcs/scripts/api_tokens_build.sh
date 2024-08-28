@@ -7,7 +7,7 @@ generate_jwt() {
 
   # Générer l'en-tête et le payload
   local header=$(echo -n '{"alg":"RS512","typ":"jwt"}' | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
-  local payload=$(echo -n "{\"api\":\"$api_name\",\"exp\":\"never\"}" | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
+  local payload=$(echo -n "{\"api\":\"$api_name\"}" | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
 
   # Combiner l'en-tête et le payload
   local unsigned_token="${header}.${payload}"
