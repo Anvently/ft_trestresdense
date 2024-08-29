@@ -9,7 +9,7 @@ class CookieJWTAuthentication(BaseAuthentication):
 		# token = request.headers.get("Authorization")
 		token = request.COOKIES.get('auth-token')
 		if not token:
-			raise AuthenticationFailed("Auth token not provided")
+			return None
 		try:
 			# token = token.removeprefix("Bearer ")
 			data = verify_jwt(token, is_ttl_based=True)
@@ -30,7 +30,7 @@ class HeaderJWTAuthentication(BaseAuthentication):
 	def authenticate(self, request):
 		token = request.headers.get("Authorization")
 		if not token:
-			raise AuthenticationFailed("Auth token not provided")
+			return None
 		try:
 			token = token.removeprefix("Bearer ")
 			data = verify_jwt(token, is_ttl_based=True)

@@ -44,7 +44,8 @@ class DeleteView(APIView):
 	authentication_classes = [CookieJWTAuthentication, HeaderJWTAuthentication]
 
 	def delete(self, request):
-		delete_user(request.user)
+		print(request.user.username)
+		delete_user(request.user.username)
 		request.user.delete()
 		logout(request)
 		response = Response(status=status.HTTP_204_NO_CONTENT)
@@ -109,8 +110,17 @@ class LoginView(APIView):
 		response.set_cookie('auth-token', token, expires=time.time() + settings.RSA_KEY_EXPIRATION)
 		return response
 
+class LogoutView(APIView):
+
+	def get(self, request):
+		logout(request)
+		response = Response(status=status.HTTP_204_NO_CONTENT)
+		response.delete_cookie('auth-token')
+		return response
+
 class VerifyToken(APIView):
-	authentication_classes = [CookieJWTAuthentication, HeaderJWTAuthentication]
+	authentication_classes = [HeaderJWTAuthentication, CookieJWTAuthentication]
+	permission_classes = [IsAuthenticated]
 
 	def get(self, request):
 		return Response({"message": "Token verified", "data": request.jwt_data}, status=status.HTTP_200_OK)
