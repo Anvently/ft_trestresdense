@@ -8,7 +8,8 @@ from auth_api.serializers import UserSerializer, UserInfosSerializer
 from auth_api.authentication import CookieJWTAuthentication, HeaderJWTAuthentication
 from auth_api.crypt import generate_jwt_token
 from django.conf import settings
-from auth_api.requests import delete_user, post_new_user, obtain_oauth_token
+from auth_api.requests import delete_user, post_new_user, obtain_oauth_token, retrieve_user_infos
+from auth_api.models import get_or_create_user
 
 import time
 
@@ -53,9 +54,8 @@ class RegisterView(APIView):
 		serializer = UserInfosSerializer(data=request.data)
 		if not serializer.is_valid():
 			return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-		post_new_user(request.data["username"],
-				(request.data["url_avatar"] if "url_avatar" in request.data else None),
-				(request.data["display_name"] if "display_name" in request.data else request.data["username"]))
+		post_new_user(request.data["username"], request.data.get("url_avatar"),
+				request.data.get("display_name", request.data["username"]))
 		serializer.save()
 		return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -100,6 +100,7 @@ class VerifyToken(APIView):
 	def get(self, request):
 		return Response({"message": "Token verified", "data": request.jwt_data}, status=status.HTTP_200_OK)
 
+
 class SignIn42CallbackView(APIView):
 	# authentication_classes = [Api]
 
@@ -107,7 +108,33 @@ class SignIn42CallbackView(APIView):
 		code = request.GET.get('code')
 		
 		if code == None:
-			return Response("Missing authorization code.", status=status.HTTP_400_BAD_REQUEST)
+			return Response({'error':"invaid_request",
+							'error_description':"Missing authorization code. Make sure to connect via appropriate URL.",
+							'url':'https://api.intra.42.fr/oauth/authorize?client_id=u-s4t2ud-7b58cca1aa55dd25c0845e50d85160e19d51224f609b8d441d4b6281473ba7ee&redirect_uri=https%3A%2F%2Flocalhost%3A8083%2Fapi%2Fauth%2F42-api-callback&response_type=code'},
+						status=status.HTTP_400_BAD_REQUEST)
 		token = obtain_oauth_token(request, code)
-		return Response("Login successfull. Token:{}".format(token), status=status.HTTP_200_OK)
-
+		if not token:
+			return Response({'error':"invalid_grant",
+							'error_description':"The provided grant code was not accepted by the authorization server."},
+						status=status.HTTP_400_BAD_REQUEST)
+		infos = retrieve_user_infos(token)
+		if not infos:
+			return Response({'error':'invalid_infos',
+							'error_description': "User infos were received from 42 api but some information were missing."},
+						status=status.HTTP_503_SERVICE_UNAVAILABLE)
+		user = get_or_create_user(infos)
+		if not user:
+			return Response({'error':'register_failed',
+							'error_description':'We failed to register a new user with the provided informations.'},
+						status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+		try:
+			data = {"username": user.username}
+			token = generate_jwt_token(data, ttl_based=True)
+		except Exception as e:
+			return Response(
+				{"error": f"Failed to generate token: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+			)
+		response = Response({"token":token}, status=status.HTTP_200_OK)
+		response.set_cookie('auth-token', token, expires=time.time() + settings.RSA_KEY_EXPIRATION)
+		return response
+		# return Response(token.content, status=status.HTTP_200_OK)

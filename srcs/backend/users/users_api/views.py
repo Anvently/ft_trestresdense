@@ -62,4 +62,3 @@ class ApiUserView(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.Destr
 	lookup_field = "username"
 	queryset = User.objects.all()
 	serializer_class = UserCreationSerializer
-

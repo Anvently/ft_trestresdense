@@ -10,9 +10,11 @@ class StatusException(APIException):
 	default_detail = 'We were not able to propagate your action to other services. Action {0} was not performed.'
 	default_code = 'error'
 
-	def __init__(self, action_id:str = "", res_status=None, res_content=None):
+	def __init__(self, action_id:str = "", res_status=None, res_content=None, detail=None):
 		code = self.default_code
 		self.detail = self.default_detail.format(action_id)
+		if detail:
+			self.detail = self.detail + '\n' + detail
 		if res_status:
 			self.detail = self.detail + '\n' + 'Received status was: ' + str(res_status)
 		if res_content:
@@ -60,14 +62,40 @@ def obtain_oauth_token(request:HttpRequest, code:str) -> str:
 		'client_id':settings.API42_UUID,
 		'client_secret':settings.API42_SECRET,
 		'code': code,
-		'redirect_uri': 'https://localhost:8083/home.html'
+		'redirect_uri': 'https://localhost:8083/api/auth/42-api-callback'
 	}
 	try:
 		response = requests.post("https://api.intra.42.fr/oauth/token",
 						data=data,
-						headers={'Host': 'localhost', 'Content-Type':'application/x-www-form-urlencoded'}
+						allow_redirects=False,
 		)
+		json_content = response.json()
 	except:
-		raise StatusException("Obtaining oauth token on user behalf.")
-	print(response.content)
-	return "pouet"
+		raise StatusException("obtain_auth_token_for_user")
+	if response.status_code != 200 or not "access_token" in json_content:
+		if json_content.get('error') == "invalid_client":
+			raise StatusException("obtain_auth_token_for_user",
+						response.status_code, json_content.get('error_description'))
+		return None
+	return json_content["access_token"]
+
+def retrieve_user_infos(token:str):
+	try:
+		response = requests.get("https://api.intra.42.fr/v2/me",
+						headers={'Authorization': 'Bearer {0}'.format(token)})
+	except:
+		raise StatusException("retrieve_user_infos_from_42.", detail='Request could not be sent.')
+	json_content = response.json()
+	if response.status_code != 200:
+		raise StatusException("retrieve_user_infos_from_42.",
+						response.status_code, json_content.get('detail'), "Unexpected response given by 42 api.")
+	try:
+		infos = {
+			'username': json_content['id'],
+			'email': json_content['email'],
+			'display_name': json_content['usual_full_name'],
+			'url_avatar': json_content['image']['versions']['small']
+		}
+	except:
+		return None
+	return infos

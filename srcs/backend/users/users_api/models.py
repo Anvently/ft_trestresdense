@@ -2,6 +2,7 @@ from typing import Any, Iterable
 from django.db import models
 from django.contrib.auth import models as user_models
 from django.urls import reverse
+from django.contrib.auth.validators import UnicodeUsernameValidator
 
 # Create your models here.
 class	User(user_models.AbstractUser):
@@ -9,6 +10,17 @@ class	User(user_models.AbstractUser):
 	def upload_to(instance, filename) -> str:
 		return '{}.{}'.format(instance.username, filename.split('.')[-1])
 
+	username = models.CharField(
+        "Username",
+        max_length = 150,
+        unique = True,
+        help_text = ("Required. 150 characters or fewer. Letters, and digits only."),
+        # customize the above string as you want
+        validators = [UnicodeUsernameValidator],
+        error_messages = {
+            'unique': ("A user with that username already exists."),
+        },
+    )
 	uploaded_avatar = models.ImageField(upload_to=upload_to, blank=True, default="__default__.png")
 	external_avatar = models.URLField(blank=True)
 	display_name = models.CharField(max_length=30, default="DisplayName")

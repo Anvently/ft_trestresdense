@@ -8,7 +8,7 @@ admin.site.register(Score)
 
 UserAdmin.fieldsets = (
 		(None, {"fields": ("username",)}),
-		("Custom fields", {"fields": ("external_avatar", "uploaded_avatar",)}),
+		("Custom fields", {"fields": ("external_avatar", "uploaded_avatar", "display_name")}),
 		(
 			"Permissions",
 			{
