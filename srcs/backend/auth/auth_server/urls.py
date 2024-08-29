@@ -17,7 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from rest_framework import routers
-from auth_api.views import UserView, VerifyToken, LoginView, \
+from auth_api.views import VerifyToken, LoginView, \
             RegisterView, UpdateView, DeleteView, SignIn42CallbackView, LogoutView
 
 # router = routers.DefaultRouter()
@@ -25,7 +25,7 @@ from auth_api.views import UserView, VerifyToken, LoginView, \
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-	path('', UserView.as_view(), name='users'),
+	# path('', UserView.as_view(), name='users'),
 	# path("generate-token/", GenerateToken.as_view(), name="generate-token"),
     path("api/auth/verify-token/", VerifyToken.as_view(), name="verify-token"),
 	path("api/auth/login/", LoginView.as_view(), name="login"),

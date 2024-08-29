@@ -28,15 +28,15 @@ def	get_or_create_user(infos: dict[str, Any]) -> User:
 		post_new_user(serializer.validated_data["username"], infos.get("url_avatar"), infos.get("display_name", infos["username"]))
 		return serializer.save() 
 
-class UserView(APIView):
+# class UserView(APIView):
 
-	permission_classes = [IsAuthenticated]
-	authentication_classes = [CookieJWTAuthentication, HeaderJWTAuthentication]
+# 	permission_classes = [IsAuthenticated]
+# 	authentication_classes = [CookieJWTAuthentication, HeaderJWTAuthentication]
 
-	def get(self, request):
-		users = User.objects.all()
-		serializer = UserSerializer(users, many=True)
-		return Response(serializer.data)
+# 	def get(self, request):
+# 		users = User.objects.all()
+# 		serializer = UserSerializer(users, many=True)
+# 		return Response(serializer.data)
 	
 class DeleteView(APIView):
 
