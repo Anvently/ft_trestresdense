@@ -37,7 +37,6 @@ def post_new_user(username: str, url_avatar: str = None, display_name: str = Non
 							}
 						)
 	except:
-		print("pouet")
 		raise StatusException("adding_user")
 	if response == None or response.status_code != 201:
 		raise StatusException("adding_user", response.status_code, response.content)
@@ -45,7 +44,7 @@ def post_new_user(username: str, url_avatar: str = None, display_name: str = Non
 
 def delete_user(username: str) -> bool:
 	try:
-		response = requests.delete('http://users_api:8001/edit-users/{0}/?format=json'.format(username),
+		response = requests.delete('http://users_api:8001/edit-users/%25{0}/?format=json'.format(username[1:]),
 						headers={
 								'Host': 'localhost',
 								'Authorization': 'Bearer {0}'.format(settings.API_TOKEN.decode('ASCII'))
@@ -53,7 +52,7 @@ def delete_user(username: str) -> bool:
 							)
 	except:
 		raise StatusException("deleting_user")
-	if response == None or (response.status_code != 204 and response.status_code != 404):
+	if response == None or (response.status_code != 204):
 		raise StatusException("deleting_user", response.status_code, response.content)
 	return True
 
