@@ -1,6 +1,6 @@
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import AuthenticationFailed
-from django.contrib.auth.models import User
+from auth_api.models import User
 
 from auth_api.crypt import verify_jwt
 

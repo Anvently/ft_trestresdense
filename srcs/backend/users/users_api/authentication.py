@@ -2,7 +2,6 @@ from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.permissions import BasePermission
 from users_api.models import User
-from django.contrib.auth.models import AnonymousUser
 import time
 import jwt
 

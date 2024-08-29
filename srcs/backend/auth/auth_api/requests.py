@@ -1,9 +1,9 @@
 import requests
-from django.contrib.auth.models import User
 from django.conf import settings
 from rest_framework.exceptions import APIException
 from rest_framework import status
 from django.http.request import HttpRequest
+from typing import Any
 
 class StatusException(APIException):
 	status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -37,6 +37,7 @@ def post_new_user(username: str, url_avatar: str = None, display_name: str = Non
 							}
 						)
 	except:
+		print("pouet")
 		raise StatusException("adding_user")
 	if response == None or response.status_code != 201:
 		raise StatusException("adding_user", response.status_code, response.content)
@@ -79,7 +80,7 @@ def obtain_oauth_token(request:HttpRequest, code:str) -> str:
 		return None
 	return json_content["access_token"]
 
-def retrieve_user_infos(token:str):
+def retrieve_user_infos(token:str) -> dict[str, Any]:
 	try:
 		response = requests.get("https://api.intra.42.fr/v2/me",
 						headers={'Authorization': 'Bearer {0}'.format(token)})

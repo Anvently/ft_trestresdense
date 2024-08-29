@@ -86,6 +86,8 @@ with open('/etc/certificate/api-token', 'rb') as file:
 API42_UUID = os.getenv('API42_UUID')
 API42_SECRET = os.getenv('API42_SECRET')
 
+AUTH_USER_MODEL = 'auth_api.User'
+
 # print(RSA_PUBLIC_KEY)
 # print(RSA_PRIVATE_KEY)
 

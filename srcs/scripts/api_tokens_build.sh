@@ -37,7 +37,7 @@ generate_tokens_for_apis() {
   IFS=',' read -ra api_names <<< "$api_name_list"
   for api_name in "${api_names[@]}"; do
     local token=$(generate_jwt "$api_name" "$private_key_path")
-    echo "$token" > "$output_dir/$api_name"
+    echo -n "$token" > "$output_dir/$api_name"
     echo "Token généré pour $api_name: $output_dir/$api_name"
   done
 }

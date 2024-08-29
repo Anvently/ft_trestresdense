@@ -1,17 +1,32 @@
-from django.contrib.auth.models import User
 from django.contrib.auth import logout
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from django.conf import settings
 from auth_api.serializers import UserSerializer, UserInfosSerializer
 from auth_api.authentication import CookieJWTAuthentication, HeaderJWTAuthentication
 from auth_api.crypt import generate_jwt_token
-from django.conf import settings
+from auth_api.models import User
 from auth_api.requests import delete_user, post_new_user, obtain_oauth_token, retrieve_user_infos
-from auth_api.models import get_or_create_user
+from auth_api.requests import post_new_user
+from django.utils.crypto import get_random_string
+from typing import Any
 
 import time
+
+def	get_or_create_user(infos: dict[str, Any]) -> User:
+	try:
+		user = User.objects.get(username="%{0}".format(infos['username']))
+		return user
+	except:
+		infos["password"]= get_random_string(length=36)
+		serializer=UserInfosSerializer(data=infos)
+		if not serializer.is_valid():
+			return None
+		serializer.validated_data["username"] = "%{0}".format(serializer.validated_data["username"])
+		post_new_user(serializer.validated_data["username"], infos.get("url_avatar"), infos.get("display_name", infos["username"]))
+		return serializer.save() 
 
 class UserView(APIView):
 
