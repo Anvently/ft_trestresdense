@@ -29,11 +29,35 @@ class LobbySerializer(serializers.HyperlinkedModelSerializer):
 
 	class Meta:
 		model = Lobby
-		fields = ('lobby_id', 'game_name', 'scores_set')
+		fields = ('lobby_id', 'game_name', 'date', 'scores_set')
 
 class UserSerializer(serializers.HyperlinkedModelSerializer):
-	scores_set = ScoreSerializer(many=True, read_only=True, fields=['lobby', 'score', 'has_win'])
+	username = serializers.CharField(read_only=True)
+	scores_set = ScoreSerializer(many=True, read_only=True, fields=['lobby', 'score', 'has_win'], required=False)
+	avatar = serializers.SerializerMethodField(read_only=True)
+	uploaded_avatar = serializers.ImageField(required = False, write_only = True)
+	url_avatar = serializers.URLField(write_only=True, source='external_avatar', required=False)
+	display_name = serializers.CharField(max_length=30, required=False)
 
 	class Meta:
 		model = User
-		fields = ['username', 'avatar', 'scores_set']
+		fields = ['username', 'uploaded_avatar', 'url_avatar', 'avatar', 'scores_set', 'display_name']
+
+	def get_avatar(self, obj: User):
+		return obj.get_avatar_url()
+
+class UserCreationSerializer(serializers.HyperlinkedModelSerializer):
+	url_avatar = serializers.URLField(write_only=True, source='external_avatar', required=False)
+	display_name = serializers.CharField(max_length=30, required=False)
+
+	class Meta:
+		model = User
+		fields = ['username', 'url_avatar', 'display_name']
+
+# class AvatarUploadSerializer(serializers.HyperlinkedModelSerializer):
+# 	uploaded_avatar = serializers.ImageField(required = False, write_only = True)
+# 	external_avatar = serializers.URLField(required = False, write_only = True),
+
+# 	class Meta:
+# 		model = User
+# 		fields = ['external_avatar', 'uploaded_avatar']

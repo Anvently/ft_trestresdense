@@ -80,12 +80,20 @@ with open('/run/secrets/rsa-key', 'rb') as file:
 with open('/etc/certificate/pub.pem', 'rb') as file:
     RSA_PUBLIC_KEY = file.read()
 
-print(RSA_PUBLIC_KEY)
-print(RSA_PRIVATE_KEY)
+with open('/etc/certificate/api-token', 'rb') as file:
+    API_TOKEN = file.read()
+
+API42_UUID = os.getenv('API42_UUID')
+API42_SECRET = os.getenv('API42_SECRET')
+
+AUTH_USER_MODEL = 'auth_api.User'
+
+# print(RSA_PUBLIC_KEY)
+# print(RSA_PRIVATE_KEY)
 
 WSGI_APPLICATION = 'auth_server.wsgi.application'
 
-RSA_KEY_EXPIRATION = 15 * 60
+RSA_KEY_EXPIRATION = 15 * 60 * 60
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
@@ -136,7 +144,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = 'api/static/'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field

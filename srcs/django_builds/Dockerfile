@@ -9,6 +9,9 @@ RUN pip3 install -r requirements.txt
 FROM django_base AS django_restapi
 RUN pip3 install -U  djangorestframework pyjwt[crypto]
 
+FROM django_restapi AS django_authapi
+RUN pip3 install -U requests
+
 FROM django_restapi AS django_usersapi
 RUN pip3 install -U Pillow drf-nested-routers
 

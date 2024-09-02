@@ -19,9 +19,10 @@ services:
       - 8080:80
     volumes:
       - ./frontend/:/www/html/
-      - ./data/logs/nginx/:/var/log/nginx/:rw
+      - ${DATA_DIR}logs/nginx/:/var/log/nginx/:rw
       - ./srcs/nginx/nginx.conf:/etc/nginx/nginx.conf
-      - ./data/keys/ssl/ssl.crt:/etc/certificate/ssl.crt
+      - ${DATA_DIR}keys/ssl/ssl.crt:/etc/certificate/ssl.crt
+      - ${DATA_DIR}media/avatars/:/www/html/avatars/:ro
     secrets:
       - ssl-key
     depends_on:
@@ -31,7 +32,7 @@ services:
     container_name: db_c
     image: postgres
     volumes:
-      - ./data/db:/var/lib/postgresql/data
+      - ${DATA_DIR}db:/var/lib/postgresql/data
       - ./srcs/scripts/db_entrypoint:/docker-entrypoint-initdb.d
     environment:
       - POSTGRES_MULTIPLE_DATABASES=${POSTGRES_DB_AUTH},${POSTGRES_DB_USERS}
@@ -42,11 +43,12 @@ services:
     container_name: auth_api_c
     build:
       context: ./srcs/django_builds
-      target: django_restapi
+      target: django_authapi
     command: python3 manage.py runserver 0.0.0.0:8000
     volumes:
       - ./srcs/backend/auth/:/code
-      - ./data/keys/rsa/pub.pem:/etc/certificate/pub.pem
+      - ${DATA_DIR}keys/rsa/pub.pem:/etc/certificate/pub.pem
+      - ${DATA_DIR}keys/api-tokens/auth:/etc/certificate/api-token
     ports:
       - "8000:8000"
     depends_on:
@@ -59,6 +61,8 @@ services:
       - POSTGRES_DB=${POSTGRES_DB_AUTH}
       - ISSUER_URL=${AUTH_ISSUER_URL}
       - ALLOWED_APIS=${AUTH_API_ALLOWED_APIS}
+      - API42_UUID=${API42_UUID}
+      - API42_SECRET=${API42_SECRET}
     secrets:
       - rsa-key
 
@@ -80,9 +84,8 @@ services:
         - redis
     volumes:
       - ./srcs/backend/websocket_example/:/code
-      - ./data/keys/rsa/pub.pem:/etc/certificate/pub.pem
-    secrets:
-      - rsa-key
+      - ${DATA_DIR}keys/rsa/pub.pem:/etc/certificate/pub.pem
+      - ${DATA_DIR}keys/api-tokens/pong:/etc/certificate/api-token
 
   users_api:
     container_name: users_api_c
@@ -92,7 +95,9 @@ services:
     command: python3 manage.py runserver 0.0.0.0:8001
     volumes:
       - ./srcs/backend/users/:/code
-      - ./data/keys/rsa/pub.pem:/etc/certificate/pub.pem
+      - ${DATA_DIR}keys/rsa/pub.pem:/etc/certificate/pub.pem
+      - ${DATA_DIR}keys/api-tokens/users:/etc/certificate/api-token
+      - ${DATA_DIR}/media/avatars:/avatars/
     ports:
       - "8001:8001"
     depends_on:
@@ -121,6 +126,6 @@ services:
 
 secrets:
   ssl-key:
-    file: ./data/keys/ssl/ssl.key
+    file: ${DATA_DIR}keys/ssl/ssl.key
   rsa-key:
-    file: ./data/keys/rsa/key.pem
+    file: ${DATA_DIR}keys/rsa/key.pem

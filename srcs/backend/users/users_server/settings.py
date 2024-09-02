@@ -70,27 +70,6 @@ TEMPLATES = [
     },
 ]
 
-# REST_FRAMEWORK = {
-#     'DEFAULT_AUTHENTICATION_CLASSES': [
-#         'users_api.authentication.TTLBasedJWTAuthentication',
-#     ]
-# }
-
-# from cryptography.hazmat.backends import default_backend
-# from cryptography.hazmat.primitives import serialization
-
-# with open('/run/secrets/rsa-key', 'rb') as key_file:
-#     secret_key = serialization.load_pem_private_key(
-#         key_file.read(),
-#         password=None,
-#         backend=default_backend()
-#     )
-
-# with open('/etc/certificate/pub.pem', 'rb') as key_file:
-#     public_key = serialization.load_pem_public_key(
-#         key_file.read(),
-#         backend=default_backend()
-#     )
 
 with open('/etc/certificate/pub.pem', 'rb') as file:
     RSA_PUBLIC_KEY = file.read()
@@ -114,6 +93,10 @@ DATABASES = {
         'PORT': os.getenv('POSTGRES_PORT'),
     }
 }
+
+# from users_api.models import User as CustomUser
+
+AUTH_USER_MODEL = 'users_api.User'
 
 
 # Password validation
@@ -150,8 +133,11 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
-STATIC_URL = "/static/"
+STATIC_URL = "api/static/"
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+
+MEDIA_URL   = "/avatars/"
+MEDIA_ROOT  = "/avatars/"
 
 # STATICFILES_DIRS = (os.path.join(BASE_DIR, "localhost:8083", "api/static"))
 

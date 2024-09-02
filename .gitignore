@@ -1,0 +1,8 @@
+srcs/nginx/ssl.crt
+srcs/nginx/ssl.key
+srcs/nginx/logs/
+.env
+data/*
+*.sqlite3
+/upload.html
+pouet

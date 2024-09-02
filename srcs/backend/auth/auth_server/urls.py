@@ -17,18 +17,21 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from rest_framework import routers
-from auth_api.views import UserView, GenerateToken, VerifyToken, LoginView, RegisterView, UpdateView, DeleteView
+from auth_api.views import VerifyToken, LoginView, \
+            RegisterView, UpdateView, DeleteView, SignIn42CallbackView, LogoutView
 
 # router = routers.DefaultRouter()
 # router.register(r'users', UserView)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-	path('', UserView.as_view(), name='users'),
-	path("generate-token/", GenerateToken.as_view(), name="generate-token"),
-    path("verify-token/", VerifyToken.as_view(), name="verify-token"),
-	path("login/", LoginView.as_view(), name="login"),
-	path("register/", RegisterView.as_view(), name="register"),
-	path("update/", UpdateView.as_view(), name="update"),
-	path("delete/<username>", DeleteView.as_view(), name="delete"),
+	# path('', UserView.as_view(), name='users'),
+	# path("generate-token/", GenerateToken.as_view(), name="generate-token"),
+    path("api/auth/verify-token/", VerifyToken.as_view(), name="verify-token"),
+	path("api/auth/login/", LoginView.as_view(), name="login"),
+	path("api/auth/register/", RegisterView.as_view(), name="register"),
+	path("api/auth/update/", UpdateView.as_view(), name="update"),
+	path("api/auth/delete/", DeleteView.as_view(), name="delete"),
+	path("api/auth/logout/", LogoutView.as_view()),
+	path("api/auth/42-api-callback", SignIn42CallbackView.as_view(), name="42-callback"),
 ]
