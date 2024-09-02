@@ -136,6 +136,9 @@ CHANNEL_LAYERS = {
     },
 }
 
+with open('/etc/certificate/pub.pem', 'rb') as file:
+    RSA_PUBLIC_KEY = file.read()
+
 # should be deleted once redis works fine
 # CHANNEL_LAYERS = {
 #     "default": {

@@ -80,6 +80,9 @@ services:
         - redis
     volumes:
       - ./srcs/backend/websocket_example/:/code
+      - ./data/keys/rsa/pub.pem:/etc/certificate/pub.pem
+    secrets:
+      - rsa-key
 
   users_api:
     container_name: users_api_c

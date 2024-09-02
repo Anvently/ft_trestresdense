@@ -4,15 +4,29 @@
 	<head>
 		<meta charset="utf-8"/>
 		<title>Home</title>
+		<link rel="stylesheet" href="style.css">
 		<script defer type=module src="script.js"> </script>
 	</head>
 	<body>
 		<h1>Home page</h1>
-		<form id="login-form">
-			<input type="text" name="username" id="username-fiedl" placeholder="Username" >
-			<input type="password" name="password" id="password-fiedl" placeholder="Password">
-			<input type="submit" value="Login" id="login-form-submit">
-		</form>
-		<div id="app"> </div>
+		<div id="login-form-display">
+			<form id="login-form">
+				<input type="text" name="username" id="username-fiedl" placeholder="Username" >
+				<input type="password" name="password" id="password-fiedl" placeholder="Password">
+				<input type="submit" value="Login" id="login-form-submit">
+			</form>
+		</div>
+		<div id="create_room">
+			<form id="room_form">
+				<input type=""text" name="room_name" id="roomname-field" placeholder="lobby" >
+				<input type="submit" value="Join" id="join-room-submit">
+			</form>
+		</div>
+		<div id="app">
+			<textarea id="chat-log" cols="100" rows="20"></textarea> <br>
+			<input id="chat-message-input" type="text" size="100"> <br>
+			<input id="chat-message-submit" type="button" value="Send">
+			{lobby}
+		</div>
 	</body>
 </html>

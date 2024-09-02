@@ -2,7 +2,9 @@ import {lancementChat} from "./chat.js";
 
 const loginForm = document.getElementById("login-form");
 const LoginButt = document.getElementById("login-form-submit");
+const JoinButt = document.getElementById("join-room-submit");
 
+const chatScreen = document.getElementById("app");
 
 function foo() {
 
@@ -31,11 +33,16 @@ LoginButt.addEventListener("click", e => {
             return response.json();
        })
        .then(data=> {
-        document.querySelector("#app").innerHTML = '<textarea id="chat-log" cols="100" rows="20"></textarea><br> <input id="chat-message-input" type="text" size="100"><br> <input id="chat-message-submit" type="button" value="Send"> {lobby}';
-        lancementChat();
-       })
-       .catch(error => {
+           // lancementChat(chatScreen);
+        })
+        .catch(error => {
             console.error('There was a problem with the fetch operation: ', error);
-       })
+        })
 
+    });
+
+    JoinButt.addEventListener("click", e => {
+        e.preventDefault();
+        lancementChat(chatScreen);
+        // chatScreen.style.display = "contents";
 });

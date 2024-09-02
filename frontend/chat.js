@@ -1,8 +1,7 @@
-export function lancementChat ()
+export function lancementChat (chatScreen)
 {
 
 	const roomName = 'lobby';
-
 	const chatSocket = new WebSocket(
 		'wss://'
 		+ 'localhost:8083'
@@ -11,14 +10,24 @@ export function lancementChat ()
 	+ '/', ["realProtocol", "yourAccessTokenOrSimilar"]
 );
 
+chatSocket.onopen = function(e)
+{
+	// chatScreen.style.display = "contents";
+}
+
 chatSocket.onmessage = function(e) {
+	if (chatScreen.style.display == "none")
+		chatScreen.style.display = "contents"
 	const data = JSON.parse(e.data);
 	document.querySelector('#chat-log').value += (data.message + '\n');
 };
 
 chatSocket.onclose = function(e) {
-	console.error('Chat socket closed unexpectedly');
+	console.error('Chat socket closed unexpectedly with code: %d', e.code);
+	chatScreen.style.display = "none";
+
 };
+
 
 document.querySelector('#chat-message-input').focus();
 document.querySelector('#chat-message-input').onkeyup = function(e) {
