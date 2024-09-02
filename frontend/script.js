@@ -3,6 +3,7 @@ import {lancementChat} from "./chat.js";
 const loginForm = document.getElementById("login-form");
 const LoginButt = document.getElementById("login-form-submit");
 const JoinButt = document.getElementById("join-room-submit");
+const roomName = document.getElementById("room_form");
 
 const chatScreen = document.getElementById("app");
 
@@ -43,6 +44,6 @@ LoginButt.addEventListener("click", e => {
 
     JoinButt.addEventListener("click", e => {
         e.preventDefault();
-        lancementChat(chatScreen);
+        lancementChat(chatScreen, roomName.room_name.value);
         // chatScreen.style.display = "contents";
 });

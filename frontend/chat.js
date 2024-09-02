@@ -1,23 +1,24 @@
-export function lancementChat (chatScreen)
+export function lancementChat (chatScreen, room_name)
 {
 
-	const roomName = 'lobby';
+	const roomName = room_name;
+	console.log(roomName);
 	const chatSocket = new WebSocket(
 		'wss://'
 		+ 'localhost:8083'
 		+ '/ws/websocket_example/'
 	+ roomName
-	+ '/', ["realProtocol", "yourAccessTokenOrSimilar"]
+	+ '/'
 );
 
 chatSocket.onopen = function(e)
 {
-	// chatScreen.style.display = "contents";
+	chatScreen.style.display = "contents";
 }
 
 chatSocket.onmessage = function(e) {
-	if (chatScreen.style.display == "none")
-		chatScreen.style.display = "contents"
+	// if (chatScreen.style.display == "none")
+	// 	chatScreen.style.display = "contents"
 	const data = JSON.parse(e.data);
 	document.querySelector('#chat-log').value += (data.message + '\n');
 };
@@ -27,6 +28,10 @@ chatSocket.onclose = function(e) {
 	chatScreen.style.display = "none";
 
 };
+
+chatSocket.onerror = function(e){
+	console.log(e);
+}
 
 
 document.querySelector('#chat-message-input').focus();
