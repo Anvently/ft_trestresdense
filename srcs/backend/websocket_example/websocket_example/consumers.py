@@ -99,10 +99,11 @@ class SquareConsumer(AsyncWebsocketConsumer):
 
      async def position_update(self):
         move = self.right - self.left
-        if self.position + move > 10:
-             move = 10 - self.position
-             self.position = 10
-        elif self.position + move < 10:
+     #    print("move %d", move)
+        if self.position + move > 9:
+             move = 9 - self.position
+             self.position = 9
+        elif self.position + move < -10:
              move = -(self.position + 10)
              self.position = -10
         else:
@@ -117,8 +118,10 @@ class SquareConsumer(AsyncWebsocketConsumer):
         )
 
      async def move_loop(self):
-        await self.position_update();
-        self.right = 0
-        self.left = 0
-        await asyncio.sleep(0.05)
+          while True:
+               await self.position_update()
+               self.right = 0
+               self.left = 0
+               await asyncio.sleep(0.05)
+               # print('again')
 
