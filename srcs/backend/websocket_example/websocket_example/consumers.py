@@ -75,53 +75,66 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
 class SquareConsumer(AsyncWebsocketConsumer):
 
+     mut_lock = asyncio.Lock()
+     game_group_name = "square_game"
+     players = 0
+     left_position = 0
+     right_position = 0
 
      async def connect(self):
+          async with self.mut_lock:
+               if self.players == 2:
+                    self.close(code=4001, reason="too many players")
           await self.accept()
-          self.left = 0
-          self.right = 0
-          self.position = 0
-          asyncio.create_task(self.move_loop())
+          await self.channel_layer.group_add(self.game_group_name, self.channel_name)
+          async with self.mut_lock:
+               SquareConsumer.players += 1
+               print('total players %d', SquareConsumer.players)
+          if SquareConsumer.players > 0:
+               asyncio.create_task(self.move_loop())
 
      async def receive(self, text_data):
           text_data_json = json.loads(text_data)
           key_pressed = text_data_json["key_pressed"]
-          if key_pressed == "left":
-               print('left move received')
-               self.left += 1
-          elif key_pressed == "right":
-               print('right move received')
-               self.right += 1
+          print("key_pressed: %s", key_pressed)
+          async with self.mut_lock:
+               if key_pressed == "p1_up":
+                    SquareConsumer.left_position = max(-10, self.left_position - 1)
+               elif key_pressed == "p1_down":
+                    SquareConsumer.left_position = min(8, self.left_position + 1)
+               elif key_pressed == "p2_up":
+                    SquareConsumer.right_position = max(-10, self.right_position - 1)
+               elif key_pressed == "p2_down":
+                    SquareConsumer.right_position = min(8, self.right_position + 1)
 
+     async def state_update(self, event):
+
+          await self.send(
+               text_data=json.dumps({
+                    "type": "stateUpdate",
+                    "p1_pos": event["p1_pos"],
+                    "p2_pos": event['p2_pos'],
+               }
+               )
+          )
 
      async def disconnect(self, code):
-            pass
-
-     async def position_update(self):
-        move = self.right - self.left
-     #    print("move %d", move)
-        if self.position + move > 9:
-             move = 9 - self.position
-             self.position = 9
-        elif self.position + move < -10:
-             move = -(self.position + 10)
-             self.position = -10
-        else:
-             self.position += move
-        await self.send(
-             text_data=json.dumps(
-                  {
-                       "type": 'position_update',
-                       "direction": move
-                   }
-             )
-        )
+            async with self.mut_lock:
+                 SquareConsumer.players -= 1
+            await self.channel_layer.group_discard(self.game_group_name, self.channel_name)
 
      async def move_loop(self):
           while True:
-               await self.position_update()
-               self.right = 0
-               self.left = 0
+               async with self.mut_lock:
+                    if SquareConsumer.players == 0:
+                         break
+                    left_pos = SquareConsumer.left_position
+                    right_pos = SquareConsumer.right_position
+               await self.channel_layer.group_send(self.game_group_name, {"type": "state_update",
+                                                                           "p1_pos": left_pos,
+                                                                           "p2_pos": right_pos,
+                                                                           })
                await asyncio.sleep(0.05)
                # print('again')
+          print('All players left')
 

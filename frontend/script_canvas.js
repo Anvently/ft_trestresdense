@@ -1,7 +1,8 @@
 const containerCanva = /**  @type {HTMLCanvasElement} */  document.getElementById("container-canva");
 const canva = /**  @type {HTMLCanvasElement} */  document.getElementById("myCanvas");
 const ctx = canva.getContext("2d");
-var	movement = 0;
+var	left = 0;
+var right = 0
 
 canva.width = containerCanva.clientWidth;
 canva.height = containerCanva.clientHeight;
@@ -14,18 +15,28 @@ const wsRef = new WebSocket(
 
 wsRef.onmessage = function(e) {
 	// console.log("PING");
-	
+
 	const msg = JSON.parse(e.data);
 	// console.log(msg.direction);
-	if (msg.direction)
-		movement = movement + parseInt(msg.direction);
+	// if (msg.direction)
+	// 	movement = movement + parseInt(msg.direction);
 	// console.log(movement);
-	draw(movement);
+	if (msg.p1_pos)
+		console.log(msg.p1_pos)
+		left = parseInt(msg.p1_pos)
+	if (msg.p2_pos)
+		console.log(msg.p2_pos)
+		right = parseInt(msg.p2_pos)
+	draw();
 }
 
-function draw(movement) {
+function draw() {
+
+	const left_move = left * (canva.height / 20)
+	const right_move = right * (canva.height / 20)
 	ctx.clearRect(0, 0, canva.width, canva.height);
-	ctx.fillRect(canva.width/2 + (movement * canva.width / 20), canva.height / 2, canva.width / 20, canva.height / 10);
+	ctx.fillRect(0, (canva.height / 2) + left_move, canva.width / 20, canva.height / 10);
+	ctx.fillRect((19/20) * canva.width, (canva.height / 2) + right_move, canva.width / 20, canva.height / 10);
 	ctx.fill();
 	ctx.save();
 }
@@ -34,7 +45,7 @@ function draw(movement) {
 
 // }
 
-function draw_absolue() 
+function draw_absolue()
 {
 	ctx.fillStyle = "rgb(200, 0, 0)";
 	ctx.fillRect(10, 10, 150, 50);
@@ -56,7 +67,7 @@ function draw_absolue()
 	ctx.stroke();
 }
 
-function draw_arc() 
+function draw_arc()
 {
 	ctx.fillStyle = "rgb(200, 0, 0)";
 	// ctx.fillRect(10, 10, 150, 50);
@@ -77,23 +88,29 @@ function resizeCanvas() {
 
 // Call resizeCanvas on page load
 resizeCanvas();
-draw(movement);
+draw();
 
 
 // Optional: Recalculate size on window resize
 window.addEventListener('resize', e=>{
 	resizeCanvas();
-	draw(movement);
+	draw();
 });
 
 window.addEventListener("keydown", e=>{
-	// console.log(e.key);
+	console.log(e.key);
 	if (e.key === "ArrowUp") {
-		wsRef.send( JSON.stringify({ key_pressed: "right"}));
+		wsRef.send( JSON.stringify({key_pressed: "p1_up"}));
 		// movement = movement + 1;
 	}
 	else if (e.key === "ArrowDown"){
-		wsRef.send( JSON.stringify({ key_pressed: "left"}));
+		wsRef.send( JSON.stringify({key_pressed: "p1_down"}));}
+	else if (e.key === "q"){
+		wsRef.send(JSON.stringify({key_pressed: "p2_up"}));
+	}
+	else if (e.key == "w"){
+		wsRef.send(JSON.stringify({key_pressed: "p2_down"}));
+	}
 	// fetch("./mouv.json")
 	// 	.then((res) => {
 	// 		if (!res.ok)
@@ -112,5 +129,5 @@ window.addEventListener("keydown", e=>{
 	// 		console.error("ERREUR X", error));
 		}
 	// draw(movement);
-});
+);
 
