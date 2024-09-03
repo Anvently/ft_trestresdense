@@ -99,13 +99,13 @@ class SquareConsumer(AsyncWebsocketConsumer):
           print("key_pressed: %s", key_pressed)
           async with self.mut_lock:
                if key_pressed == "p1_up":
-                    SquareConsumer.left_position = max(-10, self.left_position - 1)
+                    SquareConsumer.left_position = max(-50, self.left_position - 1)
                elif key_pressed == "p1_down":
-                    SquareConsumer.left_position = min(8, self.left_position + 1)
+                    SquareConsumer.left_position = min(40, self.left_position + 1)
                elif key_pressed == "p2_up":
-                    SquareConsumer.right_position = max(-10, self.right_position - 1)
+                    SquareConsumer.right_position = max(-50, self.right_position - 1)
                elif key_pressed == "p2_down":
-                    SquareConsumer.right_position = min(8, self.right_position + 1)
+                    SquareConsumer.right_position = min(40, self.right_position + 1)
 
      async def state_update(self, event):
 
@@ -134,7 +134,7 @@ class SquareConsumer(AsyncWebsocketConsumer):
                                                                            "p1_pos": left_pos,
                                                                            "p2_pos": right_pos,
                                                                            })
-               await asyncio.sleep(0.05)
+               await asyncio.sleep(0.02)
                # print('again')
           print('All players left')
 
