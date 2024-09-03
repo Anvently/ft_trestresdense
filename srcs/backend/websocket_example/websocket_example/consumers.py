@@ -78,8 +78,8 @@ class SquareConsumer(AsyncWebsocketConsumer):
      mut_lock = asyncio.Lock()
      game_group_name = "square_game"
      players = 0
-     left_position = 0
-     right_position = 0
+     west_position = 0.5
+     east_position = 0.5
 
      async def connect(self):
           async with self.mut_lock:
@@ -98,22 +98,21 @@ class SquareConsumer(AsyncWebsocketConsumer):
           key_pressed = text_data_json["key_pressed"]
           print("key_pressed: %s", key_pressed)
           async with self.mut_lock:
-               if key_pressed == "p1_up":
-                    SquareConsumer.left_position = max(-50, self.left_position - 1)
-               elif key_pressed == "p1_down":
-                    SquareConsumer.left_position = min(40, self.left_position + 1)
-               elif key_pressed == "p2_up":
-                    SquareConsumer.right_position = max(-50, self.right_position - 1)
-               elif key_pressed == "p2_down":
-                    SquareConsumer.right_position = min(40, self.right_position + 1)
+               if key_pressed == "west_player_up":
+                    SquareConsumer.west_position = max(0.08, self.west_position - 0.01)
+               elif key_pressed == "west_player_down":
+                    SquareConsumer.west_position = min(0.92, self.west_position + 0.01)
+               elif key_pressed == "east_player_up":
+                    SquareConsumer.east_position = max(0.08, self.east_position - 0.01)
+               elif key_pressed == "east_player_down":
+                    SquareConsumer.east_position = min(0.92, self.east_position + 0.01)
 
      async def state_update(self, event):
-
           await self.send(
                text_data=json.dumps({
                     "type": "stateUpdate",
-                    "p1_pos": event["p1_pos"],
-                    "p2_pos": event['p2_pos'],
+                    "west_player_pos": event["west_player_pos"],
+                    "east_player_pos": event['east_player_pos'],
                }
                )
           )
@@ -128,11 +127,11 @@ class SquareConsumer(AsyncWebsocketConsumer):
                async with self.mut_lock:
                     if SquareConsumer.players == 0:
                          break
-                    left_pos = SquareConsumer.left_position
-                    right_pos = SquareConsumer.right_position
+                    west_pos = SquareConsumer.west_position
+                    east_pos = SquareConsumer.east_position
                await self.channel_layer.group_send(self.game_group_name, {"type": "state_update",
-                                                                           "p1_pos": left_pos,
-                                                                           "p2_pos": right_pos,
+                                                                           "west_player_pos": west_pos,
+                                                                           "east_player_pos": east_pos,
                                                                            })
                await asyncio.sleep(0.02)
                # print('again')

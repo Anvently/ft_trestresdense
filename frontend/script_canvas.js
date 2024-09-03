@@ -1,11 +1,17 @@
 const containerCanva = /**  @type {HTMLCanvasElement} */  document.getElementById("container-canva");
 const canva = /**  @type {HTMLCanvasElement} */  document.getElementById("myCanvas");
 const ctx = canva.getContext("2d");
-var left = 0;
-var right = 0;
+
+
+var westPos = 0;
+var eastPos = 0;
+var padSize = 0.16; // percentage of the height size
+
+
 
 canva.width = containerCanva.clientWidth;
 canva.height = containerCanva.clientHeight;
+
 
 const wsRef = new WebSocket(
 	'wss://'
@@ -15,57 +21,35 @@ const wsRef = new WebSocket(
 
 wsRef.onmessage = function (e) {
 	const msg = JSON.parse(e.data);
-	if (msg.hasOwnProperty("p1_pos")) {
-		// console.log(msg.p1_pos);
-		left = parseInt(msg.p1_pos);
+	if (msg.hasOwnProperty("west_player_pos")) {
+		westPos = parseFloat(msg.west_player_pos);
 	}
-	if (msg.hasOwnProperty("p2_pos")) {
-		// console.log(msg.p2_pos);
-		right = parseInt(msg.p2_pos);
+	if (msg.hasOwnProperty("east_player_pos")) {
+		eastPos = parseFloat(msg.east_player_pos);
 	}
 	draw();
 }
 
 function draw() {
 
-	const left_move = left * (canva.height / 100)
-	const right_move = right * (canva.height / 100)
+	// const left_move = westPos * (canva.height / 100)
+	// const right_move = eastPos * (canva.height / 100)
+
+	// clear canvas
 	ctx.clearRect(0, 0, canva.width, canva.height);
-	ctx.fillRect(0, (canva.height / 2) + left_move, canva.width / 100, canva.height / 10);
-	ctx.fillRect((99 / 100) * canva.width, (canva.height / 2) + right_move, canva.width / 100, canva.height / 10);
+
+	// draw left pad
+	ctx.fillRect(0, (westPos - (padSize / 2)) * canva.height, 0.01 * canva.width, padSize * canva.height);
+	// draw right pad
+	ctx.fillRect(0.99 * canva.width, (eastPos - (padSize / 2)) * canva.height, 0.01 * canva.width, padSize * canva.height);
+
+
+	// ctx.fillRect(0, (canva.height / 2) + left_move, canva.width / 100, canva.height / 10);
+	// ctx.fillRect((99 / 100) * canva.width, (canva.height / 2) + right_move, canva.width / 100, canva.height / 10);
 	ctx.fill();
 	ctx.save();
 }
 
-
-// function draw_absolue() {
-// 	ctx.fillStyle = "rgb(200, 0, 0)";
-// 	ctx.fillRect(10, 10, 150, 50);
-
-// 	ctx.fillStyle = "rgba(0, 0, 200, 0.5)";
-// 	ctx.fillRect(30, 30, 150, 50);
-
-// 	ctx.fillStyle = "rgba(200, 200, 200)";
-// 	ctx.strokeRect(30, 30, 150, 50);
-
-
-// 	ctx.beginPath();
-// 	ctx.fillStyle = "rgba(0, 200, 0)";
-// 	ctx.strokeStyle = "blue";
-// 	ctx.moveTo(150, 15);
-// 	ctx.lineTo(300, 15);
-// 	ctx.lineTo(300, 55);
-// 	ctx.fill();
-// 	ctx.stroke();
-// }
-
-// function draw_arc() {
-// 	ctx.fillStyle = "rgb(200, 0, 0)";
-// 	// ctx.fillRect(10, 10, 150, 50);
-// 	ctx.beginPath();
-// 	ctx.arc(canva.width / 2, canva.height / 2, 20, 0, Math.PI, true);
-// 	ctx.fill();
-// }
 
 
 function resizeCanvas() {
@@ -97,47 +81,38 @@ var pressKey = {
 
 window.addEventListener("keydown", e => {
 	console.log(e.key);
-	if (e.key === "ArrowUp") {
+	if (e.key === "ArrowUp") 
 		pressKey.arrowup = true;
-	}
-	else if (e.key === "ArrowDown") {
+	else if (e.key === "ArrowDown") 
 		pressKey.arrowdown = true;
-	}
-	if (e.key.toLowerCase() === "w") {
+	if (e.key.toLowerCase() === "w") 
 		pressKey.key_w = true;
-	}
-	else if (e.key.toLowerCase() === "s") {
+	else if (e.key.toLowerCase() === "s") 
 		pressKey.key_s = true;
-	}
 }
 );
 
 
 window.addEventListener("keyup", e => {
 	console.log("keyup, ", e.key);
-	if (e.key === "ArrowUp") {
+	if (e.key === "ArrowUp")
 		pressKey.arrowup = false;
-	}
-	else if (e.key === "ArrowDown") {
+	else if (e.key === "ArrowDown")
 		pressKey.arrowdown = false;
-	}
-	if (e.key.toLowerCase() === "w") {
+	if (e.key.toLowerCase() === "w")
 		pressKey.key_w = false;
-	}
-	else if (e.key.toLowerCase() == "s") {
+	else if (e.key.toLowerCase() == "s")
 		pressKey.key_s = false;
-	}
 }
 );
 
 setInterval(() => {
-
 	if (pressKey.arrowup === true)
-		wsRef.send(JSON.stringify({ key_pressed: "p2_up" }));
+		wsRef.send(JSON.stringify({ key_pressed: "east_player_up" }));
 	if (pressKey.arrowdown === true)
-		wsRef.send(JSON.stringify({ key_pressed: "p2_down" }));
+		wsRef.send(JSON.stringify({ key_pressed: "east_player_down" }));
 	if (pressKey.key_w === true)
-		wsRef.send(JSON.stringify({ key_pressed: "p1_up" }));
+		wsRef.send(JSON.stringify({ key_pressed: "west_player_up" }));
 	if (pressKey.key_s === true)
-		wsRef.send(JSON.stringify({ key_pressed: "p1_down" }));
+		wsRef.send(JSON.stringify({ key_pressed: "west_player_down" }));
 }, 20);
