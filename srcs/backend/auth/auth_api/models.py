@@ -7,7 +7,7 @@ class	User(AbstractUser):
 	def upload_to(instance, filename) -> str:
 		return '{}.{}'.format(instance.username, filename.split('.')[-1])
 	
-	email = models.EmailField("email address", blank=True, unique=True)
+	email = models.EmailField("email address", blank=True, null=True, unique=True)
 
 	def __str__(self) -> str:
 		return self.username
