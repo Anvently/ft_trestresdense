@@ -1,29 +1,3 @@
-/* body {
-	margin: 0;
-	padding: 0;
-}
-
-
-#container-canva {
-	border:  solid 1px red;
-	display: flex;
-	justify-content: center;
-	align-items: center;
-	height: 50%;
-	max-height: 300px;
-	width: auto;
-	padding-bottom: 100%;
-	position: relative;
-}
-
-#myCanvas {
-	border: solid 1px black;
-	position: absolute;
-	top: 0;
-	left: 0;
-	width: 100%;
-	height: 100%;
-} */
 
 body {
 	margin: 0;
@@ -54,7 +28,7 @@ main {
 	max-height: 100vw;
   }
 
-#myCanvas {
+#canvas {
 	border: solid 1px blue;
 	width: 100%;
 	height: 100%;
