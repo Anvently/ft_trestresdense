@@ -16,7 +16,7 @@ canva.height = containerCanva.clientHeight;
 const wsRef = new WebSocket(
 	'wss://'
 	+ 'localhost:8083'
-	+ '/ws/websocket_example/square/'
+	+ '/ws/pong/square/'
 );
 
 wsRef.onmessage = function (e) {

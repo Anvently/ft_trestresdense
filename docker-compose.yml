@@ -87,6 +87,7 @@ services:
       - ./srcs/backend/pong/:/code
       - ${DATA_DIR}keys/rsa/pub.pem:/etc/certificate/pub.pem
       - ${DATA_DIR}keys/api-tokens/pong:/etc/certificate/api-token
+    restart: always
 
   users_api:
     container_name: users_api_c

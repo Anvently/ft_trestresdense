@@ -51,7 +51,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'pong.urls'
+ROOT_URLCONF = 'pong_server.urls'
 
 TEMPLATES = [
     {
@@ -69,7 +69,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'pong.wsgi.application'
+WSGI_APPLICATION = 'pong_server.wsgi.application'
 
 
 # Database
@@ -124,7 +124,7 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-ASGI_APPLICATION = "pong.asgi.application"
+ASGI_APPLICATION = "pong_server.asgi.application"
 
 
 CHANNEL_LAYERS = {

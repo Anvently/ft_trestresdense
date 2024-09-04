@@ -6,7 +6,7 @@ export function lancementChat (chatScreen, room_name)
 	const chatSocket = new WebSocket(
 		'wss://'
 		+ 'localhost:8083'
-		+ '/ws/websocket_example/'
+		+ '/ws/pong/'
 	+ roomName
 	+ '/'
 );
