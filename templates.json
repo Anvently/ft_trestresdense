@@ -30,7 +30,7 @@ POST pong:8002/init-game/
 	"turnament_id": 41489, //optionnal
 	"game_settings": {
 		"number_player": 4,
-		"number_life": 3	
+		"number_life": 3
 	},
 	"player_list": [
 		"user1",

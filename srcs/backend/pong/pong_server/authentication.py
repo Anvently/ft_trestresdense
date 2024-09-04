@@ -2,6 +2,7 @@ from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.permissions import BasePermission
 from typing import List
+from channels.middleware import BaseMiddleware
 import time
 import jwt
 
@@ -53,6 +54,26 @@ class ApiJWTAuthentication(BaseAuthentication):
 	
 	def authenticate_header(self, request):
 		return "Bearer"
+
+class JWTAuthMiddleware(BaseMiddleware):
+	
+	async def __call__(self, scope, receive, send):
+	
+		scope['username'] = None
+		token = scope['cookies'].get('auth-token', None)
+		
+		if token:
+			try:
+				data = verify_jwt(token, True)
+				scope['username'] = data['username']
+			except:
+				scope['error'] = 'token verification failed'
+
+		else:
+			scope['error'] = 'provide an auth token'
+	
+		return await super().__call__(scope, receive, send)
+
 
 # class CookieUserJWTAuthentication(BaseAuthentication):
 # 	def authenticate(self, request):
