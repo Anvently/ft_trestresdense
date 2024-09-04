@@ -65,6 +65,7 @@ services:
       - API42_SECRET=${API42_SECRET}
     secrets:
       - rsa-key
+    restart: always
 
   redis:
     container_name: redis_c
@@ -109,6 +110,7 @@ services:
       - POSTGRES_PORT=${POSTGRES_PORT}
       - POSTGRES_DB=${POSTGRES_DB_USERS}
       - ALLOWED_APIS=${USERS_API_ALLOWED_APIS}
+    restart: always
 
   # web2:
   #   container_name: web2_c

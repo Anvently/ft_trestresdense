@@ -57,10 +57,10 @@ class	Turnament(models.Model):
 	turnament_id = models.BigIntegerField(verbose_name="turnament unique id", unique=True)
 	game_name = models.CharField(max_length=50)
 	date = models.DateTimeField(auto_now_add=True, editable=False)
-	number_player = models.SmallIntegerField()
+	number_players = models.SmallIntegerField()
 
 	def __str__(self) -> str:
-		return super().__str__()
+		return self.turnament_id.__str__()
 
 class	Lobby(models.Model):
 	""" 
