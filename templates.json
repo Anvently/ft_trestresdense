@@ -22,3 +22,20 @@ POST localhost:8001/post-result/
         }
     ]
 }
+
+//Posting a game to the back end
+POST pong:8002/init-game/
+{
+	"game_id": 41489.0,
+	"turnament_id": 41489, //optionnal
+	"game_settings": {
+		"number_player": 4,
+		"number_life": 3	
+	},
+	"player_list": [
+		"user1",
+		"user2",
+		"user3",
+		"user4"
+	]
+}
