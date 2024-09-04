@@ -2,6 +2,4 @@ Failles possibles :
 	- si on obtient un token valide pour un user "xyz", on supprime le compte, et quelqu'un recreait le compte "xyz", notre token est toujours valide.
 	
 TODO:
-	- ajouter model turnament
-	- ajouter post des scores/turnament sur api users_info
 	- mettre en place les apis pour le matchmaking, backend des jeux

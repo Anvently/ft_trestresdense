@@ -73,8 +73,8 @@ services:
     ports:
       - "8008:6379"
 
-  websocket_example:
-    container_name: websocket_c
+  pong:
+    container_name: pong_c
     build:
       context: ./srcs/django_builds
       target: django_websocketapi
@@ -84,7 +84,7 @@ services:
     depends_on:
         - redis
     volumes:
-      - ./srcs/backend/websocket_example/:/code
+      - ./srcs/backend/pong/:/code
       - ${DATA_DIR}keys/rsa/pub.pem:/etc/certificate/pub.pem
       - ${DATA_DIR}keys/api-tokens/pong:/etc/certificate/api-token
 

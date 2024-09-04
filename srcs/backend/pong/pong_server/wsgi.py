@@ -1,5 +1,5 @@
 """
-WSGI config for websocket_example project.
+WSGI config for pong project.
 
 It exposes the WSGI callable as a module-level variable named ``application``.
 
