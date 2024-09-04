@@ -15,6 +15,6 @@ RUN pip3 install -U requests
 FROM django_restapi AS django_usersapi
 RUN pip3 install -U Pillow drf-nested-routers
 
-FROM django_base AS django_websocketapi
+FROM django_authapi AS django_websocketapi
 RUN pip3 install -U 'channels[daphne]'
-RUN pip3 install -U channels-redis pyjwt[crypto]
+RUN pip3 install -U channels-redis
