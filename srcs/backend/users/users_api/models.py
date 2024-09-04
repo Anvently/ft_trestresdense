@@ -53,11 +53,36 @@ class	User(user_models.AbstractUser):
 		except: pass
 		return super(User, self).save(*args, **kwargs)
 	
-
-class	Lobby(models.Model):
-	lobby_id = models.BigIntegerField(verbose_name="lobby unique id")
+class	Turnament(models.Model):
+	turnament_id = models.BigIntegerField(verbose_name="turnament unique id", unique=True)
 	game_name = models.CharField(max_length=50)
 	date = models.DateTimeField(auto_now_add=True, editable=False)
+	number_player = models.SmallIntegerField()
+
+	def __str__(self) -> str:
+		return super().__str__()
+
+class	Lobby(models.Model):
+	""" 
+	Ex :
+	1598 => simple match, no turnament
+	1598.0 => finale
+	1598.1.0 => 1st semi-finale
+	1598.1.1 => 2nde semi-finale
+	1598.2.0 => 1st quarter
+	...
+	1598.2.3 => 4th quarter
+	"""
+	lobby_id = models.CharField(max_length=64, verbose_name="lobby unique id", unique=True)
+	game_name = models.CharField(max_length=50)
+	date = models.DateTimeField(auto_now_add=True, editable=False)
+	turnament = models.ForeignKey(
+		Turnament,
+		null=True,
+		verbose_name="corresponding turnament",
+		on_delete=models.CASCADE,
+		related_name="lobbys_set"
+	)
 
 	def __str__(self) -> str:
 		return self.lobby_id.__str__()
@@ -68,7 +93,8 @@ class	Score(models.Model):
 		null=True,
 		verbose_name="corresponding user",
 		on_delete=models.SET_NULL,
-		related_name="scores_set")
+		related_name="scores_set"
+	)
 	lobby = models.ForeignKey(
 		Lobby,
 		verbose_name="corresponding lobby",
