@@ -35,7 +35,7 @@ game = {
 const wsRef = new WebSocket(
 	'wss://'
 	+ 'localhost:8083'
-	+ '/ws/websocket_example/square/'
+	+ '/ws/pong/square/'
 );
 
 
