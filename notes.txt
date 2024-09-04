@@ -1,3 +1,5 @@
 Failles possibles :
 	- si on obtient un token valide pour un user "xyz", on supprime le compte, et quelqu'un recreait le compte "xyz", notre token est toujours valide.
 	
+TODO:
+	- mettre en place les apis pour le matchmaking, backend des jeux

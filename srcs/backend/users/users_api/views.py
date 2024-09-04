@@ -3,11 +3,13 @@ from rest_framework import status, serializers
 from rest_framework.views import APIView
 from rest_framework import mixins
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated
-from rest_framework.parsers import MultiPartParser, FileUploadParser
+from rest_framework.parsers import JSONParser
 from rest_framework.response import Response
-from users_api.models import User, Lobby, Score
-from users_api.serializers import UserSerializer, LobbySerializer, ScoreSerializer, UserCreationSerializer
-from users_api.authentication import CookieUserJWTAuthentication, HeaderUserJWTAuthentication, ApiJWTAuthentication, IsApiAuthenticatedAs
+from users_api.models import User, Lobby, Score, Turnament
+from users_api.serializers import UserSerializer, LobbySerializer, ScoreSerializer, \
+		UserCreationSerializer, TurnamentSerializer
+from users_api.authentication import CookieUserJWTAuthentication, HeaderUserJWTAuthentication, \
+		ApiJWTAuthentication, IsApiAuthenticatedAs
 from django.http import HttpResponseRedirect
 
 # Create your models here.
@@ -19,11 +21,23 @@ class UserViewSet(viewsets.GenericViewSet, mixins.UpdateModelMixin,
 	permission_classes = [IsAuthenticatedOrReadOnly]
 	authentication_classes = [CookieUserJWTAuthentication, HeaderUserJWTAuthentication]
 
+class LobbyPostViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin):
+	parser_classes = [JSONParser,]
+	serializer_class = LobbySerializer
+	queryset = Lobby.objects.all()
+	lookup_field = "lobby_id"
+	permission_classes = [IsApiAuthenticatedAs(["pong", "matchmaking"])]
+	authentication_classes = [ApiJWTAuthentication]
 
 class LobbyViewSet(viewsets.ReadOnlyModelViewSet):
 	serializer_class = LobbySerializer
 	lookup_field = "lobby_id"
 	queryset = Lobby.objects.all()
+
+class TurnamentViewSet(viewsets.ReadOnlyModelViewSet):
+	serializer_class = TurnamentSerializer
+	lookup_field = "turnament_id"
+	queryset = Turnament.objects.all()
 
 class ScoreViewSet(viewsets.ReadOnlyModelViewSet):
 	serializer_class = ScoreSerializer
@@ -57,7 +71,7 @@ class AvatarView(APIView):
 	# 	return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class ApiUserView(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.DestroyModelMixin):
-	permission_classes = [IsApiAuthenticatedAs("auth"),]
+	permission_classes = [IsApiAuthenticatedAs(["auth",]),]
 	authentication_classes = [ApiJWTAuthentication,]
 	lookup_field = "username"
 	queryset = User.objects.all()

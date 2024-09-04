@@ -1,10 +1,11 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from users_api.models import User, Score, Lobby
+from users_api.models import User, Score, Lobby, Turnament
 
 # Register your models here.
 admin.site.register(Lobby)
 admin.site.register(Score)
+admin.site.register(Turnament)
 
 UserAdmin.fieldsets = (
 		(None, {"fields": ("username",)}),

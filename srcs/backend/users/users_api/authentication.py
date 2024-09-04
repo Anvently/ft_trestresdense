@@ -2,6 +2,7 @@ from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.permissions import BasePermission
 from users_api.models import User
+from typing import List
 import time
 import jwt
 
@@ -16,7 +17,7 @@ def verify_jwt(token, is_ttl_based=False, ttl_key="exp"):
 
 class IsApiAuthentificated(BasePermission):
 
-	restrict_api = None
+	restrict_api: List[str] = None
 
 	def __init__(self):
 		pass
@@ -24,13 +25,13 @@ class IsApiAuthentificated(BasePermission):
 	def has_permission(self, request, view):
 		if not hasattr(request, 'api_name'):
 			return False
-		if self.restrict_api and  request.api_name != self.restrict_api:
+		if self.restrict_api and request.api_name not in self.restrict_api:
 			raise AuthenticationFailed("The provided token does not allow this action")
 		elif request.api_name:
 			return True
 		return False
 
-def IsApiAuthenticatedAs(required_api: str):
+def IsApiAuthenticatedAs(required_api: List[str]):
 	class CustomIsApiAuthenticated(IsApiAuthentificated):
 		restrict_api = required_api
 

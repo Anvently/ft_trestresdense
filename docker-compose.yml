@@ -65,6 +65,7 @@ services:
       - API42_SECRET=${API42_SECRET}
     secrets:
       - rsa-key
+    restart: always
 
   redis:
     container_name: redis_c
@@ -72,8 +73,8 @@ services:
     ports:
       - "8008:6379"
 
-  websocket_example:
-    container_name: websocket_c
+  pong:
+    container_name: pong_c
     build:
       context: ./srcs/django_builds
       target: django_websocketapi
@@ -83,9 +84,10 @@ services:
     depends_on:
         - redis
     volumes:
-      - ./srcs/backend/websocket_example/:/code
+      - ./srcs/backend/pong/:/code
       - ${DATA_DIR}keys/rsa/pub.pem:/etc/certificate/pub.pem
       - ${DATA_DIR}keys/api-tokens/pong:/etc/certificate/api-token
+    restart: always
 
   users_api:
     container_name: users_api_c
@@ -109,6 +111,7 @@ services:
       - POSTGRES_PORT=${POSTGRES_PORT}
       - POSTGRES_DB=${POSTGRES_DB_USERS}
       - ALLOWED_APIS=${USERS_API_ALLOWED_APIS}
+    restart: always
 
   # web2:
   #   container_name: web2_c
