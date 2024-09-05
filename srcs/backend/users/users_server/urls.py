@@ -19,7 +19,8 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 
-from users_api.views import UserViewSet, LobbyViewSet, ScoreViewSet, AvatarView, ApiUserView
+from users_api.views import UserViewSet, LobbyViewSet, ScoreViewSet,\
+	AvatarView, ApiUserView, TurnamentViewSet, LobbyPostViewSet
 from rest_framework.routers import SimpleRouter
 from rest_framework_nested.routers import NestedSimpleRouter
 from rest_framework.authtoken import views
@@ -27,10 +28,12 @@ from rest_framework.authtoken import views
 router = SimpleRouter()
 router.register(r'users', UserViewSet, basename='users')
 router.register(r'lobbys', LobbyViewSet, basename='lobbys')
+router.register(r'turnaments', TurnamentViewSet, basename='turnaments')
 nested_router = NestedSimpleRouter(router, r'users', lookup='user')
 nested_router.register(r'scores', ScoreViewSet, basename='user_scores')
 internal_router = SimpleRouter()
 internal_router.register(r'edit-users', ApiUserView, basename='api_user_view')
+internal_router.register(r'post-result', LobbyPostViewSet, basename='api_result_view')
 
 # urlpatterns = router.urls
 

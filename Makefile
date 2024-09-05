@@ -11,7 +11,7 @@ DATA_DEPS	= $(DATA_DIR) $(DATA_DIR)db/ \
 space := $(empty) $(empty)
 comma := ,
 
-API_TOKENS			=	auth pong users
+API_TOKENS			=	auth pong users matchmaking
 API_TOKENS_PARAMS	=	$(subst $(space),$(comma),$(API_TOKENS))
 
 API_TOKENS_FILES	=	$(addprefix $(DATA_DIR)keys/api-tokens/,$(API_TOKENS))

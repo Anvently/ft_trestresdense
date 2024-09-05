@@ -1,40 +1,97 @@
 import {lancementChat} from "./chat.js";
 
-const loginForm = document.getElementById("login-form");
-const LoginButt = document.getElementById("login-form-submit");
+// const loginForm = document.getElementById("login-form");
+// const LoginButt = document.getElementById("login-form-submit");
+// const JoinButt = document.getElementById("join-room-submit");
+// const roomName = document.getElementById("room_form");
+
+// const chatScreen = document.getElementById("app");
+
+// function foo() {
+
+// 	console.log("username : %s | password: %s", loginForm.username.value, loginForm.password.value);
+// }
+
+// LoginButt.addEventListener("click", e => {
+// 	e.preventDefault();
+// 	foo();
 
 
-function foo() {
+// 	fetch('https://localhost:8083/api/auth/login/', {
+//         method: 'POST',
+//         headers: {
+//             'Accept': 'application/json',
+//             'Content-Type': 'application/json'
+//         },
+//         body: JSON.stringify({
+//             "username": loginForm.username.value,
+//             "password": loginForm.password.value
+//         })
+//     })
+//        .then(response => {
+//         if (!response.ok)
+//                 throw new Error('Network response was not ok : ' + response.status);
+//             return response.json();
+//        })
+//        .then(data=> {
+//            // lancementChat(chatScreen);
+//         })
+//         .catch(error => {
+//             console.error('There was a problem with the fetch operation: ', error);
+//         })
 
-	console.log("username : %s | password: %s", loginForm.username.value, loginForm.password.value);
+//     });
+
+//     JoinButt.addEventListener("click", e => {
+//         e.preventDefault();
+//         lancementChat(chatScreen, roomName.room_name.value);
+//         // chatScreen.style.display = "contents";
+// });
+
+
+
+
+export function foo() {
+    const userField = document.getElementById("username-field");
+    const passField = document.getElementById("password-field");
+    const LoginButt = document.getElementById("submit-btn");
+    
+    
+    LoginButt.addEventListener("click", e => {
+        e.preventDefault();
+        foo();
+    });
+    console.log("username : %s | password: %s", userField.value, passField.value);
 }
 
-LoginButt.addEventListener("click", e => {
-	e.preventDefault();
-	foo();
 
-	fetch('https://localhost:8083/api/auth/login/', {
-        method: 'POST',
-        headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            "username": loginForm.username.value,
-            "password": loginForm.password.value
-        })
-    })
-       .then(response => {
-        if (!response.ok)
-                throw new Error('Network response was not ok : ' + response.status);
-            return response.json();
-       })
-       .then(data=> {
-        document.querySelector("#app").innerHTML = '<textarea id="chat-log" cols="100" rows="20"></textarea><br> <input id="chat-message-input" type="text" size="100"><br> <input id="chat-message-submit" type="button" value="Send"> {lobby}';
-        lancementChat();
-       })
-       .catch(error => {
-            console.error('There was a problem with the fetch operation: ', error);
-       })
+// 	fetch('https://localhost:8083/api/auth/login/', {
+//         method: 'POST',
+//         headers: {
+//             'Accept': 'application/json',
+//             'Content-Type': 'application/json'
+//         },
+//         body: JSON.stringify({
+//             "username": userField.value,
+//             "password": passField.value
+//         })
+//     })
+//        .then(response => {
+//         if (!response.ok)
+//                 throw new Error('Network response was not ok : ' + response.status);
+//             return response.json();
+//        })
+//        .then(data=> {
+//            // lancementChat(chatScreen);
+//         })
+//         .catch(error => {
+//             console.error('There was a problem with the fetch operation: ', error);
+//         })
 
-});
+//     });
+
+//     JoinButt.addEventListener("click", e => {
+//         e.preventDefault();
+//         lancementChat(chatScreen, roomName.room_name.value);
+//         // chatScreen.style.display = "contents";
+// });

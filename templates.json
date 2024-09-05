@@ -1,0 +1,41 @@
+//Posting result to database
+POST localhost:8001/post-result/
+{
+    "lobby_id": "1888.1.0",
+    "game_name": "pong",
+	"turnament_id": "1897", //optionnal
+    "scores_set": [
+        {
+            "username": "admin",
+            "score": 15,
+            "has_win": true
+        },
+        {
+            "username": "044pouet",
+            "score": 10,
+            "has_win": false
+        },
+			{
+            "username": "045pouet",
+            "score": 10,
+            "has_win": false
+        }
+    ]
+}
+
+//Posting a game to the back end
+POST pong:8002/init-game/
+{
+	"game_id": 41489.0,
+	"turnament_id": 41489, //optionnal
+	"game_settings": {
+		"number_player": 4,
+		"number_life": 3
+	},
+	"player_list": [
+		"user1",
+		"user2",
+		"user3",
+		"user4"
+	]
+}

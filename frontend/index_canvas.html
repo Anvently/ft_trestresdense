@@ -9,9 +9,12 @@
   <link rel="stylesheet" href="styles_canvas.css">
 </head>
 <body>
+<header>
   <nav class="navbar navbar-expand-lg bg-body-tertiary">
     <div class="container-fluid">
-      <a class="navbar-brand" href="#">Navbar</a>
+      <a class="navbar-brand" href="#">
+        <img src="image/Atari_Pong_1972.webp" alt="pong logo atari" height="30px">
+      </a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
       </button>
@@ -25,9 +28,12 @@
       </div>
     </div>
   </nav>
+</header>
+<main> 
   <div id="container-canva" >
-    <canvas id="myCanvas"> </canvas> 
-    <script src="script_canvas.js" type="module"> </script>
+    <canvas id="canvas"> </canvas> 
+    <script src="script_pong.js" type="module"> </script>
   </div>
-  </body>
+</main>
+</body>
 </html>

@@ -74,7 +74,7 @@ TEMPLATES = [
 with open('/etc/certificate/pub.pem', 'rb') as file:
     RSA_PUBLIC_KEY = file.read()
 
-print(RSA_PUBLIC_KEY)
+# print(RSA_PUBLIC_KEY)
 
 WSGI_APPLICATION = 'users_server.wsgi.application'
 
