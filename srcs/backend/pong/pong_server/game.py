@@ -1,6 +1,7 @@
 from typing import List, Dict, Any
 import time
 import asyncio
+from channels.layers import get_channel_layer
 
 from typing import List, Dict, Any, Tuple
 
@@ -37,16 +38,16 @@ class Player:
 class PongLobby:
 
 	# Constructor
-	def __init__(self, lobby_id: str, players_list, lifes,  tournId=None) -> None:
+	def __init__(self, lobby_id: str, players_list: List[str], lifes,  tournId=None) -> None:
 		self.lobby_id = lobby_id
 		self.player_num = len(players_list)
 		if tournId:
 			self.tournId = tournId
 		self.ball = None
 		self.sides = ["wall"] * 4
-		self.players = dict()
+		self.players: Dict[str, Player] = dict()
 		for i in range(len(players_list)):
-			self.players[players_list[i]](Player(players_list[i], i, lifes))
+			self.players[players_list[i]] = Player(players_list[i], i, lifes)
 			self.sides[i] = "player"
 		self.ball = BALL_START
 		self.gameState = 0
@@ -123,45 +124,62 @@ class PongLobby:
 		""" Template of player_list: ["user1", "user1_guest"] """
 		if not player_id in self.players:
 			return False
-		self.players[player_id].is_ready = True
+		self.waiting_for -= 1
 		return True
 
 	def player_leave(self, player_id: str):
 		""" Template of player_list: ["user1", "user1_guest"] """
-		self.players[player_id].has_left = True
+		self.waiting_for += 1
 
 	def player_input(self, player_id, input):
-		# get the player index from the player_id
-		i = -1
-		for index, player in self.players.items():
-			if player["id"] == player_id:
-				i = index
-				break
 
-		if input == "joined":
-			self.player[i]["ready"] = 1
-
-		elif input == "up":
-			if i == EAST or i == WEST:
-				self.player[i]["y"] = max(PADDLE_LENGTH / 2, self.player[i]["y"] - PLAYER_SPEED)
+		if input == "up":
+			if self.players[player_id].player_position < 2:
+				self.players[player_id].player_coordinates['y'] = max(PADDLE_LENGTH / 2, self.players[player_id].player_coordinates["y"] - PLAYER_SPEED)
 			else:
-				self.player[i]["x"] = max(PADDLE_LENGTH / 2, self.player[i]["x"] - PLAYER_SPEED)
+				self.players[player_id].player_coordinates['x'] = max(PADDLE_LENGTH / 2, self.players[player_id].player_coordinates["x"] - PLAYER_SPEED)
 		elif input == "down":
-			if i == EAST or i == WEST:
-				self.player[i]["y"] = min(1 - PADDLE_LENGTH / 2, self.player[i]["y"] + PLAYER_SPEED)
+			if self.players[player_id].player_position < 2:
+				self.players[player_id].player_coordinates['y'] = min(1 - PADDLE_LENGTH / 2, self.players[player_id].player_coordinates["y"] + PLAYER_SPEED)
 			else:
-				self.player[i]["x"] = min(1 - PADDLE_LENGTH / 2, self.player[i]["x"] + PLAYER_SPEED)
-			
-	# async def	move_loop(self):
-	# 	loop_start = time()
+				self.players[player_id].player_coordinates['x'] = min(1 - PADDLE_LENGTH / 2, self.players[player_id].player_coordinates["x"] + PLAYER_SPEED)
+		# if input == "up":
+		# 	if i == EAST or i == WEST:
+		# 		self.player[i]["y"] = max(PADDLE_LENGTH / 2, self.player[i]["y"] - PLAYER_SPEED)
+		# 	else:
+		# 		self.player[i]["x"] = max(PADDLE_LENGTH / 2, self.player[i]["x"] - PLAYER_SPEED)
+		# elif input == "down":
+		# 	if i == EAST or i == WEST:
+		# 		self.player[i]["y"] = min(1 - PADDLE_LENGTH / 2, self.player[i]["y"] + PLAYER_SPEED)
+		# 	else:
+		# 		self.player[i]["x"] = min(1 - PADDLE_LENGTH / 2, self.player[i]["x"] + PLAYER_SPEED)
 
-	# 	# pregame : check that all players are present
-	# 	while time() - loop_start < 60 & self.gameState == 0:
-	# 		asyncio.sleep(0.5)
-	# 		async with self.mut_lock:
-	# 			if self.waiting_for == 0:
-	# 				self.gameState = 1
-				
+	async def	game_loop(self):
+		loop_start = time()
+		player_channel = get_channel_layer()
+		# pregame : check that all players are present
+		while time() - loop_start < 60 & self.gameState == 0:
+			asyncio.sleep(0.5)
+			async with self.mut_lock:
+				data = self.get_data()
+				await player_channel.group_send(self.lobby_id, data)
+				if self.waiting_for == 0:
+					self.gameState = 1
+		if self.gameState == 0:
+			await player_channel.group_send(self.lobby_id, {"type": "cancel",
+												   			"message": "A player failed to load"
+															})
+			self.loop.cancel()
+			return
+		await player_channel.group_send(self.lobby_id, {"type": "game_start"})
+		self.ball = 1
+		while True:
+			# Do the game Stuff
+
+		# Remove from lobby list
+
+
+
 	# 	# pregame : check that all players are present
 	# 	while time() - loop_start < 60:
 	# 		async with self.mut_lock:
@@ -207,7 +225,17 @@ class PongLobby:
 			'playerE.x': self.player[EAST]["x"],
 			'playerE.y': self.player[EAST]["y"]
 		}
-	
+
+	# def get_state(self) -> Dict[str, Any]:
+	# 	return {
+	# 		'ball.x': self.ball["x"],
+	# 		'ball.y': self.ball["y"],
+	# 		'playerW.x': self.player[WEST]["x"],
+	# 		'playerW.y': self.player[WEST]["y"],
+	# 		'playerE.x': self.player[EAST]["x"],
+	# 		'playerE.y': self.player[EAST]["y"]
+	# 	}
+
 
 
 
@@ -223,26 +251,26 @@ class PongLobby:
 # 		elif ball["y"] > 1 and side[SOUTH] == "player":
 # 			player[SOUTH]["life"] -= 1
 
-# 		# check for dead players
-# 		for i in range(len(player_list)):
-# 			if player[i]["life"] <= 0:
-# 				side[i] == "wall"
-# 	# # game logic
-# 	# def check_points() 
-# 	#  	#meh, pue un peu la merde dans le cas des buts marques tres pres du bord
-# 	# 	if ball["x"] < 0 and side[WEST] == "player":
-# 	# 		player[WEST]["life"] -= 1
-# 	# 	elif ball["x"] > 1 and side[EAST] == "player":
-# 	# 		player[EAST]["life"] -= 1
-# 	# 	elif ball["y"] < 0 and side[NORTH] == "player":
-# 	# 		player[NORTH]["life"] -= 1
-# 	# 	elif ball["y"] > 1 and side[SOUTH] == "player":
-# 	# 		player[SOUTH]["life"] -= 1
-		
-# 	# 	# check for dead players
-# 	# 	for i in range(len(player_list)):
-# 	# 		if player[i]["life"] <= 0:
-# 	# 			side[i] == "wall"
+		# check for dead players
+		for i in range(len(player_list)):
+			if player[i]["life"] <= 0:
+				side[i] == "wall"
+	# # game logic
+	# def check_points()
+	#  	#meh, pue un peu la merde dans le cas des buts marques tres pres du bord
+	# 	if ball["x"] < 0 and side[WEST] == "player":
+	# 		player[WEST]["life"] -= 1
+	# 	elif ball["x"] > 1 and side[EAST] == "player":
+	# 		player[EAST]["life"] -= 1
+	# 	elif ball["y"] < 0 and side[NORTH] == "player":
+	# 		player[NORTH]["life"] -= 1
+	# 	elif ball["y"] > 1 and side[SOUTH] == "player":
+	# 		player[SOUTH]["life"] -= 1
+
+	# 	# check for dead players
+	# 	for i in range(len(player_list)):
+	# 		if player[i]["life"] <= 0:
+	# 			side[i] == "wall"
 
 # 	def check_winning_condition():
 # 		alive = 0
@@ -291,36 +319,36 @@ class PongLobby:
 # 										self.ball["r"])
 # 					paddle_rebound(direction)
 
-# 	def paddle_rebound(direction)	# simple rebound
-# 		if direction == WEST:
-# 			self.ball["speed"]["x"] *= -1
-# 		elif direction == EAST:
-# 			self.ball["speed"]["x"] *= -1
-# 		elif direction == NORTH:
-# 			self.ball["speed"]["y"] *= -1
-# 		elif direction == SOUTH:
-# 			self.ball["speed"]["y"] *= -1
-# 	# def paddle_collision()
-# 	# 	for direction in range(0, 4):
-# 	# 		if self.side[direction] == "player":
-# 	# 			if rectCircleCollision(self.player[i]["x"] - self.player[i]["width"] / 2,
-# 	# 									self.player[i]["y"] - self.player[i]["height"] / 2,
-# 	# 									self.player[i]["width"],
-# 	# 									self.player[i]["height"],
-# 	# 									self.ball["x"],
-# 	# 									self.ball["y"],
-# 	# 									self.ball["r"])
-# 	# 				paddle_rebound(direction)
-	
-# 	# def paddle_rebound(direction)	# simple rebound
-# 	# 	if direction == WEST:
-# 	# 		self.ball["speed"]["x"] *= -1
-# 	# 	elif direction == EAST:
-# 	# 		self.ball["speed"]["x"] *= -1
-# 	# 	elif direction == NORTH:
-# 	# 		self.ball["speed"]["y"] *= -1
-# 	# 	elif direction == SOUTH:
-# 	# 		self.ball["speed"]["y"] *= -1
+	def paddle_rebound(direction)	# simple rebound
+		if direction == WEST:
+			self.ball["speed"]["x"] *= -1
+		elif direction == EAST:
+			self.ball["speed"]["x"] *= -1
+		elif direction == NORTH:
+			self.ball["speed"]["y"] *= -1
+		elif direction == SOUTH:
+			self.ball["speed"]["y"] *= -1
+	# def paddle_collision()
+	# 	for direction in range(0, 4):
+	# 		if self.side[direction] == "player":
+	# 			if rectCircleCollision(self.player[i]["x"] - self.player[i]["width"] / 2,
+	# 									self.player[i]["y"] - self.player[i]["height"] / 2,
+	# 									self.player[i]["width"],
+	# 									self.player[i]["height"],
+	# 									self.ball["x"],
+	# 									self.ball["y"],
+	# 									self.ball["r"])
+	# 				paddle_rebound(direction)
+
+	# def paddle_rebound(direction)	# simple rebound
+	# 	if direction == WEST:
+	# 		self.ball["speed"]["x"] *= -1
+	# 	elif direction == EAST:
+	# 		self.ball["speed"]["x"] *= -1
+	# 	elif direction == NORTH:
+	# 		self.ball["speed"]["y"] *= -1
+	# 	elif direction == SOUTH:
+	# 		self.ball["speed"]["y"] *= -1
 
 # 	# def rectCircleCollision(rectX, rectY, width, height, circX, circY, radius):
 # 	# 	closestX = max(rectX, min(circX, rectX + width))
