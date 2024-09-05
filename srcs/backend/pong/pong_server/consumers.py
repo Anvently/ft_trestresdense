@@ -6,6 +6,7 @@ import asyncio
 from django.conf import settings
 from channels.generic.websocket import AsyncWebsocketConsumer, AsyncJsonWebsocketConsumer
 from pong_server import actions
+from pong_server.authentication import verify_jwt
 
 def verify_jwt(token, is_ttl_based=False, ttl_key="exp"):
 	data = jwt.decode(token, settings.RSA_PUBLIC_KEY, algorithms=["RS512"])
@@ -74,24 +75,71 @@ class ChatConsumer(AsyncWebsocketConsumer):
 		await self.send(text_data=json.dumps({'message': message}))
 
 
+# {
+# 	"npirard: up",
+# 	"npirard_guest: down"
+# }
+# {
+# 	"npirard" : "ready",
+# 	"npirard_guest": "ready"
+# }
+
+
+"""
+
+join_game => send lobby_infos
+lobby_infos {
+	players: [
+		{username, display_name}, ...
+	]
+}
+
+key_input => update pos from pongLobby
+
+game_state {
+	players: [{pos, nbr_life, status}, {...}, ...]
+	ball: {pos}
+}
+
+Check when last consumer disconnect
+
+"""
+
 class PongConsumer(AsyncJsonWebsocketConsumer):
 
+	def auth_client(self) -> bool:
+		self.username = None
+		if "cookies" in self.scope and "auth-token" in self.scope["cookies"]:
+			token = self.scope["cookies"]["auth-token"]
+			try:
+				data = verify_jwt(token, True)
+				self.username = data['username']
+			except:
+				self.scope['error'] = 'token verification failed'
+				self.scope['error_code'] = 4002
+			return True
+		else:
+			self.scope['error'] = "auth token not provided"
+			self.scope['error_code'] = 4001
+		return False
+
 	def	is_valid_client(self) -> bool:
-		if 'error' in self.scope:
-			return False
-		self.username = self.scope['username']
 		self.lobby_id = self.scope['url_route']['kwargs']["lobby_id"]
 		if actions.check_lobby_id(self.lobby_id) == False:
 			self.scope['error'] = "invalid lobby"
+			self.scope['error_code'] = 4003
 			return False
-		if actions.check_user_member(self.lobby_id, self.scope["username"]):
+		if not self.auth_client():
+			return False
+		if not actions.check_user_member(self.lobby_id, self.username):
 			self.scope['error'] = "forbidden lobby"
+			self.scope['error_code'] = 4004
 			return False
 		return True
 	
 	async def dispatch_to_lobby(self):
 		msg = "{user_name} has joined the chat".format(user_name = self.username)
-		self.channel_layer.group_send(self.lobby_id, {
+		await self.channel_layer.group_send(self.lobby_id, {
 			"type": "others_message",
 			"message": msg,
 			'user': self.username
@@ -99,27 +147,32 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 		await self.channel_layer.group_add(self.lobby_id, self.channel_name)
 
 	async def connect(self):
+		await self.accept()
 		if self.is_valid_client():
-			await self.accept()
+			await self.dispatch_to_lobby()
 		else:
-			await self.close(code=4001, reason=self.scope['error'])
-
-		self.dispatch_to_lobby()
+			print("Connection rejected because: {0}".format(self.scope['error']))
+			await self.close(code=self.scope['error_code'], reason=self.scope['error'])
 
 	async def disconnect(self, close_code):
-		msg = "{user_name} has left the chat".format(user_name = self.data['username'])
+		msg = "{user_name} has left the chat".format(user_name = self.username)
 		await self.channel_layer.group_send(
-			self.room_group_name, {"type": "others_message", "message": msg, 'user': self.data['username']})
-		await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
+			self.lobby_id, {"type": "others_message", "message": msg, 'user': self.username})
+		await self.channel_layer.group_discard(self.lobby_id, self.channel_name)
 
-	async def receive(self, text_data):
-		text_data_json = json.loads(text_data)
-		message = "{user_name} : {msg}".format(user_name = self.data['username'], msg = text_data_json['message'])
-
+	async def receive_json(self, content, **kwargs):
+		message = "{user_name} : {msg}".format(user_name = self.username, msg = content['message'])
 		# Echo the message back to all the chat members
 		await self.channel_layer.group_send(
-			self.room_group_name, {"type": "chat_message", "message": message}
+			self.lobby_id, {"type": "chat_message", "message": message}
 		)
+
+	# receive msg from chat
+	async def chat_message(self, content):
+		await self.send_json(content)
+
+	async def others_message(self, content):
+		await self.send_json(content)
 
 # CONSTANTS (How to share them with script_pong.js ???)
 PLAYER_HEIGHT = 0.16
