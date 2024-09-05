@@ -24,17 +24,16 @@ START_POS = [{"x": PADDLE_THICKNESS / 2, 'y': 0.5, 'width': PADDLE_THICKNESS, 'h
 			 {"x": 0.5, "y":1 - PADDLE_THICKNESS / 2, "width": PADDLE_THICKNESS / 2,"height": PADDLE_LENGTH}
 			 ]
 
+BALL_START = {"x": 0.5, "y": 0.5, "r": BALL_RADIUS, "speed": {"x": BALL_SPEED, "y": 0.002}}
+
 class Player:
 	def _init__(self, player_id, player_position, player_life):
 		self.player_id = player_id
 		self.player_position = player_position
 		self.player_lifes = player_life
 		self.player_coordinates = START_POS[player_position]
-		self.ready = 0
 
 class PongLobby:
-
-	gameState = 0
 
 	# Constructor
 	def __init__(self, lobby_id: str, players_list, lifes,  tournId=None) -> None:
@@ -47,62 +46,68 @@ class PongLobby:
 		self.players = dict()
 		for i in range(len(players_list)):
 			self.players[players_list[i]](Player(players_list[i], i, lifes))
-
-
-
-	# init variables
-	def init_game(self, game_id, player_list: List[str]):
-		# ball initialization
-		self.ball = {
-			"x": 0.5,
-			"y": 0.5,
-			"r": BALL_RADIUS,
-			"speed": {"x": BALL_SPEED, "y": 0.002}
-		}
-
-		# player initialization
-		for i in range(len(player_list)):
-			if i == WEST:
-				self.players[i] = {
-					"x": PADDLE_THICKNESS / 2,
-					"y": 0.5,
-					"width": PADDLE_THICKNESS,
-					"height": PADDLE_LENGTH,
-					"id": player_list[i],
-					"ready": 0,
-					"life": 3
-				}
-			elif i == EAST:
-				self.players[i] = {
-					"x": 1 - PADDLE_THICKNESS / 2,
-					"y": 0.5,
-					"width": PADDLE_THICKNESS,
-					"height": PADDLE_LENGTH,
-					"id": player_list[i],
-					"ready": 0,
-					"life": 3
-				}
-			elif i == NORTH:
-				self.players[i] = {
-					"x": 0.5,
-					"y": PADDLE_THICKNESS / 2,
-					"width": PADDLE_LENGTH,
-					"height": PADDLE_THICKNESS,
-					"id": player_list[i],
-					"ready": 0,
-					"life": 3
-				}
-			elif i == SOUTH:
-				self.players[i] = {
-					"x": 0.5,
-					"y": 1 - PADDLE_THICKNESS / 2,
-					"width": PADDLE_LENGTH,
-					"height": PADDLE_THICKNESS,
-					"id": player_list[i],
-					"ready": 0,
-					"life": 3
-				}
 			self.sides[i] = "player"
+		self.ball = BALL_START
+		self.gameState = 0
+		self.mut_lock = asyncio.Lock()
+		self.loop = asyncio.create_task(self.game_loop())
+		self.waiting_for = self.player_num
+
+
+
+	# # init variables
+	# def init_game(self, game_id, player_list: List[str]):
+	# 	# ball initialization
+	# 	self.ball = {
+	# 		"x": 0.5,
+	# 		"y": 0.5,
+	# 		"r": BALL_RADIUS,
+	# 		"speed": {"x": BALL_SPEED, "y": 0.002}
+	# 	}
+
+	# 	# player initialization
+	# 	for i in range(len(player_list)):
+	# 		if i == WEST:
+	# 			self.players[i] = {
+	# 				"x": PADDLE_THICKNESS / 2,
+	# 				"y": 0.5,
+	# 				"width": PADDLE_THICKNESS,
+	# 				"height": PADDLE_LENGTH,
+	# 				"id": player_list[i],
+	# 				"ready": 0,
+	# 				"life": 3
+	# 			}
+	# 		elif i == EAST:
+	# 			self.players[i] = {
+	# 				"x": 1 - PADDLE_THICKNESS / 2,
+	# 				"y": 0.5,
+	# 				"width": PADDLE_THICKNESS,
+	# 				"height": PADDLE_LENGTH,
+	# 				"id": player_list[i],
+	# 				"ready": 0,
+	# 				"life": 3
+	# 			}
+	# 		elif i == NORTH:
+	# 			self.players[i] = {
+	# 				"x": 0.5,
+	# 				"y": PADDLE_THICKNESS / 2,
+	# 				"width": PADDLE_LENGTH,
+	# 				"height": PADDLE_THICKNESS,
+	# 				"id": player_list[i],
+	# 				"ready": 0,
+	# 				"life": 3
+	# 			}
+	# 		elif i == SOUTH:
+	# 			self.players[i] = {
+	# 				"x": 0.5,
+	# 				"y": 1 - PADDLE_THICKNESS / 2,
+	# 				"width": PADDLE_LENGTH,
+	# 				"height": PADDLE_THICKNESS,
+	# 				"id": player_list[i],
+	# 				"ready": 0,
+	# 				"life": 3
+	# 			}
+	# 		self.sides[i] = "player"
 
 	def player_input(self, player_id, input):
 		# get the player index from the player_id
@@ -126,20 +131,16 @@ class PongLobby:
 			else:
 				self.player[i]["x"] = min(1 - PADDLE_LENGTH / 2, self.player[i]["x"] + PLAYER_SPEED)
 
-	async def	move_loop(self):
+	async def	game_loop(self):
 		loop_start = time()
 
 		# pregame : check that all players are present
-		while time() - loop_start < 60:
+		while time() - loop_start < 60 & self.gameState == 0:
+			asyncio.sleep(0.5)
 			async with self.mut_lock:
-				asyncio.sleep(0.5)
-				count = 0
-				for i in range(len(player_list)):
-					if self.player[i]["ready"] == 0
-						break
-					count += 1
-				if count == len(player_list):
-					gameState = 1
+				if self.waiting_for == 0:
+					self.gameState = 1
+				
 
 		# in case players coundlnt connect
 		if gameState == 0:
