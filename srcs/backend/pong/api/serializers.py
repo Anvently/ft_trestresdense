@@ -19,8 +19,12 @@ class GameSerializer(serializers.Serializer):
 
 	def save(self):
 		"""Append the game to the list of active games"""
-		PongLobby.init_game()
-		pass
+		PongLobby.new_game(
+			game_id=self.validated_data['game_id'],
+			player_list=self.validated_data['player_list'],
+			settings=self.validated_data['settings'],
+			turnament_id=self.validated_data.get('turnament_id')
+		)
 
 	def validate(self, data):
 		number_players = data['settings']['number_players']

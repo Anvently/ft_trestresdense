@@ -33,8 +33,8 @@ POST pong:8002/init-game/
 		"number_life": 3
 	},
 	"player_list": [
-		"user1",
-		"user1",
+		"akro",
+		"akro_guest",
 		"user3",
 		"user4"
 	]

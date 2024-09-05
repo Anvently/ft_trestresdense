@@ -29,7 +29,7 @@ START_POS = [{"x": PADDLE_THICKNESS / 2, 'y': 0.5, 'width': PADDLE_THICKNESS, 'h
 BALL_START = {"x": 0.5, "y": 0.5, "r": BALL_RADIUS, "speed": {"x": BALL_SPEED, "y": 0.002}}
 
 class Player:
-	def _init__(self, player_id, player_position, player_life):
+	def __init__(self, player_id, player_position, player_life):
 		self.player_id = player_id
 		self.player_position = player_position
 		self.player_lifes = player_life
@@ -52,7 +52,7 @@ class PongLobby:
 		self.ball = BALL_START
 		self.gameState = 0
 		self.mut_lock = asyncio.Lock()
-		self.loop = asyncio.create_task(self.game_loop())
+		self.loop = None
 		self.waiting_for = self.player_num
 
 	def check_lobby_id(id:str) -> bool:
@@ -65,9 +65,15 @@ class PongLobby:
 		if username in self.players:
 			return True
 		return False
+	
+
+	def new_game(game_id, player_list: List[str], settings: Dict[str, Any], turnament_id: str = None):
+		if PongLobby.check_lobby_id(game_id):
+			return
+		lobbys_list[game_id] = PongLobby(game_id, player_list, settings['number_life'], turnament_id)
 
 	# init variables
-	def init_game(self, game_id, player_list: List[str]):
+	def init_game(self):
 		# ball initialization
 		self.ball = {
 			"x": 0.5,
@@ -75,6 +81,13 @@ class PongLobby:
 			"r": BALL_RADIUS,
 			"speed": {"x": BALL_SPEED, "y": 0.002}
 		}
+
+	async def start_game_loop(self):
+		self.loop = asyncio.create_task(self.game_loop())
+
+	async def stop_game_loop(self):
+		if self.loop:
+			self.loop.cancel()
 
 	# 	# player initialization
 	# 	for i in range(len(player_list)):
@@ -120,11 +133,13 @@ class PongLobby:
 	# 			}
 	# 		self.sides[i] = "player"
 
-	def player_join(self, player_id: str) -> bool:
+	async def player_join(self, player_id: str) -> bool:
 		""" Template of player_list: ["user1", "user1_guest"] """
 		if not player_id in self.players:
 			return False
 		self.waiting_for -= 1
+		if not self.loop:
+			await self.start_game_loop()
 		return True
 
 	def player_leave(self, player_id: str):
@@ -173,48 +188,42 @@ class PongLobby:
 			return
 		await player_channel.group_send(self.lobby_id, {"type": "game_start"})
 		self.ball = 1
-		while True:
-			# Do the game Stuff
 
-		# Remove from lobby list
+		# # pregame : check that all players are present
+		# while time() - loop_start < 60:
+		# 	async with self.mut_lock:
+		# 		asyncio.sleep(0.5)
+		# 		count = 0
+		# 		for i in range(len(player_list)):
+		# 			if self.player[i]["ready"] == 0
+		# 				break
+		# 			count += 1
+		# 		if count == len(player_list):
+		# 			gameState = 1
 
+		# # in case players coundlnt connect
+		# if gameState == 0:
+		# 	self.cancelGame()
 
-
-	# 	# pregame : check that all players are present
-	# 	while time() - loop_start < 60:
-	# 		async with self.mut_lock:
-	# 			asyncio.sleep(0.5)
-	# 			count = 0
-	# 			for i in range(len(player_list)):
-	# 				if self.player[i]["ready"] == 0
-	# 					break
-	# 				count += 1
-	# 			if count == len(player_list):
-	# 				gameState = 1
-
-	# 	# in case players coundlnt connect
-	# 	if gameState == 0:
-	# 		self.cancelGame()
-
-	# 	# countdown
-	# 		# game is about to start
-	# 	self.startingMessage()
-	# 	sleep(3)
+		# # countdown
+		# 	# game is about to start
+		# self.startingMessage()
+		# sleep(3)
 
 
-	# 	while gameState == 1:
-	# 		async with self.mut_lock:
-	# 			self.ball["x"] += self.ball["speed"]["x"]
-	# 			self.ball["y"] += self.ball["speed"]["y"]
-	# 			wall_collision()
-	# 			paddle_collision()
-	# 			check_points()
-	# 			if check_winning_condition() == 1:
-	# 				gameState == 0
+		# while gameState == 1:
+		# 	async with self.mut_lock:
+		# 		self.ball["x"] += self.ball["speed"]["x"]
+		# 		self.ball["y"] += self.ball["speed"]["y"]
+		# 		wall_collision()
+		# 		paddle_collision()
+		# 		check_points()
+		# 		if check_winning_condition() == 1:
+		# 			gameState == 0
 
 
-	# 	self.endingMessage()
-	# 	sleep(3)
+		# self.endingMessage()
+		# sleep(3)
 
 	def get_state(self) -> Dict[str, Any]:
 		return {
@@ -319,7 +328,7 @@ class PongLobby:
 # 										self.ball["r"])
 # 					paddle_rebound(direction)
 
-	def paddle_rebound(direction)	# simple rebound
+	def paddle_rebound(self, direction):	# simple rebound
 		if direction == WEST:
 			self.ball["speed"]["x"] *= -1
 		elif direction == EAST:

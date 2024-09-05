@@ -182,10 +182,10 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 		if content['username'].split('.')[0] != self.username:
 			await self._send_error('You are not who you pretend to be')
 			return
-		if not lobbys_list[self.lobby_id].player_join(content['data']):
+		if not await lobbys_list[self.lobby_id].player_join(content['data']):
 			await self._send_error('Could not join the lobby.')
 			return
-		self.users.add(content['username'])	
+		self.users.add(content['username'])
 		await self.channel_layer.group_send(
 			self.lobby_id, {"type": "info_message",
 				"data": "{user} joined the game.".format(user=content['username'])}
