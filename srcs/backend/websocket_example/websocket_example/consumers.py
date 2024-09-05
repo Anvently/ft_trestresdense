@@ -108,7 +108,6 @@ class SquareConsumer(AsyncWebsocketConsumer):
                     SquareConsumer.right_position = min(8, self.right_position + 1)
 
      async def state_update(self, event):
-
           await self.send(
                text_data=json.dumps({
                     "type": "stateUpdate",
