@@ -7,6 +7,7 @@ from django.conf import settings
 from channels.generic.websocket import AsyncWebsocketConsumer, AsyncJsonWebsocketConsumer
 from pong_server import actions
 from pong_server.authentication import verify_jwt
+from pong_server.game import PongLobby, lobbys_list
 
 def verify_jwt(token, is_ttl_based=False, ttl_key="exp"):
 	data = jwt.decode(token, settings.RSA_PUBLIC_KEY, algorithms=["RS512"])
@@ -107,8 +108,14 @@ Check when last consumer disconnect
 
 class PongConsumer(AsyncJsonWebsocketConsumer):
 
-	def auth_client(self) -> bool:
+	def __init__(self, *args, **kwargs):
 		self.username = None
+		self.lobby_id = None
+		self.with_guest = False
+		self.is_valid = False
+		super().__init__(*args, **kwargs)
+
+	def auth_client(self) -> bool:
 		if "cookies" in self.scope and "auth-token" in self.scope["cookies"]:
 			token = self.scope["cookies"]["auth-token"]
 			try:
@@ -136,42 +143,52 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 			self.scope['error_code'] = 4004
 			return False
 		return True
-	
-	async def dispatch_to_lobby(self):
-		msg = "{user_name} has joined the chat".format(user_name = self.username)
-		await self.channel_layer.group_send(self.lobby_id, {
-			"type": "others_message",
-			"message": msg,
-			'user': self.username
-		})
-		await self.channel_layer.group_add(self.lobby_id, self.channel_name)
 
 	async def connect(self):
 		await self.accept()
 		if self.is_valid_client():
-			await self.dispatch_to_lobby()
+			self.is_valid = True
+			await self.channel_layer.group_add(self.lobby_id, self.channel_name)
 		else:
 			print("Connection rejected because: {0}".format(self.scope['error']))
 			await self.close(code=self.scope['error_code'], reason=self.scope['error'])
 
 	async def disconnect(self, close_code):
-		msg = "{user_name} has left the chat".format(user_name = self.username)
-		await self.channel_layer.group_send(
-			self.lobby_id, {"type": "others_message", "message": msg, 'user': self.username})
-		await self.channel_layer.group_discard(self.lobby_id, self.channel_name)
+		if self.is_valid:
+			if self.with_guest:
+				users = "{username},{username}.guest".format(self.username)
+			else:
+				users = self.username
+			msg = "{users} left the game.".format(users=users)
+			await self.channel_layer.group_send(
+				self.lobby_id, {"type": "info_message", "data": msg})
+			await self.channel_layer.group_discard(self.lobby_id, self.channel_name)
 
 	async def receive_json(self, content, **kwargs):
-		message = "{user_name} : {msg}".format(user_name = self.username, msg = content['message'])
-		# Echo the message back to all the chat members
-		await self.channel_layer.group_send(
-			self.lobby_id, {"type": "chat_message", "message": message}
-		)
+		try:
+			await self.dispatch(content)
+		except:
+			await self.send_json({'type':'error', 'data':'Invalid type'})
 
 	# receive msg from chat
-	async def chat_message(self, content):
+	async def join_game(self, content):
+		if len(content['data']) > 1:
+			self.with_guest = True
+		# lobbys_list[self.lobby_id].player_join(content['data'])
+		message = "{users} joined the game.".format(users=",".join(content['data']))
+		await self.channel_layer.group_send(
+			self.lobby_id, {"type": "info_message", "data":message}
+		)
+
+
+	async def key_input(self, content):
+		# lobbys_list[self.lobby_id].post_input(content)
+		pass
+
+	async def send_game_state(self, content):
 		await self.send_json(content)
 
-	async def others_message(self, content):
+	async def info_message(self, content):
 		await self.send_json(content)
 
 # CONSTANTS (How to share them with script_pong.js ???)
