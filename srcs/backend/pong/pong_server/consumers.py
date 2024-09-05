@@ -4,7 +4,8 @@ import jwt
 import math
 import asyncio
 from django.conf import settings
-from channels.generic.websocket import AsyncWebsocketConsumer
+from channels.generic.websocket import AsyncWebsocketConsumer, AsyncJsonWebsocketConsumer
+from pong_server import actions
 
 def verify_jwt(token, is_ttl_based=False, ttl_key="exp"):
 	data = jwt.decode(token, settings.RSA_PUBLIC_KEY, algorithms=["RS512"])
@@ -73,6 +74,52 @@ class ChatConsumer(AsyncWebsocketConsumer):
 		await self.send(text_data=json.dumps({'message': message}))
 
 
+class PongConsumer(AsyncJsonWebsocketConsumer):
+
+	def	is_valid_client(self) -> bool:
+		if 'error' in self.scope:
+			return False
+		self.username = self.scope['username']
+		self.lobby_id = self.scope['url_route']['kwargs']["lobby_id"]
+		if actions.check_lobby_id(self.lobby_id) == False:
+			self.scope['error'] = "invalid lobby"
+			return False
+		if actions.check_user_member(self.lobby_id, self.scope["username"]):
+			self.scope['error'] = "forbidden lobby"
+			return False
+		return True
+	
+	async def dispatch_to_lobby(self):
+		msg = "{user_name} has joined the chat".format(user_name = self.username)
+		self.channel_layer.group_send(self.lobby_id, {
+			"type": "others_message",
+			"message": msg,
+			'user': self.username
+		})
+		await self.channel_layer.group_add(self.lobby_id, self.channel_name)
+
+	async def connect(self):
+		if self.is_valid_client():
+			await self.accept()
+		else:
+			await self.close(code=4001, reason=self.scope['error'])
+
+		self.dispatch_to_lobby()
+
+	async def disconnect(self, close_code):
+		msg = "{user_name} has left the chat".format(user_name = self.data['username'])
+		await self.channel_layer.group_send(
+			self.room_group_name, {"type": "others_message", "message": msg, 'user': self.data['username']})
+		await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
+
+	async def receive(self, text_data):
+		text_data_json = json.loads(text_data)
+		message = "{user_name} : {msg}".format(user_name = self.data['username'], msg = text_data_json['message'])
+
+		# Echo the message back to all the chat members
+		await self.channel_layer.group_send(
+			self.room_group_name, {"type": "chat_message", "message": message}
+		)
 
 # CONSTANTS (How to share them with script_pong.js ???)
 PLAYER_HEIGHT = 0.16
@@ -97,7 +144,6 @@ class SquareConsumer(AsyncWebsocketConsumer):
 
 	west_score = 0
 	east_score = 0
-
 
 
 	async def connect(self):
