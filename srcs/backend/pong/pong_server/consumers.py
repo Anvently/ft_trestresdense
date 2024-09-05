@@ -80,7 +80,8 @@ PLAYER_WIDTH = 0.01
 BALL_RADIUS = 0.015
 
 PLAYER_SPEED = 0.02
-BALL_SPEED = 0.006
+BALL_SPEED = 0.005
+MAX_SPEED = 0.03
 
 class SquareConsumer(AsyncWebsocketConsumer):
 
@@ -165,6 +166,7 @@ class SquareConsumer(AsyncWebsocketConsumer):
 					relative_intersect = -(((self.west_position + PLAYER_HEIGHT / 2) - self.ball_pos_y) / (PLAYER_HEIGHT) - 0.5)
 					bounce_angle = relative_intersect * (math.pi / 2)
 					speed = math.sqrt(self.ball_speed_x**2 + self.ball_speed_y**2)
+					if speed < MAX_SPEED: speed += 0.001 # accelerate
 					self.ball_speed_x = speed * math.cos(bounce_angle)
 					self.ball_speed_y = speed * math.sin(bounce_angle)
 
@@ -173,6 +175,7 @@ class SquareConsumer(AsyncWebsocketConsumer):
 					relative_intersect = -(((self.east_position + PLAYER_HEIGHT / 2) - self.ball_pos_y) / (PLAYER_HEIGHT) - 0.5)
 					bounce_angle = relative_intersect * (math.pi / 2)
 					speed = math.sqrt(self.ball_speed_x**2 + self.ball_speed_y**2)
+					if speed < MAX_SPEED: speed += 0.001 # accelerate
 					self.ball_speed_x = -speed * math.cos(bounce_angle)
 					self.ball_speed_y = speed * math.sin(bounce_angle)
 
@@ -211,32 +214,7 @@ def rectCircleCollision(rectX, rectY, width, height, circX, circY, radius):
 
 	distanceX = circX - closestX
 	distanceY = circY - closestY
-
 	distanceSquared = distanceX**2 + distanceY**2
 
 	return distanceSquared <= radius**2
 
-
-
-# def handle_paddle_collision(paddle_y, paddle_height, ball_y, ball_speed_x, ball_speed_y):
-# 	relative_intersect_y = (paddle_y + paddle_height / 2) - ball_y
-
-# 	normalized_relative_intersect_y = relative_intersect_y / (paddle_height / 2)
-# 	print("normalized_relative_intersect_y", normalized_relative_intersect_y)
-# 	# Determine the new angle for the ball
-# 	# -45 degrees to 45 degrees conversion, multiply by pi/4 to get radians
-# 	bounce_angle = normalized_relative_intersect_y * (math.pi / 4)
-# 	print("bounce_angle", bounce_angle)
-
-# 	# Update ball speed based on the bounce angle
-# 	speed = math.sqrt(ball_speed_x**2 + ball_speed_y**2)  # Keep the same speed
-# 	ball_speed_x = speed * math.cos(bounce_angle)
-# 	ball_speed_y = -speed * math.sin(bounce_angle)
-
-# 	# If the ball was moving to the left and hit the left paddle, reverse direction
-# 	# if ball_speed_x < 0:
-# 	# ball_speed_x = -ball_speed_x
-
-# 	print("Updated ball_speed_x:", ball_speed_x)
-# 	print("Updated ball_speed_y:", ball_speed_y)
-# 	return ball_speed_x, ball_speed_y

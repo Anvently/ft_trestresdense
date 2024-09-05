@@ -1,18 +1,15 @@
 const containerCanva = /**  @type {HTMLCanvasElement} */  document.getElementById("container-canva");
 var canvas = document.getElementById("canvas");
 
-var game;
-
 canvas.width = containerCanva.clientWidth;
 canvas.height = containerCanva.clientHeight;
-
 
 // CONST TO SHARE WITH THE BASKEND
 const PLAYER_HEIGHT = 0.16;
 const PLAYER_WIDTH = 0.01;
 const BALL_RADIUS =0.015;
 
-game = {
+var game = {
 	playerWest: {
 		x: 0,
 		y: 0.5,
@@ -37,8 +34,6 @@ const wsRef = new WebSocket(
 	+ 'localhost:8083'
 	+ '/ws/pong/square/'
 );
-
-
 
 function draw()
 {
@@ -74,18 +69,6 @@ function draw()
 	context.fill()
 
 }
-
-//	INITIALIZE
-document.addEventListener("DOMContentLoaded", function ()
-{
-	console.log("DOMContentLoaded");
-
-
-	draw();
-})
-
-
-
 
 wsRef.onmessage = function (e) {
 	const msg = JSON.parse(e.data);
