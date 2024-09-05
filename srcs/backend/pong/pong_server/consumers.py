@@ -5,7 +5,6 @@ import math
 import asyncio
 from django.conf import settings
 from channels.generic.websocket import AsyncWebsocketConsumer, AsyncJsonWebsocketConsumer
-from pong_server import actions
 from pong_server.authentication import verify_jwt
 from pong_server.game import PongLobby, lobbys_list
 
@@ -111,11 +110,11 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 	def __init__(self, *args, **kwargs):
 		self.username = None
 		self.lobby_id = None
-		self.with_guest = False
+		self.users = set()
 		self.is_valid = False
 		super().__init__(*args, **kwargs)
 
-	def auth_client(self) -> bool:
+	def _auth_client(self) -> bool:
 		if "cookies" in self.scope and "auth-token" in self.scope["cookies"]:
 			token = self.scope["cookies"]["auth-token"]
 			try:
@@ -130,15 +129,15 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 			self.scope['error_code'] = 4001
 		return False
 
-	def	is_valid_client(self) -> bool:
+	def	_is_valid_client(self) -> bool:
 		self.lobby_id = self.scope['url_route']['kwargs']["lobby_id"]
-		if actions.check_lobby_id(self.lobby_id) == False:
+		if PongLobby.check_lobby_id(self.lobby_id) == False:
 			self.scope['error'] = "invalid lobby"
 			self.scope['error_code'] = 4003
 			return False
-		if not self.auth_client():
+		if not self._auth_client():
 			return False
-		if not actions.check_user_member(self.lobby_id, self.username):
+		if not lobbys_list[self.lobby_id].check_user(self.lobby_id, self.username):
 			self.scope['error'] = "forbidden lobby"
 			self.scope['error_code'] = 4004
 			return False
@@ -146,42 +145,55 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 
 	async def connect(self):
 		await self.accept()
-		if self.is_valid_client():
+		if self._is_valid_client():
 			self.is_valid = True
 			await self.channel_layer.group_add(self.lobby_id, self.channel_name)
 		else:
+			await self._send_error(self.scope['error'], self.scope['error_code'], True)
 			print("Connection rejected because: {0}".format(self.scope['error']))
-			await self.close(code=self.scope['error_code'], reason=self.scope['error'])
 
 	async def disconnect(self, close_code):
 		if self.is_valid:
-			if self.with_guest:
-				users = "{username},{username}.guest".format(self.username)
-			else:
-				users = self.username
-			msg = "{users} left the game.".format(users=users)
+			for user in self.users:
+				lobbys_list[self.lobby_id].player_leave(user)
 			await self.channel_layer.group_send(
-				self.lobby_id, {"type": "info_message", "data": msg})
+				self.lobby_id, {
+					"type": "info_message",
+					"data": "{users} left the game.".format(users=",".split(self.users))
+				})
 			await self.channel_layer.group_discard(self.lobby_id, self.channel_name)
 
 	async def receive_json(self, content, **kwargs):
+		if not "username" in content:
+			await self._send_error('Missing username')
+			return
 		try:
 			await self.dispatch(content)
-		except:
-			await self.send_json({'type':'error', 'data':'Invalid type'})
+		except ValueError as e:
+			await self.send_json({'type':'error', 'data':f'Invalid type: {e}'})
+
+	async def _send_error(self, msg: str = None, code: int = 4001, close = False):
+		await self.send_json({'type':'error', 'data':msg})
+		if close:
+			await self.close(code, msg)
 
 	# receive msg from chat
 	async def join_game(self, content):
-		if len(content['data']) > 1:
-			self.with_guest = True
-		# lobbys_list[self.lobby_id].player_join(content['data'])
-		message = "{users} joined the game.".format(users=",".join(content['data']))
+		if content['username'].split('.')[0] != self.username:
+			await self._send_error('You are not who you pretend to be')
+			return
+		if not lobbys_list[self.lobby_id].player_join(content['data']):
+			await self._send_error('Could not join the lobby.')
+			return
+		self.users.add(content['username'])	
 		await self.channel_layer.group_send(
-			self.lobby_id, {"type": "info_message", "data":message}
+			self.lobby_id, {"type": "info_message",
+				"data": "{user} joined the game.".format(user=content['username'])}
 		)
 
-
 	async def key_input(self, content):
+		if content['username'] not in self.users:
+			await self._send_error('Invalid username')
 		# lobbys_list[self.lobby_id].post_input(content)
 		pass
 
