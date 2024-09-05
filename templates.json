@@ -34,7 +34,7 @@ POST pong:8002/init-game/
 	},
 	"player_list": [
 		"user1",
-		"user2",
+		"user1",
 		"user3",
 		"user4"
 	]

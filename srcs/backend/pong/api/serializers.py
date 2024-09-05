@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from pong_server.game import PongLobby, lobbys_list
 
 class GameSettingsSerializer(serializers.Serializer):
 
@@ -18,6 +19,7 @@ class GameSerializer(serializers.Serializer):
 
 	def save(self):
 		"""Append the game to the list of active games"""
+		PongLobby.init_game()
 		pass
 
 	def validate(self, data):
