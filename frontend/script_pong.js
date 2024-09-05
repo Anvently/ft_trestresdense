@@ -7,7 +7,7 @@ canvas.height = containerCanva.clientHeight;
 // CONST TO SHARE WITH THE BASKEND
 const PLAYER_HEIGHT = 0.16;
 const PLAYER_WIDTH = 0.01;
-const BALL_RADIUS =0.015;
+const BALL_RADIUS = 0.015;
 
 var game = {
 	playerWest: {
