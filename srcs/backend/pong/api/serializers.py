@@ -53,9 +53,9 @@ class GameSerializer(serializers.Serializer):
 			'turnament_id': None,
 			'player_list': [{
 				'id': player.player_id,
-				'position': player.player_position,
+				'position': player.position,
 				'type': player.type,
-				'lifes':player.player_lifes
+				'lifes':player.lives
 				} for player in obj.players],
 			'settings': {
 				'lifes': 'unknown'

@@ -118,7 +118,11 @@ class PongLobby:
 			# -> gameState == 0 game was canceled
 		# should the matchmaking delete the PongLobby upon receiving the result ?
 
-
+	""" 
+	 add end game
+	 refuse input for eliminated players
+	 
+	   """
 
 	def player_input(self, player_id, input):
 		position = self.match_id_pos[player_id]
@@ -158,7 +162,6 @@ class PongLobby:
 			loop_start = time.time()
 			print("game has started")
 			while time.time() - loop_start < 3:
-				print('loop')
 				await asyncio.sleep(0.05)
 				async with self.mut_lock:
 					data = self.compute_game()
@@ -168,12 +171,12 @@ class PongLobby:
 			# play !
 				# launch ball
 			self.reset_ball()
-
 			while self.gameState == 2:
 				asyncio.sleep(0.05)
 				async with self.mut_lock:
 					data = self.compute_game()
 				await player_channel.group_send(self.lobby_id, data)
+				print(f"game_state = {self.gameState}, ball_speed:{self.ball}")
 			self.send_result()
 			# remove from list
 		except Exception as e:
@@ -267,12 +270,12 @@ class PongLobby:
 		self.ball['x'] = 0.5
 		self.ball['y'] = 0.5
 		self.ball["speed"]['x'] = 0.005
-		self.ball["speed"]['y'] = 0.002	# a modifier par la suite selon le perdant OU faire tourner le service
+		self.ball["speed"]['y'] = -0.000	# a modifier par la suite selon le perdant OU faire tourner le service
 
 	def check_eliminated_players(self):
 		for direction in range(0, self.player_num):
 			if self.players[direction].lives == 0:
-				self.players.type = "eliminated_player"
+				self.players[direction].type = "eliminated_player"
 
 	def check_winning_condition(self) -> bool:
 		count = 0
