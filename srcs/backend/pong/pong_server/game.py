@@ -44,6 +44,7 @@ class Player:
 		self.position = position
 		self.lives = lives
 		self.coordinates = START_POS[position]
+		self.has_joined = 0
 
 class PongLobby:
 	def __init__(self, lobby_id: str, players_list: List[str], lifes,  tournId=None) -> None:
@@ -74,7 +75,7 @@ class PongLobby:
 
 	def check_user(self, lobby_id:str, username:str):
 		"""Check that the user belong to the lobby"""
-		if username in self.players:
+		if username in self.match_id_pos:
 			return True
 		return False
 
@@ -103,8 +104,9 @@ class PongLobby:
 
 	async def player_join(self, player_id: str) -> bool:
 		""" Template of player_list: ["user1", "user1_guest"] """
-		if not player_id in self.players:
+		if not player_id in self.match_id_pos:
 			return False
+		self.players[self.match_id_pos[player_id]].has_joined = 1
 		self.waiting_for -= 1
 		if not self.loop:
 			await self.start_game_loop()
@@ -412,14 +414,21 @@ class PongLobby:
 
 # 	# 	return distanceSquared <= radius**2
 
+	def get_winner(self):
+		for i in range(self.player_num):
+			if self.players[i].has_joined == 1:
+				return self.players[i].player_id
+
+
 	def post_result(self):
 		data = Dict()
 		data['game_id'] =  self.lobby_id
 		if self.gameState == 0:
 			data['status'] = 'canceled'
+			data['winner'] = self.get_winner()
 		else:
 			data['status'] = 'terminated'
-		data['winner'] = self.winner
+			data['winner'] = self.winner
 		try:
 			requests.post('http://matchmaking:8003/result/?format=json',
 					data=json.dumps(data),
