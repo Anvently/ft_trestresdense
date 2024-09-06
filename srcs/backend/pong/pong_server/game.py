@@ -35,7 +35,7 @@ START_POS = [{"x": PADDLE_THICKNESS / 2, 'y': 0.5, 'width': PADDLE_THICKNESS, 'h
 			 {"x": 0.5, "y":1 - PADDLE_THICKNESS / 2, "width": PADDLE_THICKNESS / 2,"height": PADDLE_LENGTH}
 			 ]
 
-BALL_START = {"x": 0.5, "y": 0.5, "r": BALL_RADIUS, "speed": {"x": BALL_SPEED, "y": 0.002}}
+BALL_START = {"x": 0.5, "y": 0.5, "r": BALL_RADIUS, "speed": {"x": 0, "y": 0}}
 
 class Player:
 	def __init__(self, player_id, position, lives=0, player_type='wall'):
@@ -171,6 +171,8 @@ class PongLobby:
 
 		# play !
 			# launch ball
+		self.reset_ball()
+
 		while self.gameState == 2:
 			asyncio.sleep(0.05)
 			async with self.mut_lock:
@@ -295,126 +297,9 @@ class PongLobby:
 		return json
 
 
-	# game logic
-# 	def check_points():
-# 	 	#meh, pue un peu la merde dans le cas des buts marques tres pres du bord
-# 		if ball["x"] < 0 and side[WEST] == "player":
-# 			player[WEST]["life"] -= 1
-# 		elif ball["x"] > 1 and side[EAST] == "player":
-# 			player[EAST]["life"] -= 1
-# 		elif ball["y"] < 0 and side[NORTH] == "player":
-# 			player[NORTH]["life"] -= 1
-# 		elif ball["y"] > 1 and side[SOUTH] == "player":
-# 			player[SOUTH]["life"] -= 1
-
-		# check for dead players
-		for i in range(len(player_list)):
-			if player[i]["life"] <= 0:
-				side[i] == "wall"
-	# # game logic
-	# def check_points()
-	#  	#meh, pue un peu la merde dans le cas des buts marques tres pres du bord
-	# 	if ball["x"] < 0 and side[WEST] == "player":
-	# 		player[WEST]["life"] -= 1
-	# 	elif ball["x"] > 1 and side[EAST] == "player":
-	# 		player[EAST]["life"] -= 1
-	# 	elif ball["y"] < 0 and side[NORTH] == "player":
-	# 		player[NORTH]["life"] -= 1
-	# 	elif ball["y"] > 1 and side[SOUTH] == "player":
-	# 		player[SOUTH]["life"] -= 1
-
-	# 	# check for dead players
-	# 	for i in range(len(player_list)):
-	# 		if player[i]["life"] <= 0:
-	# 			side[i] == "wall"
-
-# 	def check_winning_condition():
-# 		alive = 0
-# 		for i in range(len(player_list)):
-# 			if player[i]["life"] > 0:
-# 				alive += 1
-# 		return alive <= 1
-# 	# def check_winning_condition()
-# 	# 	alive = 0
-# 	# 	for i in range(len(player_list)):
-# 	# 		if player[i]["life"] > 0:
-# 	# 			alive += 1
-# 	# 	return alive <= 1
 
 
-# 	# collision logic  ############
-# 	def wall_collision():
-# 		if self.side[NORTH] == "wall" and self.ball["y"] - BALL_RADIUS <= 0 and self.ball["speed"]["y"] < 0:
-# 			self.ball["speed"]["y"] *= -1
-# 		elif self.side[SOUTH] == "wall" and self.ball["y"] + BALL_RADIUS >= 1 and self.ball["speed"]["y"] > 0:
-# 			self.ball["speed"]["y"] *= -1
-# 		elif self.side[WEST] == "wall" and self.ball["x"] - BALL_RADIUS <= 0 and self.ball["speed"]["x"] < 0:
-# 			self.ball["speed"]["x"] *= -1
-# 		elif self.side[EAST] == "wall" and self.ball["x"] + BALL_RADIUS >= 1 and self.ball["speed"]["x"] > 0:
-# 			self.ball["speed"]["x"] *= -1
-# 	# # collision logic  ############
-# 	# def wall_collision()
-# 	# 	if self.side[NORTH] == "wall" and self.ball["y"] - BALL_RADIUS <= 0 and self.ball["speed"]["y"] < 0:
-# 	# 		self.ball["speed"]["y"] *= -1
-# 	# 	elif self.side[SOUTH] == "wall" and self.ball["y"] + BALL_RADIUS >= 1 and self.ball["speed"]["y"] > 0:
-# 	# 		self.ball["speed"]["y"] *= -1
-# 	# 	elif self.side[WEST] == "wall" and self.ball["x"] - BALL_RADIUS <= 0 and self.ball["speed"]["x"] < 0:
-# 	# 		self.ball["speed"]["x"] *= -1
-# 	# 	elif self.side[EAST] == "wall" and self.ball["x"] + BALL_RADIUS >= 1 and self.ball["speed"]["x"] > 0:
-# 	# 		self.ball["speed"]["x"] *= -1
 
-# 	def paddle_collision():
-# 		for direction in range(0, 4):
-# 			if self.side[direction] == "player":
-# 				if rectCircleCollision(self.player[i]["x"] - self.player[i]["width"] / 2,
-# 										self.player[i]["y"] - self.player[i]["height"] / 2,
-# 										self.player[i]["width"],
-# 										self.player[i]["height"],
-# 										self.ball["x"],
-# 										self.ball["y"],
-# 										self.ball["r"])
-# 					paddle_rebound(direction)
-
-	def paddle_rebound(self, direction):	# simple rebound
-		if direction == WEST:
-			self.ball["speed"]["x"] *= -1
-		elif direction == EAST:
-			self.ball["speed"]["x"] *= -1
-		elif direction == NORTH:
-			self.ball["speed"]["y"] *= -1
-		elif direction == SOUTH:
-			self.ball["speed"]["y"] *= -1
-	# def paddle_collision()
-	# 	for direction in range(0, 4):
-	# 		if self.side[direction] == "player":
-	# 			if rectCircleCollision(self.player[i]["x"] - self.player[i]["width"] / 2,
-	# 									self.player[i]["y"] - self.player[i]["height"] / 2,
-	# 									self.player[i]["width"],
-	# 									self.player[i]["height"],
-	# 									self.ball["x"],
-	# 									self.ball["y"],
-	# 									self.ball["r"])
-	# 				paddle_rebound(direction)
-
-	# def paddle_rebound(direction)	# simple rebound
-	# 	if direction == WEST:
-	# 		self.ball["speed"]["x"] *= -1
-	# 	elif direction == EAST:
-	# 		self.ball["speed"]["x"] *= -1
-	# 	elif direction == NORTH:
-	# 		self.ball["speed"]["y"] *= -1
-	# 	elif direction == SOUTH:
-	# 		self.ball["speed"]["y"] *= -1
-
-# 	# def rectCircleCollision(rectX, rectY, width, height, circX, circY, radius):
-# 	# 	closestX = max(rectX, min(circX, rectX + width))
-# 	# 	closestY = max(rectY, min(circY, rectY + height))
-
-# 	# 	distanceX = circX - closestX
-# 	# 	distanceY = circY - closestY
-# 	# 	distanceSquared = distanceX**2 + distanceY**2
-
-# 	# 	return distanceSquared <= radius**2
 
 	def get_winner(self):
 		for i in range(self.player_num):
