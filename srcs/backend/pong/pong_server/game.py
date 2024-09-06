@@ -79,7 +79,6 @@ class PongLobby:
 			return True
 		return False
 
-
 	# init variables
 	def init_game(self):
 		# ball initialization
@@ -87,7 +86,7 @@ class PongLobby:
 			"x": 0.5,
 			"y": 0.5,
 			"r": BALL_RADIUS,
-			"speed": {"x": BALL_SPEED, "y": 0.002}
+			"speed": {"x": 0, "y": 0}
 		}
 
 	async def start_game_loop(self):
@@ -291,6 +290,7 @@ class PongLobby:
 			'ball_speed_x': self.ball["speed"]['x'],
 			'ball_speed_y': self.ball["speed"]['y'],
 		}
+
 		for index in range(self.player_num):
 			json[f"player{index}_type"] = self.players[index].type
 			json[f"player{index}_lives"] = self.players[index].lives
@@ -299,10 +299,6 @@ class PongLobby:
 			json[f"player{index}_width"] = self.players[index].coordinates['width']
 			json[f"player{index}_height"] = self.players[index].coordinates['height']
 		return json
-
-
-
-
 
 
 	def get_winner(self):
@@ -339,3 +335,73 @@ class PongLobby:
 
 
 lobbys_list : Dict[str, PongLobby] = dict()
+
+
+
+################## AI WIP ##################
+
+# loop
+	# every seconds, check ball position and speed
+		# if ball is coming towards the AI
+			# find the position of impact
+				# paddle destination = position of impact
+		# else
+			# paddle destination = center
+
+	# move paddle towards destination
+
+
+# ai_direction = WEST
+
+# def AI_behavior():
+# 	t = time()
+# 	while True:
+# 		if time() != t:
+# 			destination = calculate_destination()
+# 			t = time()
+# 		move_paddle(destination)
+
+
+# def calculate_impact():
+# 	fpos.x = ball["x"]
+# 	fpos.y = ball["y"]
+# 	fspeed.x = ball["speed"]["x"]
+# 	fspeed.y = ball["speed"]["y"]
+
+# 	while True:
+# 		while BALL_RADIUS < fpos.x < 1 - BALL_RADIUS and BALL_RADIUS < fpos.y < 1 - BALL_RADIUS:
+# 			fpos.x += fspeed.x
+# 			fpos.y += fspeed.y
+# 			if fpos.x < BALL_RADIUS or fpos.x > 1 - BALL_RADIUS:
+# 				if ai_direction == WEST or ai_direction == EAST:
+# 					return fpos.x
+# 				else:
+# 					fspeed.x *= -1 
+# 			if fpos.y < BALL_RADIUS or fpos.y > 1 - BALL_RADIUS:
+# 				if ai_direction == NORTH or ai_direction == SOUTH:
+# 					return fpos.y
+# 				else:
+# 					fspeed.y *= -1 
+
+# def calculate_destination():
+# 	destination = 0.5
+# 	if ai_direction == WEST and ball["speed"]["x"] < 0
+# 		or ai_direction == EAST and ball["speed"]["x"] > 0
+# 		or ai_direction == NORTH and ball["speed"]["y"] < 0
+# 		or ai_direction == SOUTH and ball["speed"]["y"] > 0:
+# 		destination = calculate_impact()
+
+# 	return destination
+
+# # move ai player towards destination
+# def move_paddle(destination):
+# 	if ai_direction == WEST or ai_direction == EAST:
+# 		if destination < player[ai_direction]["y"] - player[ai_direction]["height"] / 2:
+# 			player_input(ai_direction, "up")
+# 		else:
+# 			player_input(ai_direction, "down")
+# 	else:
+# 		if destination < player[ai_direction]["x"] - player[ai_direction]["width"] / 2:
+# 			player_input(ai_direction, "up")
+# 		else:
+# 			player_input(ai_direction, "down")
