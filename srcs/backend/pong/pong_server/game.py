@@ -7,6 +7,7 @@ import requests
 from typing import List, Dict, Any, Tuple
 import json
 from django.conf import settings
+import traceback
 
 # TO DO
 # 	-> when to start the loop ?
@@ -38,8 +39,8 @@ START_POS = [{"x": PADDLE_THICKNESS / 2, 'y': 0.5, 'width': PADDLE_THICKNESS, 'h
 BALL_START = {"x": 0.5, "y": 0.5, "r": BALL_RADIUS, "speed": {"x": 0, "y": 0}}
 
 class Player:
-	def __init__(self, player_id, position, lives=0, player_type='wall'):
-		self.type = player_type
+	def __init__(self, player_id, position, lives=0, type='wall'):
+		self.type = type
 		self.player_id = player_id
 		self.position = position
 		self.lives = lives
@@ -56,10 +57,10 @@ class PongLobby:
 		self.players: List[Player] = []
 		self.match_id_pos = {}
 		for i in range(len(players_list)):
-			self.players.append(Player(players_list[i], i, lifes, 'alive'))
+			self.players.append(Player(players_list[i], i, lifes, 'player'))
 			self.match_id_pos[players_list[i]] = i
-		for i in range(self.player_num, 4 - self.player_num):
-			self.players[i] = Player('!wall', i)
+		for i in range(self.player_num, 4):
+			self.players.append(Player('!wall', i))
 		self.ball = BALL_START
 		self.gameState = 0
 		self.mut_lock = asyncio.Lock()
@@ -125,59 +126,62 @@ class PongLobby:
 
 		if input == "up":
 			if position == EAST or position == WEST:
-				self.players[position].coordinates['y'] = max(PADDLE_LENGTH / 2, self.players[position].coordinates["y"] - PLAYER_SPEED)
+				self.players[position].coordinates['y'] = max(PADDLE_LENGTH / 2, self.players[position].coordinates.coordinates['y'] - PLAYER_SPEED)
 			else:
-				self.players[position].coordinates['x'] = max(PADDLE_LENGTH / 2, self.players[position].coordinates["x"] - PLAYER_SPEED)
+				self.players[position].coordinates['x'] = max(PADDLE_LENGTH / 2, self.players[position].coordinates.coordinates['x'] - PLAYER_SPEED)
 		elif input == "down":
 			if position == EAST or position == WEST:
-				self.players[position].coordinates['y'] = min(1 - PADDLE_LENGTH / 2, self.players[position].coordinates["y"] + PLAYER_SPEED)
+				self.players[position].coordinates['y'] = min(1 - PADDLE_LENGTH / 2, self.players[position].coordinates.coordinates['y'] + PLAYER_SPEED)
 			else:
-				self.players[position].coordinates['x'] = min(1 - PADDLE_LENGTH / 2, self.players[position].coordinates["x"] + PLAYER_SPEED)
+				self.players[position].coordinates['x'] = min(1 - PADDLE_LENGTH / 2, self.players[position].coordinates.coordinates['x'] + PLAYER_SPEED)
 
 
 	async def	game_loop(self):
-		# print("ping")
-		loop_start = time.time()
-		# print("pang")
-		player_channel = get_channel_layer()
-		print("plouf")
-		# pregame : check that all players are present
-		while time.time() - loop_start < 60 and self.gameState == 0:
-			asyncio.sleep(0.05)
-			async with self.mut_lock:
-				data = self.compute_game()
-			await player_channel.group_send(self.lobby_id, data)
+		try:
+			loop_start = time.time()
+			player_channel = get_channel_layer()
+			# pregame : check that all players are present
+			while time.time() - loop_start < 60 and self.gameState == 0:
+				await asyncio.sleep(0.05)
+				async with self.mut_lock:
+					data = self.compute_game()
+				await player_channel.group_send(self.lobby_id, data)
+				if self.waiting_for == 0:
+					self.gameState = 1
+			if self.gameState == 0:
+				await player_channel.group_send(self.lobby_id, {"type": "cancel",
+																"message": "A player failed to load"
+																})
+				self.send_result()
+				self.loop.cancel()
+				return
+			await player_channel.group_send(self.lobby_id, {"type": "game_start"})
+			loop_start = time.time()
+			print("game has started")
+			while time.time() - loop_start < 3:
+				print('loop')
+				await asyncio.sleep(0.05)
+				async with self.mut_lock:
+					data = self.compute_game()
+				await player_channel.group_send(self.lobby_id, data)
+			self.gameState = 2
 
-			if self.waiting_for == 0:
-				print("everybody joined")
-				self.gameState = 1
-		if self.gameState == 0:
-			await player_channel.group_send(self.lobby_id, {"type": "cancel",
-												   			"message": "A player failed to load"
-															})
+			# play !
+				# launch ball
+			self.reset_ball()
+
+			while self.gameState == 2:
+				asyncio.sleep(0.05)
+				async with self.mut_lock:
+					data = self.compute_game()
+				await player_channel.group_send(self.lobby_id, data)
 			self.send_result()
-			self.loop.cancel()
-			return
-		await player_channel.group_send(self.lobby_id, {"type": "game_start"})
-		loop_start = time.time()
-		while time.time() - loop_start < 3:
-			asyncio.sleep(0.05)
-			async with self.mut_lock:
-				data = self.compute_game()
-			await player_channel.group_send(self.lobby_id, data)
-		self.gameState = 2
+			# remove from list
+		except Exception as e:
+			print(e)
+			await player_channel.group_send(self.lobby_id, {'type':'error', 'detail':'error in game loop'})
+			traceback.print_exc()
 
-		# play !
-			# launch ball
-		self.reset_ball()
-
-		while self.gameState == 2:
-			asyncio.sleep(0.05)
-			async with self.mut_lock:
-				data = self.compute_game()
-			await player_channel.group_send(self.lobby_id, data)
-		self.send_result()
-		# remove from list
 
 
 	# GAME LOGIC GOES HERE
@@ -195,43 +199,43 @@ class PongLobby:
 
 
 	def move_ball(self):
-		self.ball["x"] += self.ball["speed"]["x"]
-		self.ball["y"] += self.ball["speed"]["y"]
+		self.ball['x'] += self.ball["speed"]['x']
+		self.ball['y'] += self.ball["speed"]['y']
 
 	def	collision_logic(self):
 		self.wall_collision()
 		self.paddle_collision()
 
 	def wall_collision(self):
-		if self.player[NORTH]["player_type"] != "player" and self.ball["y"] - BALL_RADIUS <= 0 and self.ball["speed"]["y"] < 0:
-			self.ball["speed"]["y"] *= -1
-		elif self.player[SOUTH]["player_type"] != "player" and self.ball["y"] + BALL_RADIUS >= 1 and self.ball["speed"]["y"] > 0:
-			self.ball["speed"]["y"] *= -1
-		elif self.player[WEST]["player_type"] != "player" and self.ball["x"] - BALL_RADIUS <= 0 and self.ball["speed"]["x"] < 0:
-			self.ball["speed"]["x"] *= -1
-		elif self.player[EAST]["player_type"] != "player" and self.ball["x"] + BALL_RADIUS >= 1 and self.ball["speed"]["x"] > 0:
-			self.ball["speed"]["x"] *= -1
+		if self.players[NORTH].type != "player" and self.ball['y'] - BALL_RADIUS <= 0 and self.ball["speed"]['y'] < 0:
+			self.ball["speed"]['y'] *= -1
+		elif self.players[SOUTH].type != "player" and self.ball['y'] + BALL_RADIUS >= 1 and self.ball["speed"]['y'] > 0:
+			self.ball["speed"]['y'] *= -1
+		elif self.players[WEST].type != "player" and self.ball['x'] - BALL_RADIUS <= 0 and self.ball["speed"]['x'] < 0:
+			self.ball["speed"]['x'] *= -1
+		elif self.players[EAST].type != "player" and self.ball['x'] + BALL_RADIUS >= 1 and self.ball["speed"]['x'] > 0:
+			self.ball["speed"]['x'] *= -1
 
 	def paddle_collision(self):
 		for direction in range(0, self.player_num):
-			if self.player[direction]["player_type"] == "player":
-				if rectCircleCollision(self.player[direction]["x"] - self.player[direction]["width"] / 2,
-										self.player[direction]["y"] - self.player[direction]["height"] / 2,
-										self.player[direction]["width"],
-										self.player[direction]["height"],
-										self.ball["x"],
-										self.ball["y"],
-										self.ball["r"])
-					paddle_rebound(direction)
+			if self.players[direction].type == "player":
+				if self.rectCircleCollision(self.players[direction].coordinates['x'] - self.players[direction].coordinates['width'] / 2,
+										self.players[direction].coordinates['y'] - self.players[direction].coordinates['height'] / 2,
+										self.players[direction].coordinates['width'],
+										self.players[direction].coordinates['height'],
+										self.ball['x'],
+										self.ball['y'],
+										self.ball["r"]):
+					self.paddle_rebound(direction)
 
 	def paddle_rebound(self, direction):
 		if direction == WEST or direction == EAST:
-			self.ball["speed"]["x"] *= -1
+			self.ball["speed"]['x'] *= -1
 		elif direction == NORTH or direction == SOUTH:
-			self.ball["speed"]["y"] *= -1
+			self.ball["speed"]['y'] *= -1
 
 
-	def rectCircleCollision(rectX, rectY, width, height, circX, circY, radius):
+	def rectCircleCollision(self, rectX, rectY, width, height, circX, circY, radius):
 		closestX = max(rectX, min(circX, rectX + width))
 		closestY = max(rectY, min(circY, rectY + height))
 
@@ -241,58 +245,59 @@ class PongLobby:
 
 		return distanceSquared <= radius**2
 
-	def check_goals(self)
+	def check_goals(self):
 		#meh, pue un peu la merde dans le cas des buts marques tres pres du bord
 		goal_scored = False
-		if self.ball["x"] < 0 and self.player[WEST]["player_type"] == "player":
-			self.player[WEST]["lives"] -= 1
+		if self.ball['x'] < 0 and self.players[WEST].type == "player":
+			self.players[WEST].lives -= 1
 			goal_scored = True
-		elif self.ball["x"] > 1 and self.player[EAST]["player_type"] == "player":
-			self.player[EAST]["lives"] -= 1
+		elif self.ball['x'] > 1 and self.players[EAST].type == "player":
+			self.players[EAST].lives -= 1
 			goal_scored = True
-		elif self.ball["y"] < 0 and self.player[NORTH]["player_type"] == "player":
-			self.player[NORTH]["lives"] -= 1
+		elif self.ball['y'] < 0 and self.players[NORTH].type == "player":
+			self.players[NORTH].lives -= 1
 			goal_scored = True
-		elif self.ball["y"] > 1 and self.player[SOUTH]["player_type"] == "player":
-			self.player[SOUTH]["lives"] -= 1
+		elif self.ball['y'] > 1 and self.players[SOUTH].type == "player":
+			self.players[SOUTH].lives -= 1
 			goal_scored = True
 
 		if goal_scored:
 			self.reset_ball()
 
-	def	reset_ball():
-		self.ball["x"] = 0.5
-		self.ball["y"] = 0.5
-		self.ball["speed"]["x"] = 0.005
-		self.ball["speed"]["y"] = 0.002	# a modifier par la suite selon le perdant OU faire tourner le service
+	def	reset_ball(self):
+		self.ball['x'] = 0.5
+		self.ball['y'] = 0.5
+		self.ball["speed"]['x'] = 0.005
+		self.ball["speed"]['y'] = 0.002	# a modifier par la suite selon le perdant OU faire tourner le service
 
-	def check_eliminated_players(self)
+	def check_eliminated_players(self):
 		for direction in range(0, self.player_num):
-			if self.player[direction]["lives"] == 0
-				self.player["player_type"] = "eliminated_player"
+			if self.players[direction].lives == 0:
+				self.players.type = "eliminated_player"
 
-	def check_winning_condition(self)
+	def check_winning_condition(self) -> bool:
 		count = 0
 		for direction in range(0, self.player_num):
-			if self.player[direction]["player_type"] == "player"
+			if self.players[direction].type == "player":
 				count += 1
-		return count <= 1
+		return count == 1
 
 	def generate_JSON(self) -> Dict[str, Any]:
 		json = {
+			'type': 'send_game_state',
 			'number_of_players' : self.player_num,
-			'ball_x': self.ball["x"],
-			'ball_y': self.ball["y"],
-			'ball_speed_x': self.ball["speed"]["x"],
-			'ball_speed_y': self.ball["speed"]["y"],
+			'ball_x': self.ball['x'],
+			'ball_y': self.ball['y'],
+			'ball_speed_x': self.ball["speed"]['x'],
+			'ball_speed_y': self.ball["speed"]['y'],
 		}
 		for index in range(self.player_num):
-			json[f"player{index}_type"] = self.player[index]["player_type"]
-			json[f"player{index}_lives"] = self.player[index]["lives"]
-			json[f"player{index}_x"] = self.player[index]["x"]
-			json[f"player{index}_y"] = self.player[index]["y"]
-			json[f"player{index}_width"] = self.player[index]["width"]
-			json[f"player{index}_height"] = self.player[index]["height"]
+			json[f"player{index}_type"] = self.players[index].type
+			json[f"player{index}_lives"] = self.players[index].lives
+			json[f"player{index}_x"] = self.players[index].coordinates['x']
+			json[f"player{index}_y"] = self.players[index].coordinates['y']
+			json[f"player{index}_width"] = self.players[index].coordinates['width']
+			json[f"player{index}_height"] = self.players[index].coordinates['height']
 		return json
 
 

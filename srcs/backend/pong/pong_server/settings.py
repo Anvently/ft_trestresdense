@@ -54,13 +54,10 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'pong_server.urls'
 
-with open('/run/secrets/rsa-key', 'rb') as file:
-    RSA_PRIVATE_KEY = file.read()
-
-with open('etc/certificate/pub.perm', 'rb') as file:
+with open('/etc/certificate/pub.pem', 'rb') as file:
     RSA_PUBLIC_KEY = file.read()
 
-with open('etc/certificate/api-token', 'rb') as file:
+with open('/etc/certificate/api-token', 'rb') as file:
     API_TOKEN = file.read()
 
 

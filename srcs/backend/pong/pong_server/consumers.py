@@ -164,7 +164,7 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 			await self.channel_layer.group_send(
 				self.lobby_id, {
 					"type": "info_message",
-					"data": "{users} left the game.".format(users=",".split(self.users))
+					"data": "{users} left the game.".format(users=",".join(self.users))
 				})
 			await self.channel_layer.group_discard(self.lobby_id, self.channel_name)
 
@@ -195,6 +195,9 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 			self.lobby_id, {"type": "info_message",
 				"data": "{user} joined the game.".format(user=content['username'])}
 		)
+
+	async def error(self, content):
+		await self._send_error(content['detail'], 4005, True)
 
 	async def key_input(self, content):
 		if content['username'] not in self.users:
