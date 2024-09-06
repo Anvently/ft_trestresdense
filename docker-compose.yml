@@ -132,3 +132,9 @@ secrets:
     file: ${DATA_DIR}keys/ssl/ssl.key
   rsa-key:
     file: ${DATA_DIR}keys/rsa/key.pem
+
+# ports:
+# 8000:auth_api
+# 8001: user_api
+# 8002 pong
+# 8003: matchmaking

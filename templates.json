@@ -3,21 +3,18 @@ POST localhost:8001/post-result/
 {
     "lobby_id": "1888.1.0",
     "game_name": "pong",
-	"turnament_id": "1897", //optionnal
+	"tournament_id": "1897", //optionnal
     "scores_set": [
         {
             "username": "admin",
-            "score": 15,
             "has_win": true
         },
         {
             "username": "044pouet",
-            "score": 10,
             "has_win": false
         },
 			{
             "username": "045pouet",
-            "score": 10,
             "has_win": false
         }
     ]
@@ -38,4 +35,13 @@ POST pong:8002/init-game/
 		"user3",
 		"user4"
 	]
+}
+
+
+//Posting a result from PongLobby to Matchmaking
+POST matchmaking:8003/result/
+{
+    "game_id" : 41489.0,
+    "status": "terminated/canceled",
+    "winner": "user1",
 }

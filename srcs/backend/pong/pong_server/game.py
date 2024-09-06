@@ -2,8 +2,11 @@ from typing import List, Dict, Any
 import time
 import asyncio
 from channels.layers import get_channel_layer
-
+from django.http.request import HttpRequest
+import requests
 from typing import List, Dict, Any, Tuple
+import json
+from django.conf import settings
 
 # TO DO
 # 	-> when to start the loop ?
@@ -41,6 +44,7 @@ class Player:
 		self.position = position
 		self.lives = lives
 		self.coordinates = START_POS[position]
+		self.has_joined = 0
 
 class PongLobby:
 	def __init__(self, lobby_id: str, players_list: List[str], lifes,  tournId=None) -> None:
@@ -62,6 +66,7 @@ class PongLobby:
 		self.mut_lock = asyncio.Lock()
 		self.loop = None
 		self.waiting_for = self.player_num
+		self.winner = None
 
 	def check_lobby_id(id:str) -> bool:
 		if id in lobbys_list:
@@ -70,7 +75,7 @@ class PongLobby:
 
 	def check_user(self, lobby_id:str, username:str):
 		"""Check that the user belong to the lobby"""
-		if username in self.players:
+		if username in self.match_id_pos:
 			return True
 		return False
 
@@ -99,8 +104,9 @@ class PongLobby:
 
 	async def player_join(self, player_id: str) -> bool:
 		""" Template of player_list: ["user1", "user1_guest"] """
-		if not player_id in self.players:
+		if not player_id in self.match_id_pos:
 			return False
+		self.players[self.match_id_pos[player_id]].has_joined = 1
 		self.waiting_for -= 1
 		if not self.loop:
 			await self.start_game_loop()
@@ -287,5 +293,160 @@ class PongLobby:
 			json[f"player{index}_width"] = self.player[index]["width"]
 			json[f"player{index}_height"] = self.player[index]["height"]
 		return json
+
+
+	# game logic
+# 	def check_points():
+# 	 	#meh, pue un peu la merde dans le cas des buts marques tres pres du bord
+# 		if ball["x"] < 0 and side[WEST] == "player":
+# 			player[WEST]["life"] -= 1
+# 		elif ball["x"] > 1 and side[EAST] == "player":
+# 			player[EAST]["life"] -= 1
+# 		elif ball["y"] < 0 and side[NORTH] == "player":
+# 			player[NORTH]["life"] -= 1
+# 		elif ball["y"] > 1 and side[SOUTH] == "player":
+# 			player[SOUTH]["life"] -= 1
+
+		# check for dead players
+		for i in range(len(player_list)):
+			if player[i]["life"] <= 0:
+				side[i] == "wall"
+	# # game logic
+	# def check_points()
+	#  	#meh, pue un peu la merde dans le cas des buts marques tres pres du bord
+	# 	if ball["x"] < 0 and side[WEST] == "player":
+	# 		player[WEST]["life"] -= 1
+	# 	elif ball["x"] > 1 and side[EAST] == "player":
+	# 		player[EAST]["life"] -= 1
+	# 	elif ball["y"] < 0 and side[NORTH] == "player":
+	# 		player[NORTH]["life"] -= 1
+	# 	elif ball["y"] > 1 and side[SOUTH] == "player":
+	# 		player[SOUTH]["life"] -= 1
+
+	# 	# check for dead players
+	# 	for i in range(len(player_list)):
+	# 		if player[i]["life"] <= 0:
+	# 			side[i] == "wall"
+
+# 	def check_winning_condition():
+# 		alive = 0
+# 		for i in range(len(player_list)):
+# 			if player[i]["life"] > 0:
+# 				alive += 1
+# 		return alive <= 1
+# 	# def check_winning_condition()
+# 	# 	alive = 0
+# 	# 	for i in range(len(player_list)):
+# 	# 		if player[i]["life"] > 0:
+# 	# 			alive += 1
+# 	# 	return alive <= 1
+
+
+# 	# collision logic  ############
+# 	def wall_collision():
+# 		if self.side[NORTH] == "wall" and self.ball["y"] - BALL_RADIUS <= 0 and self.ball["speed"]["y"] < 0:
+# 			self.ball["speed"]["y"] *= -1
+# 		elif self.side[SOUTH] == "wall" and self.ball["y"] + BALL_RADIUS >= 1 and self.ball["speed"]["y"] > 0:
+# 			self.ball["speed"]["y"] *= -1
+# 		elif self.side[WEST] == "wall" and self.ball["x"] - BALL_RADIUS <= 0 and self.ball["speed"]["x"] < 0:
+# 			self.ball["speed"]["x"] *= -1
+# 		elif self.side[EAST] == "wall" and self.ball["x"] + BALL_RADIUS >= 1 and self.ball["speed"]["x"] > 0:
+# 			self.ball["speed"]["x"] *= -1
+# 	# # collision logic  ############
+# 	# def wall_collision()
+# 	# 	if self.side[NORTH] == "wall" and self.ball["y"] - BALL_RADIUS <= 0 and self.ball["speed"]["y"] < 0:
+# 	# 		self.ball["speed"]["y"] *= -1
+# 	# 	elif self.side[SOUTH] == "wall" and self.ball["y"] + BALL_RADIUS >= 1 and self.ball["speed"]["y"] > 0:
+# 	# 		self.ball["speed"]["y"] *= -1
+# 	# 	elif self.side[WEST] == "wall" and self.ball["x"] - BALL_RADIUS <= 0 and self.ball["speed"]["x"] < 0:
+# 	# 		self.ball["speed"]["x"] *= -1
+# 	# 	elif self.side[EAST] == "wall" and self.ball["x"] + BALL_RADIUS >= 1 and self.ball["speed"]["x"] > 0:
+# 	# 		self.ball["speed"]["x"] *= -1
+
+# 	def paddle_collision():
+# 		for direction in range(0, 4):
+# 			if self.side[direction] == "player":
+# 				if rectCircleCollision(self.player[i]["x"] - self.player[i]["width"] / 2,
+# 										self.player[i]["y"] - self.player[i]["height"] / 2,
+# 										self.player[i]["width"],
+# 										self.player[i]["height"],
+# 										self.ball["x"],
+# 										self.ball["y"],
+# 										self.ball["r"])
+# 					paddle_rebound(direction)
+
+	def paddle_rebound(self, direction):	# simple rebound
+		if direction == WEST:
+			self.ball["speed"]["x"] *= -1
+		elif direction == EAST:
+			self.ball["speed"]["x"] *= -1
+		elif direction == NORTH:
+			self.ball["speed"]["y"] *= -1
+		elif direction == SOUTH:
+			self.ball["speed"]["y"] *= -1
+	# def paddle_collision()
+	# 	for direction in range(0, 4):
+	# 		if self.side[direction] == "player":
+	# 			if rectCircleCollision(self.player[i]["x"] - self.player[i]["width"] / 2,
+	# 									self.player[i]["y"] - self.player[i]["height"] / 2,
+	# 									self.player[i]["width"],
+	# 									self.player[i]["height"],
+	# 									self.ball["x"],
+	# 									self.ball["y"],
+	# 									self.ball["r"])
+	# 				paddle_rebound(direction)
+
+	# def paddle_rebound(direction)	# simple rebound
+	# 	if direction == WEST:
+	# 		self.ball["speed"]["x"] *= -1
+	# 	elif direction == EAST:
+	# 		self.ball["speed"]["x"] *= -1
+	# 	elif direction == NORTH:
+	# 		self.ball["speed"]["y"] *= -1
+	# 	elif direction == SOUTH:
+	# 		self.ball["speed"]["y"] *= -1
+
+# 	# def rectCircleCollision(rectX, rectY, width, height, circX, circY, radius):
+# 	# 	closestX = max(rectX, min(circX, rectX + width))
+# 	# 	closestY = max(rectY, min(circY, rectY + height))
+
+# 	# 	distanceX = circX - closestX
+# 	# 	distanceY = circY - closestY
+# 	# 	distanceSquared = distanceX**2 + distanceY**2
+
+# 	# 	return distanceSquared <= radius**2
+
+	def get_winner(self):
+		for i in range(self.player_num):
+			if self.players[i].has_joined == 1:
+				return self.players[i].player_id
+
+
+	def post_result(self):
+		data = Dict()
+		data['game_id'] =  self.lobby_id
+		if self.gameState == 0:
+			data['status'] = 'canceled'
+			data['winner'] = self.get_winner()
+		else:
+			data['status'] = 'terminated'
+			data['winner'] = self.winner
+		try:
+			requests.post('http://matchmaking:8003/result/?format=json',
+					data=json.dumps(data),
+					headers = {
+						'Host': 'localhost',
+						'Authorization': "Bearer {0}".format(settings.API_TOKEN.decode('ASCII'))
+						}
+					)
+		except Exception as e:
+			pass
+		self.stop_game_loop()
+
+
+
+
+
+
 
 lobbys_list : Dict[str, PongLobby] = dict()
