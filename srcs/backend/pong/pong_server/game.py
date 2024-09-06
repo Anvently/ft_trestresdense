@@ -22,8 +22,8 @@ PADDLE_THICKNESS = 0.01
 PLAYER_SPEED = 0.02
 
 BALL_RADIUS = 0.015
-BALL_SPEED = 0.005
-MAX_SPEED = 0.03
+BALL_SPEED = 0.015
+MAX_SPEED = 0.1
 
 WEST = 0
 EAST = 1
@@ -121,7 +121,7 @@ class PongLobby:
 	""" 
 	 add end game
 	 refuse input for eliminated players
-	 
+
 	   """
 
 	def player_input(self, player_id, input):
@@ -129,14 +129,14 @@ class PongLobby:
 
 		if input == "up":
 			if position == EAST or position == WEST:
-				self.players[position].coordinates['y'] = max(PADDLE_LENGTH / 2, self.players[position].coordinates.coordinates['y'] - PLAYER_SPEED)
+				self.players[position].coordinates['y'] = max(PADDLE_LENGTH / 2, self.players[position].coordinates['y'] - PLAYER_SPEED)
 			else:
-				self.players[position].coordinates['x'] = max(PADDLE_LENGTH / 2, self.players[position].coordinates.coordinates['x'] - PLAYER_SPEED)
+				self.players[position].coordinates['x'] = max(PADDLE_LENGTH / 2, self.players[position].coordinates['x'] - PLAYER_SPEED)
 		elif input == "down":
 			if position == EAST or position == WEST:
-				self.players[position].coordinates['y'] = min(1 - PADDLE_LENGTH / 2, self.players[position].coordinates.coordinates['y'] + PLAYER_SPEED)
+				self.players[position].coordinates['y'] = min(1 - PADDLE_LENGTH / 2, self.players[position].coordinates['y'] + PLAYER_SPEED)
 			else:
-				self.players[position].coordinates['x'] = min(1 - PADDLE_LENGTH / 2, self.players[position].coordinates.coordinates['x'] + PLAYER_SPEED)
+				self.players[position].coordinates['x'] = min(1 - PADDLE_LENGTH / 2, self.players[position].coordinates['x'] + PLAYER_SPEED)
 
 
 	async def	game_loop(self):
@@ -144,7 +144,7 @@ class PongLobby:
 			loop_start = time.time()
 			player_channel = get_channel_layer()
 			# pregame : check that all players are present
-			while time.time() - loop_start < 60 and self.gameState == 0:
+			while time.time() - loop_start < 3600 and self.gameState == 0:
 				await asyncio.sleep(0.05)
 				async with self.mut_lock:
 					data = self.compute_game()
@@ -172,11 +172,16 @@ class PongLobby:
 				# launch ball
 			self.reset_ball()
 			while self.gameState == 2:
-				asyncio.sleep(0.05)
+				await asyncio.sleep(0.05)
 				async with self.mut_lock:
 					data = self.compute_game()
 				await player_channel.group_send(self.lobby_id, data)
-				print(f"game_state = {self.gameState}, ball_speed:{self.ball}")
+			await player_channel.group_send(
+				self.lobby_id, {
+					"type": "game_finish",
+					"content": f"{self.get_winner()} has winned the game."
+				}
+			)
 			self.send_result()
 			# remove from list
 		except Exception as e:
@@ -269,8 +274,8 @@ class PongLobby:
 	def	reset_ball(self):
 		self.ball['x'] = 0.5
 		self.ball['y'] = 0.5
-		self.ball["speed"]['x'] = 0.005
-		self.ball["speed"]['y'] = -0.000	# a modifier par la suite selon le perdant OU faire tourner le service
+		self.ball["speed"]['x'] = 0.020
+		self.ball["speed"]['y'] = -0.020	# a modifier par la suite selon le perdant OU faire tourner le service
 
 	def check_eliminated_players(self):
 		for direction in range(0, self.player_num):
@@ -290,6 +295,7 @@ class PongLobby:
 			'number_of_players' : self.player_num,
 			'ball_x': self.ball['x'],
 			'ball_y': self.ball['y'],
+			'ball_r': self.ball['r'],
 			'ball_speed_x': self.ball["speed"]['x'],
 			'ball_speed_y': self.ball["speed"]['y'],
 		}
@@ -304,10 +310,11 @@ class PongLobby:
 		return json
 
 
-	def get_winner(self):
+	def get_winner(self) -> str:
 		for i in range(self.player_num):
-			if self.players[i].has_joined == 1:
+			if self.players[i].type == 'player':
 				return self.players[i].player_id
+		return None
 
 
 	def post_result(self):
@@ -338,6 +345,12 @@ class PongLobby:
 
 
 lobbys_list : Dict[str, PongLobby] = dict()
+lobbys_list["10"] = PongLobby(
+	lobby_id="10",
+	players_list=["admin", "user1"],
+	lifes=100,
+	tournId=None
+)
 
 
 

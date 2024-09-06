@@ -156,6 +156,7 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 		else:
 			await self._send_error(self.scope['error'], self.scope['error_code'], True)
 			print("Connection rejected because: {0}".format(self.scope['error']))
+		await self.send_json({'type':'ping'})
 
 	async def disconnect(self, close_code):
 		if self.is_valid:
@@ -202,15 +203,18 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 	async def key_input(self, content):
 		if content['username'] not in self.users:
 			await self._send_error('Invalid username')
-		# lobbys_list[self.lobby_id].post_input(content)
-		pass
+		lobbys_list[self.lobby_id].player_input(content['username'], content['input'])
 
 	async def cancel(self, content):
 		await self.send_json(content)
-		await self.close(4000)
+		await self.close(4000, "game cancelled")
 
 	async def game_start(self, content):
 		await self.send_json(content)
+
+	async def game_finish(self, content):
+		await self.send_json(content)
+		await self.close(4000, "game finished")
 
 	async def send_game_state(self, content):
 		await self.send_json(content)

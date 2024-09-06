@@ -23,20 +23,18 @@ POST localhost:8001/post-result/
 //Posting a game to the back end
 POST pong:8002/init-game/
 {
-	"game_id": 41489.0,
-	"turnament_id": 41489, //optionnal
-	"game_settings": {
-		"number_player": 4,
-		"number_life": 3
+	"game_id": 10,
+	"settings": {
+		"number_players": 4,
+		"number_life": 2
 	},
 	"player_list": [
-		"akro",
-		"akro_guest",
-		"user3",
-		"user4"
+		"admin",
+		"admin.guest",
+		"user1",
+		"user1.guest"
 	]
 }
-
 
 //Posting a result from PongLobby to Matchmaking
 POST matchmaking:8003/result/
@@ -45,3 +43,19 @@ POST matchmaking:8003/result/
     "status": "terminated/canceled",
     "winner": "user1",
 }
+
+Websocket
+join
+{
+	"type": "join_game",
+	"username": "admin"
+}
+
+key_input
+{
+    "type": "key_input",
+    "username": "admin",
+    "input": "up"
+}
+
+
