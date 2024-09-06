@@ -1,4 +1,4 @@
-import {lancementChat} from "./chat.js";
+// import {lancementChat} from "./chat.js";
 
 // const loginForm = document.getElementById("login-form");
 // const LoginButt = document.getElementById("login-form-submit");
@@ -50,45 +50,43 @@ import {lancementChat} from "./chat.js";
 
 
 
+const userField = document.getElementById("username-field");
+const passField = document.getElementById("password-field");
+const LoginButt = document.getElementById("submit-btn");
 
-export function foo() {
-    const userField = document.getElementById("username-field");
-    const passField = document.getElementById("password-field");
-    const LoginButt = document.getElementById("submit-btn");
-    
-    
-    LoginButt.addEventListener("click", e => {
-        e.preventDefault();
-        foo();
-    });
+function foo() {
     console.log("username : %s | password: %s", userField.value, passField.value);
+    
 }
 
+LoginButt.addEventListener("click", e => {
+    e.preventDefault();
+    foo();
 
-// 	fetch('https://localhost:8083/api/auth/login/', {
-//         method: 'POST',
-//         headers: {
-//             'Accept': 'application/json',
-//             'Content-Type': 'application/json'
-//         },
-//         body: JSON.stringify({
-//             "username": userField.value,
-//             "password": passField.value
-//         })
-//     })
-//        .then(response => {
-//         if (!response.ok)
-//                 throw new Error('Network response was not ok : ' + response.status);
-//             return response.json();
-//        })
-//        .then(data=> {
-//            // lancementChat(chatScreen);
-//         })
-//         .catch(error => {
-//             console.error('There was a problem with the fetch operation: ', error);
-//         })
+	fetch('https://localhost:8083/api/auth/login/', {
+        method: 'POST',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            "username": userField.value,
+            "password": passField.value
+        })
+    })
+       .then(response => {
+        if (!response.ok)
+                throw new Error('Network response was not ok : ' + response.status);
+            return response.json();
+       })
+       .then(data=> {
+           // lancementChat(chatScreen);
+        })
+        .catch(error => {
+            console.error('There was a problem with the fetch operation: ', error);
+        })
 
-//     });
+    });
 
 //     JoinButt.addEventListener("click", e => {
 //         e.preventDefault();

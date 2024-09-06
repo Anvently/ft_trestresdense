@@ -1,17 +1,33 @@
-const containerCanva = /**  @type {HTMLCanvasElement} */  document.getElementById("container-canva");
-var canvas = document.getElementById("canvas");
+const 	containerCanva = /**  @type {HTMLCanvasElement} */  document.getElementById("container-canva");
+var 	canvas = document.getElementById("canvas");
+const 	usernameButt = document.getElementById("username-field");
+const 	lobbyID = document.getElementById("lobby-id");
+const 	loginBUTT = document.getElementById("submit-btn");
+// const	wsRef = null;
 
-canvas.width = containerCanva.clientWidth;
-canvas.height = containerCanva.clientHeight;
+// loginBUTT.addEventListener("click", e => {
+//     e.preventDefault();
+// });
 
-// Constants
-const WEST = 0;
-const EAST = 1;
-const NORTH = 2;
-const SOUTH = 3;
+const wsRef = new WebSocket(
+	'wss://'
+	+ 'localhost:8083'
+	+ `/ws/pong/10/`
+);
 
 
-var players = [
+
+	canvas.width = containerCanva.clientWidth;
+	canvas.height = containerCanva.clientHeight;
+	
+	// Constants
+	const WEST = 0;
+	const EAST = 1;
+	const NORTH = 2;
+	const SOUTH = 3;
+	
+	
+	var players = [
 	{type: "wall", lives: 0, x: 0, y: 0, width: 0, height: 0}
 ];
 var ball = {x: 0.5, y: 0.5, r: 0, speedX: 0, speedY: 0};
@@ -38,7 +54,7 @@ const wsRef = new WebSocket(
 function draw()
 {
 	var context = canvas.getContext("2d");
-
+	
 	// draw field
 	context.fillStyle = 'grey';
 	context.fillRect(0, 0, canvas.width, canvas.height);
@@ -55,12 +71,12 @@ function draw()
 			case (EAST):
 				context.fillStyle = 'red';
 				break;
-			case (NORTH):
+				case (NORTH):
 				context.fillStyle = 'green';
 				break;
-			case (SOUTH):
-				context.fillStyle = 'yellow';
-				break;
+				case (SOUTH):
+					context.fillStyle = 'yellow';
+					break;
 		}
 		// draw paddle
 		context.fillRect((players[i].x - players[i].width / 2) * canvas.width,
@@ -73,7 +89,7 @@ function draw()
 	context.beginPath(); // ???
 	context.fillStyle = 'black';
 	context.arc(ball.x * canvas.width,
-				ball.y * canvas.height,
+		ball.y * canvas.height,
 				ball.r * canvas.height,
 				0,
 				Math.PI * 2,
@@ -111,18 +127,18 @@ wsRef.onmessage = function (e) {
 	}
 }
 
-// INPUT
-var pressKey = {
-	key_up: false,
-	key_down: false,
-};
+		// INPUT
+		var pressKey = {
+			key_up: false,
+			key_down: false,
+		};
 
 window.addEventListener("keydown", e => {
 	if (e.key === "ArrowUp") 
 		pressKey.key_up = true;
 	else if (e.key === "ArrowDown") 
 		pressKey.key_down = true;
-
+	
 });
 
 window.addEventListener("keyup", e => {
