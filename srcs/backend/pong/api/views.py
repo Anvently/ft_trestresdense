@@ -26,6 +26,11 @@ class RetrieveLobbyView(APIView):
 		if not PongLobby.check_lobby_id(lobby_id):
 			return Response({'lobby not found.'}, status=status.HTTP_404_NOT_FOUND)
 		serializer = GameSerializer()
-		return (Response(serializer.serialize(lobbys_list[lobby_id]), status=status.HTTP_200_OK))
+		return (Response(serializer.to_representation(lobbys_list[lobby_id]), status=status.HTTP_200_OK))
 
-# Create your views here.
+class ListLobbyView(APIView):
+
+	def get(self, request):
+		serializer = GameSerializer(lobbys_list.values(), many=True)
+		return Response(serializer.data)
+

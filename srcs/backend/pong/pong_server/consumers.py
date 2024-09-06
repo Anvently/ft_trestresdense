@@ -135,14 +135,19 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 			self.scope['error'] = "invalid lobby"
 			self.scope['error_code'] = 4003
 			return False
+		if PongConsumer.DISABLE_AUTH:
+			return True
 		if not self._auth_client():
 			return False
-		if not lobbys_list[self.lobby_id].check_user(self.lobby_id, self.username):
+		if not lobbys_list[self.lobby_id].check_user(self.username):
 			self.scope['error'] = "forbidden lobby"
 			self.scope['error_code'] = 4004
 			return False
 		return True
 
+	# ONLY FOR DEBUG, given username in sent content will be used
+	DISABLE_AUTH = True
+	
 	async def connect(self):
 		await self.accept()
 		if self._is_valid_client():
@@ -179,10 +184,10 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 
 	# receive msg from chat
 	async def join_game(self, content):
-		if content['username'].split('.')[0] != self.username:
+		if not PongConsumer.DISABLE_AUTH and content['username'].split('.')[0] != self.username:
 			await self._send_error('You are not who you pretend to be')
 			return
-		if not await lobbys_list[self.lobby_id].player_join(content['data']):
+		if not await lobbys_list[self.lobby_id].player_join(content['username']):
 			await self._send_error('Could not join the lobby.')
 			return
 		self.users.add(content['username'])
@@ -196,6 +201,13 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 			await self._send_error('Invalid username')
 		# lobbys_list[self.lobby_id].post_input(content)
 		pass
+
+	async def cancel(self, content):
+		await self.send_json(content)
+		await self.close(4000)
+
+	async def game_start(self, content):
+		await self.send_json(content)
 
 	async def send_game_state(self, content):
 		await self.send_json(content)

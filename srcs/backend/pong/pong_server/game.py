@@ -53,13 +53,12 @@ class PongLobby:
 		if tournId:
 			self.tournId = tournId
 		self.ball = None
-		# self.players: List[Player] = List(4)
-		self.players: List[Player] = [None] * 4
-		self.match_id_pos = Dict()
+		self.players: List[Player] = []
+		self.match_id_pos = {}
 		for i in range(len(players_list)):
-			self.players[i] = Player(players_list[i], i, lifes, 'alive')
+			self.players.append(Player(players_list[i], i, lifes, 'alive'))
 			self.match_id_pos[players_list[i]] = i
-		for i in range(self.player_num, 4):
+		for i in range(self.player_num, 4 - self.player_num):
 			self.players[i] = Player('!wall', i)
 		self.ball = BALL_START
 		self.gameState = 0
@@ -73,17 +72,12 @@ class PongLobby:
 			return True
 		return False
 
-	def check_user(self, lobby_id:str, username:str):
+	def check_user(self, username:str):
 		"""Check that the user belong to the lobby"""
-		if username in self.match_id_pos:
+		if username in [player.player_id for player in self.players]:
 			return True
 		return False
 
-
-	def new_game(game_id, player_list: List[str], settings: Dict[str, Any], turnament_id: str = None):
-		if PongLobby.check_lobby_id(game_id):
-			return
-		lobbys_list[game_id] = PongLobby(game_id, player_list, settings['number_life'], turnament_id)
 
 	# init variables
 	def init_game(self):
@@ -96,6 +90,7 @@ class PongLobby:
 		}
 
 	async def start_game_loop(self):
+		print("loop started")
 		self.loop = asyncio.create_task(self.game_loop())
 
 	async def stop_game_loop(self):
@@ -104,7 +99,7 @@ class PongLobby:
 
 	async def player_join(self, player_id: str) -> bool:
 		""" Template of player_list: ["user1", "user1_guest"] """
-		if not player_id in self.match_id_pos:
+		if not self.check_user(player_id):
 			return False
 		self.players[self.match_id_pos[player_id]].has_joined = 1
 		self.waiting_for -= 1
@@ -141,15 +136,20 @@ class PongLobby:
 
 
 	async def	game_loop(self):
-		loop_start = time()
+		# print("ping")
+		loop_start = time.time()
+		# print("pang")
 		player_channel = get_channel_layer()
+		print("plouf")
 		# pregame : check that all players are present
-		while time() - loop_start < 60 & self.gameState == 0:
-			await asyncio.sleep(0.05)
+		while time.time() - loop_start < 60 and self.gameState == 0:
+			asyncio.sleep(0.05)
 			async with self.mut_lock:
 				data = self.compute_game()
 			await player_channel.group_send(self.lobby_id, data)
+
 			if self.waiting_for == 0:
+				print("everybody joined")
 				self.gameState = 1
 		if self.gameState == 0:
 			await player_channel.group_send(self.lobby_id, {"type": "cancel",
@@ -159,10 +159,8 @@ class PongLobby:
 			self.loop.cancel()
 			return
 		await player_channel.group_send(self.lobby_id, {"type": "game_start"})
-
-		# wait 3 before start
-		loop_start = time()
-		while time() - loop_start < 3:
+		loop_start = time.time()
+		while time.time() - loop_start < 3:
 			asyncio.sleep(0.05)
 			async with self.mut_lock:
 				data = self.compute_game()
@@ -231,6 +229,7 @@ class PongLobby:
 			self.ball["speed"]["x"] *= -1
 		elif direction == NORTH or direction == SOUTH:
 			self.ball["speed"]["y"] *= -1
+
 
 	def rectCircleCollision(rectX, rectY, width, height, circX, circY, radius):
 		closestX = max(rectX, min(circX, rectX + width))
