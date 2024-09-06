@@ -65,12 +65,6 @@ class PongLobby:
 		if username in self.players:
 			return True
 		return False
-	
-
-	def new_game(game_id, player_list: List[str], settings: Dict[str, Any], turnament_id: str = None):
-		if PongLobby.check_lobby_id(game_id):
-			return
-		lobbys_list[game_id] = PongLobby(game_id, player_list, settings['number_life'], turnament_id)
 
 	# init variables
 	def init_game(self):

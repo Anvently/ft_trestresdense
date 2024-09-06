@@ -19,17 +19,22 @@ class GameSerializer(serializers.Serializer):
 
 	def save(self):
 		"""Append the game to the list of active games"""
-		PongLobby.new_game(
-			game_id=self.validated_data['game_id'],
-			player_list=self.validated_data['player_list'],
-			settings=self.validated_data['settings'],
-			turnament_id=self.validated_data.get('turnament_id')
+		lobbys_list[self.validated_data['game_id']] = PongLobby(
+			lobby_id=self.validated_data['game_id'],
+			players_list=self.validated_data['player_list'],
+			lifes=self.validated_data['settings']['number_life'],
+			tournId=self.validated_data.get('turnament_id')
 		)
 
 	def validate(self, data):
 		number_players = data['settings']['number_players']
 		player_list = data['player_list']
 		
+		if PongLobby.check_lobby_id(data['game_id']):
+			raise serializers.ValidationError(
+				f"The given lobby_id {data['game_id']} already exists."
+			)
+
 		if len(player_list) != number_players:
 			raise serializers.ValidationError(
 				f"The number of players in settings ({number_players}) does not match the size of the player list ({len(player_list)})."
