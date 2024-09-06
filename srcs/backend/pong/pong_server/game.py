@@ -37,7 +37,8 @@ START_POS = [{"x": PADDLE_THICKNESS / 2, 'y': 0.5, 'width': PADDLE_THICKNESS, 'h
 BALL_START = {"x": 0.5, "y": 0.5, "r": BALL_RADIUS, "speed": {"x": BALL_SPEED, "y": 0.002}}
 
 class Player:
-	def __init__(self, player_id, player_position, player_life):
+	def __init__(self, player_id, player_position, player_life=0, player_type='wall'):
+		self.type = player_type
 		self.player_id = player_id
 		self.player_position = player_position
 		self.player_lifes = player_life
@@ -52,11 +53,13 @@ class PongLobby:
 		if tournId:
 			self.tournId = tournId
 		self.ball = None
-		self.sides = ["wall"] * 4
-		self.players: Dict[str, Player] = dict()
+		self.players: List[Player] = List(4)
+		self.match_id_pos = Dict()
 		for i in range(len(players_list)):
-			self.players[players_list[i]] = Player(players_list[i], i, lifes)
-			self.sides[i] = "player"
+			self.players[i] = Player(players_list[i], i, lifes, 'alive')
+			self.match_id_pos[players_list[i]] = i
+		for i in range(self.player_num, 4):
+			self.players[i] = Player('!wall', i)
 		self.ball = BALL_START
 		self.gameState = 0
 		self.mut_lock = asyncio.Lock()
@@ -166,7 +169,7 @@ class PongLobby:
 		self.waiting_for += 1
 
 	def send_result(self):
-
+		pass
 		# API call to send result to matchmaking
 			# -> gameState == 3 match was played -> get stats in self and send them
 			# -> gameState == 0 game was canceled
@@ -187,16 +190,18 @@ class PongLobby:
 
 	def player_input(self, player_id, input):
 
+		position = self.match_id_pos[player_id]
+
 		if input == "up":
-			if self.players[player_id].player_position < 2:
-				self.players[player_id].player_coordinates['y'] = max(PADDLE_LENGTH / 2, self.players[player_id].player_coordinates["y"] - PLAYER_SPEED)
+			if position == EAST or position == WEST:
+				self.players[position].player_coordinates['y'] = max(PADDLE_LENGTH / 2, self.players[position].player_coordinates["y"] - PLAYER_SPEED)
 			else:
-				self.players[player_id].player_coordinates['x'] = max(PADDLE_LENGTH / 2, self.players[player_id].player_coordinates["x"] - PLAYER_SPEED)
+				self.players[position].player_coordinates['x'] = max(PADDLE_LENGTH / 2, self.players[position].player_coordinates["x"] - PLAYER_SPEED)
 		elif input == "down":
-			if self.players[player_id].player_position < 2:
-				self.players[player_id].player_coordinates['y'] = min(1 - PADDLE_LENGTH / 2, self.players[player_id].player_coordinates["y"] + PLAYER_SPEED)
+			if position == EAST or position == WEST:
+				self.players[position].player_coordinates['y'] = min(1 - PADDLE_LENGTH / 2, self.players[position].player_coordinates["y"] + PLAYER_SPEED)
 			else:
-				self.players[player_id].player_coordinates['x'] = min(1 - PADDLE_LENGTH / 2, self.players[player_id].player_coordinates["x"] + PLAYER_SPEED)
+				self.players[position].player_coordinates['x'] = min(1 - PADDLE_LENGTH / 2, self.players[position].player_coordinates["x"] + PLAYER_SPEED)
 		# if input == "up":
 		# 	if i == EAST or i == WEST:
 		# 		self.player[i]["y"] = max(PADDLE_LENGTH / 2, self.player[i]["y"] - PLAYER_SPEED)
@@ -215,8 +220,7 @@ class PongLobby:
 		while time() - loop_start < 60 & self.gameState == 0:
 			asyncio.sleep(0.05)
 			async with self.mut_lock:
-				data = self.get_data()
-			data = self.compute(data)
+				data = self.compute_game()
 			await player_channel.group_send(self.lobby_id, data)
 			if self.waiting_for == 0:
 				self.gameState = 1
@@ -232,22 +236,20 @@ class PongLobby:
 		while time() - loop_start < 3:
 			asyncio.sleep(0.05)
 			async with self.mut_lock:
-				data = self.get_data()
-			data = self.compute_game(data)
+				data = self.compute_game()
 			await player_channel.group_send(self.lobby_id, data)
 		self.gameState = 2
 		while self.gameState == 2:
 			asyncio.sleep(0.05)
 			async with self.mut_lock:
-				data = self.get_data()
-			coordinates = self.compute_game(data)
+				coordinates = self.compute_game()
 			await player_channel.group_send(self.lobby_id, coordinates)
 		self.send_result()
 		# remove from list
 
 
 	def	compute_game(self, data):
-
+		pass
 		# GAME LOGIC GOES HERE
 		# IF GAME SHOULD END BECAUSE ONE PLAYER WON SET gameState to 3
 		# return the coordinates in a JSON form
