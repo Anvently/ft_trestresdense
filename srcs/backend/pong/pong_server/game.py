@@ -235,19 +235,19 @@ class PongLobby:
 		return distanceSquared <= radius**2
 
 	def check_goals(self)
-	 	#meh, pue un peu la merde dans le cas des buts marques tres pres du bord
+		#meh, pue un peu la merde dans le cas des buts marques tres pres du bord
 		goal_scored = False
 		if self.ball["x"] < 0 and self.player[WEST]["player_type"] == "player":
-			self.player[WEST]["live"] -= 1
+			self.player[WEST]["lives"] -= 1
 			goal_scored = True
 		elif self.ball["x"] > 1 and self.player[EAST]["player_type"] == "player":
-			self.player[EAST]["live"] -= 1
+			self.player[EAST]["lives"] -= 1
 			goal_scored = True
 		elif self.ball["y"] < 0 and self.player[NORTH]["player_type"] == "player":
-			self.player[NORTH]["live"] -= 1
+			self.player[NORTH]["lives"] -= 1
 			goal_scored = True
 		elif self.ball["y"] > 1 and self.player[SOUTH]["player_type"] == "player":
-			self.player[SOUTH]["live"] -= 1
+			self.player[SOUTH]["lives"] -= 1
 			goal_scored = True
 
 		if goal_scored:
@@ -259,10 +259,9 @@ class PongLobby:
 		self.ball["speed"]["x"] = 0.005
 		self.ball["speed"]["y"] = 0.002	# a modifier par la suite selon le perdant OU faire tourner le service
 
-
 	def check_eliminated_players(self)
 		for direction in range(0, self.player_num):
-			if self.player[direction]["live"] == 0
+			if self.player[direction]["lives"] == 0
 				self.player["player_type"] = "eliminated_player"
 
 	def check_winning_condition(self)
@@ -272,18 +271,21 @@ class PongLobby:
 				count += 1
 		return count <= 1
 
-
 	def generate_JSON(self) -> Dict[str, Any]:
-		return {
-			'ball.x': self.ball["x"],
-			'ball.y': self.ball["y"],
-			'playerW.x': self.player[WEST]["x"],
-			'playerW.y': self.player[WEST]["y"],
-			'playerE.x': self.player[EAST]["x"],
-			'playerE.y': self.player[EAST]["y"]
+		json = {
+			'number_of_players' : self.player_num,
+			'ball_x': self.ball["x"],
+			'ball_y': self.ball["y"],
+			'ball_speed_x': self.ball["speed"]["x"],
+			'ball_speed_y': self.ball["speed"]["y"],
 		}
-
-
-
+		for index in range(self.player_num):
+			json[f"player{index}_type"] = self.player[index]["player_type"]
+			json[f"player{index}_lives"] = self.player[index]["lives"]
+			json[f"player{index}_x"] = self.player[index]["x"]
+			json[f"player{index}_y"] = self.player[index]["y"]
+			json[f"player{index}_width"] = self.player[index]["width"]
+			json[f"player{index}_height"] = self.player[index]["height"]
+		return json
 
 lobbys_list : Dict[str, PongLobby] = dict()
