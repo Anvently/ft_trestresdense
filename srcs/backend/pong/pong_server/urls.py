@@ -16,9 +16,10 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from api.views import PostGameView
+from api.views import PostGameView, RetrieveLobbyView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-	path('init-game/', PostGameView.as_view())
+	path('init-game/', PostGameView.as_view()),
+	path('lobby/<lobby_id>',RetrieveLobbyView.as_view())
 ]

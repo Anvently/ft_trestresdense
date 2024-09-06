@@ -80,6 +80,16 @@ class PongLobby:
 			return
 		lobbys_list[game_id] = PongLobby(game_id, player_list, settings['number_life'], turnament_id)
 
+	# init variables
+	def init_game(self):
+		# ball initialization
+		self.ball = {
+			"x": 0.5,
+			"y": 0.5,
+			"r": BALL_RADIUS,
+			"speed": {"x": BALL_SPEED, "y": 0.002}
+		}
+
 	async def start_game_loop(self):
 		self.loop = asyncio.create_task(self.game_loop())
 
