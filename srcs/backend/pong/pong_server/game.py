@@ -284,9 +284,11 @@ class PongLobby:
 			'number_of_players' : self.player_num,
 			'ball_x': self.ball["x"],
 			'ball_y': self.ball["y"],
+			'ball_r': self.ball["r"],
 			'ball_speed_x': self.ball["speed"]["x"],
 			'ball_speed_y': self.ball["speed"]["y"],
 		}
+
 		for index in range(self.player_num):
 			json[f"player{index}_type"] = self.player[index]["player_type"]
 			json[f"player{index}_lives"] = self.player[index]["lives"]
@@ -295,10 +297,6 @@ class PongLobby:
 			json[f"player{index}_width"] = self.player[index]["width"]
 			json[f"player{index}_height"] = self.player[index]["height"]
 		return json
-
-
-
-
 
 
 	def get_winner(self):

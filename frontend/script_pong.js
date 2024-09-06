@@ -5,7 +5,6 @@ canvas.width = containerCanva.clientWidth;
 canvas.height = containerCanva.clientHeight;
 
 // Constants
-const BALL_RADIUS = 0.015;
 const WEST = 0;
 const EAST = 1;
 const NORTH = 2;
@@ -15,7 +14,7 @@ const SOUTH = 3;
 var players = [
 	{type: "wall", lives: 0, x: 0, y: 0, width: 0, height: 0}
 ];
-var ball = {x: 0.5, y: 0.5, r: BALL_RADIUS, speedX: 0, speedY: 0};
+var ball = {x: 0.5, y: 0.5, r: 0, speedX: 0, speedY: 0};
 var number_of_players;
 
 const wsRef = new WebSocket(
@@ -79,6 +78,8 @@ wsRef.onmessage = function (e) {
 		ball.x = parseFloat(msg.ball_x)
 	if (msg.hasOwnProperty("ball_y"))
 		ball.y = parseFloat(msg.ball_y)
+	if (msg.hasOwnProperty("ball_r"))
+		ball.r = parseFloat(msg.ball_r)
 	if (msg.hasOwnProperty("ball_speed_x"))
 		ball.speedX = parseFloat(msg.ball_speed_x)
 	if (msg.hasOwnProperty("ball_speed_y"))
@@ -86,22 +87,14 @@ wsRef.onmessage = function (e) {
 
 	for (i = 0; i < number_of_players; i++)
 	{
-		const playerTypeKey = `player${i}_type`;
-		const playerLivesKey = `player${i}_lives`;
-		const playerXKey = `player${i}_x`;
-		const playerYKey = `player${i}_y`;
-		const playerWidthKey = `player${i}_width`;
-		const playerHeightKey = `player${i}_height`;
-
 		players[i] = {
-					type: msg[playerTypeKey],
-					lives: msg[playerLivesKey],
-					x: msg[playerXKey],
-					y: msg[playerYKey],
-					width: msg[playerWidthKey],
-					height: msg[playerHeightKey]
+					type: msg[`player${i}_type`],
+					lives: msg[`player${i}_lives`],
+					x: msg[`player${i}_x`],
+					y: msg[`player${i}_y`],
+					width: msg[`player${i}_width`],
+					height: msg[`player${i}_height`]
 				};
-
 	}
 }
 
