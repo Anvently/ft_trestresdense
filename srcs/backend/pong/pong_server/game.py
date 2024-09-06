@@ -2,9 +2,11 @@ from typing import List, Dict, Any
 import time
 import asyncio
 from channels.layers import get_channel_layer
-
+from django.http.request import HttpRequest
+import requests
 from typing import List, Dict, Any, Tuple
-
+import json
+from django.conf import settings
 
 # TO DO
 # 	-> when to start the loop ?
@@ -16,7 +18,6 @@ from typing import List, Dict, Any, Tuple
 PADDLE_LENGTH = 0.16
 PADDLE_THICKNESS = 0.01
 PLAYER_SPEED = 0.02
-
 
 
 BALL_RADIUS = 0.015
@@ -65,6 +66,7 @@ class PongLobby:
 		self.mut_lock = asyncio.Lock()
 		self.loop = None
 		self.waiting_for = self.player_num
+		self.winner = None
 
 	def check_lobby_id(id:str) -> bool:
 		if id in lobbys_list:
@@ -394,6 +396,31 @@ class PongLobby:
 # 	# 	distanceSquared = distanceX**2 + distanceY**2
 
 # 	# 	return distanceSquared <= radius**2
+
+	def post_result(self):
+		data = Dict()
+		data['game_id'] =  self.lobby_id
+		if self.gameState == 0:
+			data['status'] = 'canceled'
+		else:
+			data['status'] = 'terminated'
+		data['winner'] = self.winner
+		try:
+			requests.post('http://matchmaking:8003/result/?format=json',
+					data=json.dumps(data),
+					headers = {
+						'Host': 'localhost',
+						'Authorization': "Bearer {0}".format(settings.API_TOKEN.decode('ASCII'))
+						}
+					)
+		except Exception as e:
+			pass
+		self.stop_game_loop()
+
+
+
+
+
 
 
 lobbys_list : Dict[str, PongLobby] = dict()
