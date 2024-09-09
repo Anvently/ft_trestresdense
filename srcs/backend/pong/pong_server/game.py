@@ -421,15 +421,6 @@ class PongLobby:
 		if self.destination:
 			self.move_paddle()
 
-	# def AI_behavior(self):
-		# t = time.time()
-		# while True:
-		# 	print("AI_behavior")
-		# 	if time.time() != t:
-		# 		destination = self.calculate_destination()
-		# 		t = time.time()
-		# 	self.move_paddle(destination)
-
 
 	def calculate_impact(self):
 		fpos_x = self.ball["x"]
@@ -438,6 +429,7 @@ class PongLobby:
 		fspeed_y = self.ball["speed"]["y"]
 
 		while True:
+			print("calculate impact loop")
 			while BALL_RADIUS < fpos_x < 1 - BALL_RADIUS and BALL_RADIUS < fpos_y < 1 - BALL_RADIUS:
 				fpos_x += fspeed_x
 				fpos_y += fspeed_y
