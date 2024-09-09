@@ -17,19 +17,19 @@ const wsRef = new WebSocket(
 
 
 
-	canvas.width = containerCanva.clientWidth;
-	canvas.height = containerCanva.clientHeight;
-	
-	// Constants
-	const WEST = 0;
-	const EAST = 1;
-	const NORTH = 2;
-	const SOUTH = 3;
-	
-	
-	var players = [
-	{type: "wall", lives: 0, x: 0, y: 0, width: 0, height: 0}
-];
+canvas.width = containerCanva.clientWidth;
+canvas.height = containerCanva.clientHeight;
+
+// Constants
+const WEST = 0;
+const EAST = 1;
+const NORTH = 2;
+const SOUTH = 3;
+
+
+var players = [
+		{type: "wall", lives: 0, x: 0, y: 0, width: 0, height: 0}
+	];
 var ball = {x: 0.5, y: 0.5, r: 0, speedX: 0, speedY: 0};
 var number_of_players;
 var user_id;
@@ -43,11 +43,11 @@ window.onload = function() {
 
 };
 
-const wsRef = new WebSocket(
-	'wss://'
-	+ `${window.location.hostname}:8083`
-	+ '/ws/pong/10/'
-);
+// const wsRef = new WebSocket(
+// 	'wss://'
+// 	+ `${window.location.hostname}:8083`
+// 	+ '/ws/pong/10/'
+// );
 
 
 
@@ -155,4 +155,4 @@ setInterval(() => {
 		wsRef.send(JSON.stringify({type: 'key_input', username:user_id,  input: "down" }));
 
 	draw();
-}, 20);
+}, 15);
