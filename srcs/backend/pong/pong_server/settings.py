@@ -139,13 +139,12 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [("redis", 6379)],
+            "hosts": [("redis", 6379, 0)],
         },
     },
 }
 
-with open('/etc/certificate/pub.pem', 'rb') as file:
-    RSA_PUBLIC_KEY = file.read()
+
 
 # should be deleted once redis works fine
 # CHANNEL_LAYERS = {
