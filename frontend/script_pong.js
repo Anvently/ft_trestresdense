@@ -59,6 +59,17 @@ function draw()
 	context.fillStyle = 'grey';
 	context.fillRect(0, 0, canvas.width, canvas.height);
 
+	// draw ball
+	context.beginPath(); // ???
+	context.fillStyle = 'black';
+	context.arc(ball.x * canvas.width,
+		ball.y * canvas.height,
+				ball.r * canvas.height,
+				0,
+				Math.PI * 2,
+				false);
+	context.fill();
+
 	// draw players
 	for (var i = 0; i < number_of_players; i++)
 	{
@@ -71,12 +82,12 @@ function draw()
 			case (EAST):
 				context.fillStyle = 'red';
 				break;
-				case (NORTH):
+			case (NORTH):
 				context.fillStyle = 'green';
 				break;
-				case (SOUTH):
-					context.fillStyle = 'yellow';
-					break;
+			case (SOUTH):
+				context.fillStyle = 'yellow';
+				break;
 		}
 		// draw paddle
 		context.fillRect((players[i].x - players[i].width / 2) * canvas.width,
@@ -84,18 +95,6 @@ function draw()
 						players[i].width * canvas.width,
 						players[i].height * canvas.height);
 	}
-
-	// draw ball
-	context.beginPath(); // ???
-	context.fillStyle = 'black';
-	context.arc(ball.x * canvas.width,
-		ball.y * canvas.height,
-				ball.r * canvas.height,
-				0,
-				Math.PI * 2,
-				false);
-	context.fill();
-
 }
 
 
@@ -124,6 +123,7 @@ wsRef.onmessage = function (e) {
 						height: msg[`player${i}_height`]
 					};
 		}
+		draw();
 	}
 }
 
@@ -154,5 +154,5 @@ setInterval(() => {
 	if (pressKey.key_down === true)
 		wsRef.send(JSON.stringify({type: 'key_input', username:user_id,  input: "down" }));
 
-	draw();
+	// draw();
 }, 15);

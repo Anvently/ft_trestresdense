@@ -1,6 +1,7 @@
 from typing import List, Dict, Any
 import time
 import math
+import random
 import asyncio
 from channels.layers import get_channel_layer
 from django.http.request import HttpRequest
@@ -13,13 +14,13 @@ import traceback
 
 # Constants
 PADDLE_LENGTH = 0.16
-PADDLE_THICKNESS = 0.01
-PLAYER_SPEED = 0.02
+PADDLE_THICKNESS = 0.02
+PLAYER_SPEED = 0.016
 
 BALL_RADIUS = 0.015
 BALL_SERVICE_SPEED = 0.005
 BALL_SPEED = 0.01
-MAX_SPEED = 0.025		#must be less than 2*BALL_RADIUS + PADDLE_THICKNESS to avoid the ball passing through
+MAX_SPEED = 0.04		#must be less than 2*BALL_RADIUS + PADDLE_THICKNESS to avoid the ball passing through
 
 WEST = 0
 EAST = 1
@@ -28,16 +29,15 @@ SOUTH = 3
 
 START_POS = [{"x": PADDLE_THICKNESS / 2, 'y': 0.5, 'width': PADDLE_THICKNESS, 'height': PADDLE_LENGTH},
 			 {"x": 1 - PADDLE_THICKNESS / 2, "y": 0.5,"width": PADDLE_THICKNESS,"height": PADDLE_LENGTH,},
-			 {"x": 0.5, "y": PADDLE_THICKNESS / 2,"width": PADDLE_THICKNESS / 2,"height": PADDLE_LENGTH},
-			 {"x": 0.5, "y":1 - PADDLE_THICKNESS / 2, "width": PADDLE_THICKNESS / 2,"height": PADDLE_LENGTH}
+			 {"x": 0.5, "y": PADDLE_THICKNESS / 2,"width": PADDLE_LENGTH,"height": PADDLE_THICKNESS},
+			 {"x": 0.5, "y":1 - PADDLE_THICKNESS / 2, "width": PADDLE_LENGTH,"height": PADDLE_THICKNESS}
 			 ]
 
 BALL_START = {"x": 0.5, "y": 0.5, "r": BALL_RADIUS, "speed": {"x": 0, "y": 0}}
 
 
 # test AI
-ai_direction = EAST
-
+# ai_direction = EAST
 
 class Player:
 	def __init__(self, player_id, position, lives=0, type='wall'):
@@ -47,6 +47,72 @@ class Player:
 		self.lives = lives
 		self.coordinates = START_POS[position]
 		self.has_joined = 0
+
+		# AI specific variables
+		self.last_time = int(time.time())
+		self.destination = 0.5
+
+	######### AI ##############
+	def AI_behavior(self, ballX, ballY, ballSpeedX, ballSpeedY) -> str:
+		if int(time.time()) != self.last_time:
+			self.calculate_destination(ballX, ballY, ballSpeedX, ballSpeedY)
+			self.last_time = int(time.time())
+		
+		if self.position == WEST or self.position == EAST:
+			position = self.coordinates["y"]
+		else:
+			position = self.coordinates["x"]
+
+		if self.position == WEST or self.position == EAST:
+			position = self.coordinates["y"]
+			if self.destination < position - PLAYER_SPEED:
+				return "up"
+			elif self.destination > position + PLAYER_SPEED:
+				return "down"
+		else:
+			position = self.coordinates["x"]
+			if self.destination < position - PLAYER_SPEED:
+				return "up"
+			elif self.destination > position + PLAYER_SPEED:
+				return "down"
+		return ""
+
+	def calculate_destination(self, ballX, ballY, ballSpeedX, ballSpeedY):
+		self.destination = 0.5
+		if self.position == WEST and ballSpeedX < 0 or self.position == EAST and ballSpeedX > 0 or self.position == NORTH and ballSpeedY < 0 or self.position == SOUTH and ballSpeedY > 0:
+			self.destination = self.calculate_impact(ballX, ballY, ballSpeedX, ballSpeedY)
+
+		# make the ai hit the edges of the paddle
+		# if self.destination < 0.5:
+		# 	self.destination += (PADDLE_LENGTH / 2 ) * 0.9
+		# else:
+		# 	self.destination -= (PADDLE_LENGTH / 2 ) * 0.9
+		rand = random.randint(0, 1)
+		if rand:
+			self.destination += (PADDLE_LENGTH / 2 ) * 0.9
+		else:
+			self.destination -= (PADDLE_LENGTH / 2 ) * 0.9
+
+
+	def calculate_impact(self, ballX, ballY, ballSpeedX, ballSpeedY):
+		fpos_x = ballX
+		fpos_y = ballY
+		fspeed_x = ballSpeedX
+		fspeed_y = ballSpeedY
+
+		while True:
+			fpos_x += fspeed_x
+			fpos_y += fspeed_y
+			if not BALL_RADIUS < fpos_x < 1 - BALL_RADIUS:
+				if self.position == WEST or self.position == EAST:
+					return fpos_y
+				else:
+					fspeed_x *= -1 
+			if not BALL_RADIUS < fpos_y < 1 - BALL_RADIUS:
+				if self.position == NORTH or self.position == SOUTH:
+					return fpos_x
+				else:
+					fspeed_y *= -1 
 
 class PongLobby:
 	service_direction = 0
@@ -70,6 +136,11 @@ class PongLobby:
 		self.loop = None
 		self.waiting_for = self.player_num
 		self.winner = None
+
+		##### AI TEST
+		# self.last_time = int(time.time())
+		# self.destination = 0.5
+
 
 	def check_lobby_id(id:str) -> bool:
 		if id in lobbys_list:
@@ -130,7 +201,9 @@ class PongLobby:
 	def player_input(self, player_id, input):
 		position = self.match_id_pos[player_id]
 
-		print(f"player id = {player_id}")
+		# check if sender is not alive
+		if self.players[position].type != "player":
+			return
 
 		if input == "up":
 			if position == EAST or position == WEST:
@@ -200,15 +273,16 @@ class PongLobby:
 		self.move_ball()
 		self.collision_logic()
 		self.check_goals()
-		self.check_eliminated_players()
+		self.compute_AI()	### AI TEST ###
 		if self.check_winning_condition():
 			self.gameState = 3
-
-		#### AI TEST
-		# self.AI_behavior()
-		####
 		return self.generate_JSON()
 
+	def compute_AI(self):
+		for i in range(self.player_num):
+			if self.players[i].player_id.startswith("!AI"):
+				input = self.players[i].AI_behavior(self.ball["x"], self.ball["y"], self.ball["speed"]["x"], self.ball["speed"]["y"])
+				self.player_input(self.players[i].player_id, input)
 
 	def move_ball(self):
 		self.ball['x'] += self.ball["speed"]['x']
@@ -245,7 +319,7 @@ class PongLobby:
 		if direction == WEST or direction == EAST:
 			relative_intersect = 0.5 - ((self.players[direction].coordinates["y"] + self.players[direction].coordinates["height"] / 2) - self.ball["y"]) / self.players[direction].coordinates["height"]
 		else:
-			relative_intersect = 0.5 - ((self.players[direction].coordinates["x"] + self.players[direction].coordinates["width"] / 2) - self.ball["x"]) / self.players[direction].coordinates["width"]
+			relative_intersect = 0.5 + ((self.players[direction].coordinates["x"] + self.players[direction].coordinates["width"] / 2) - self.ball["x"]) / self.players[direction].coordinates["width"]
 
 		# calculate the bounce angle
 		bounce_angle = relative_intersect * (math.pi / 2)
@@ -284,53 +358,65 @@ class PongLobby:
 		goal_scored = False
 		if self.ball['x'] < 0 and self.players[WEST].type == "player":
 			self.players[WEST].lives -= 1
+			print(f"WEST lost a life, {self.players[WEST].lives} remaining")
 			goal_scored = True
 		elif self.ball['x'] > 1 and self.players[EAST].type == "player":
 			self.players[EAST].lives -= 1
+			print(f"EAST lost a life, {self.players[EAST].lives} remaining")
 			goal_scored = True
 		elif self.ball['y'] < 0 and self.players[NORTH].type == "player":
 			self.players[NORTH].lives -= 1
+			print(f"NORTH lost a life, {self.players[NORTH].lives} remaining")
 			goal_scored = True
 		elif self.ball['y'] > 1 and self.players[SOUTH].type == "player":
 			self.players[SOUTH].lives -= 1
+			print(f"SOUTH lost a life, {self.players[SOUTH].lives} remaining")
 			goal_scored = True
 
 		if goal_scored:
+			self.check_eliminated_players()
 			self.reset_ball()
 
 	def	reset_ball(self):
 		self.ball['x'] = 0.5
 		self.ball['y'] = 0.5
-		self.ball["speed"]['x'] = 0
-		self.ball["speed"]['y'] = 0
+		speed = BALL_SERVICE_SPEED
 
-		# throw ball in service_direction
-		if self.service_direction == WEST:
-			self.ball["speed"]['x'] = -BALL_SERVICE_SPEED
-		elif self.service_direction == EAST:
-			self.ball["speed"]['x'] = BALL_SERVICE_SPEED
-		elif self.service_direction == NORTH:
-			self.ball["speed"]['y'] = -BALL_SERVICE_SPEED
-		elif self.service_direction == SOUTH:
-			self.ball["speed"]['y'] = BALL_SERVICE_SPEED
-		# change service_direction
 		self.update_service_direction()
+
+		if self.service_direction == WEST:
+			angle_modifier = math.pi
+		elif self.service_direction == EAST:
+			angle_modifier = 0
+		elif self.service_direction == NORTH:
+			angle_modifier = 3 * math.pi / 2
+		elif self.service_direction == SOUTH:
+			angle_modifier = math.pi / 2
+
+		# random service_angle between 15 and 75 degrees, centered on service direction
+		service_angle = (random.randint(15, 75) * math.pi) / 180 - math.pi / 4 + angle_modifier
+		self.ball["speed"]["x"] = speed * math.cos(service_angle)
+		self.ball["speed"]["y"] = speed * math.sin(service_angle)
 
 	# change service direction to next live player
 	def update_service_direction(self):
-		self.service_direction += 1
 		while True:
+			self.service_direction +=1
+			if self.service_direction >= self.player_num:
+				self.service_direction = 0
 			if self.players[self.service_direction].type == "player":
 				break
-			self.service_direction +=1
-			if self.service_direction > self.player_num:
-				self.service_direction = 0
-
 
 	def check_eliminated_players(self):
 		for direction in range(0, self.player_num):
-			if self.players[direction].lives == 0:
+			if self.players[direction].lives == 0 and self.players[direction].type != "eliminated_player":
+				# eliminate player
 				self.players[direction].type = "eliminated_player"
+				self.players[direction].coordinates["x"] = 0
+				self.players[direction].coordinates["y"] = 0
+				self.players[direction].coordinates["width"] = 0
+				self.players[direction].coordinates["height"] = 0
+				print(f"Player {self.players[direction].player_id} has been eliminated")
 
 	def check_winning_condition(self) -> bool:
 		count = 0
@@ -359,13 +445,12 @@ class PongLobby:
 			json[f"player{index}_height"] = self.players[index].coordinates['height']
 		return json
 
-
 	def get_winner(self) -> str:
 		for i in range(self.player_num):
 			if self.players[i].type == 'player':
+				print(f"{self.players[i].player_id} won the game")
 				return self.players[i].player_id
 		return None
-
 
 	def post_result(self):
 		data = Dict()
@@ -392,85 +477,13 @@ class PongLobby:
 
 
 
-
-
-
-
-
-################## AI WIP ##################
-
-# loop
-	# every seconds, check ball position and speed
-		# if ball is coming towards the AI
-			# find the position of impact
-				# paddle destination = position of impact
-		# else
-			# paddle destination = center
-
-	# move paddle towards destination
-
-
-	last_time = int(time.time())
-	destination = 0.5
-
-	def AI_behavior(self):
-		if int(time.time()) != self.last_time:
-			print("NEW TIME !")
-			self.destination = self.calculate_destination()
-			self.last_time = int(time.time())
-		if self.destination:
-			self.move_paddle()
-
-
-	def calculate_impact(self):
-		fpos_x = self.ball["x"]
-		fpos_y = self.ball["y"]
-		fspeed_x = self.ball["speed"]["x"]
-		fspeed_y = self.ball["speed"]["y"]
-
-		while True:
-			print("calculate impact loop")
-			while BALL_RADIUS < fpos_x < 1 - BALL_RADIUS and BALL_RADIUS < fpos_y < 1 - BALL_RADIUS:
-				fpos_x += fspeed_x
-				fpos_y += fspeed_y
-				if fpos_x < BALL_RADIUS or fpos_x > 1 - BALL_RADIUS:
-					if ai_direction == WEST or ai_direction == EAST:
-						return fpos_x
-					else:
-						fspeed_x *= -1 
-				if fpos_y < BALL_RADIUS or fpos_y > 1 - BALL_RADIUS:
-					if ai_direction == NORTH or ai_direction == SOUTH:
-						return fpos_y
-					else:
-						fspeed_y *= -1 
-
-	def calculate_destination(self):
-		self.destination = 0.5
-		if ai_direction == WEST and self.ball["speed"]["x"] < 0 or ai_direction == EAST and self.ball["speed"]["x"] > 0 or ai_direction == NORTH and self.ball["speed"]["y"] < 0 or ai_direction == SOUTH and self.ball["speed"]["y"] > 0:
-			self.destination = self.calculate_impact()
-		print(f"AI -> calculate destination : {self.destination}")
-
-	# move ai player towards destination
-	def move_paddle(self):
-		if ai_direction == WEST or ai_direction == EAST:
-			position = self.players[ai_direction].coordinates["y"] - self.players[ai_direction].coordinates["height"] / 2
-			if self.destination < position:
-				self.player_input("user1", "up")
-			else:
-				self.player_input("user1", "down")
-		else:
-			position = self.players[ai_direction].coordinates["x"] - self.players[ai_direction].coordinates["width"] / 2
-			if self.destination < position:
-				self.player_input("user1", "up")
-			else:
-				self.player_input("user1", "down")
-
-
-
 lobbys_list : Dict[str, PongLobby] = dict()
 lobbys_list["10"] = PongLobby(
 	lobby_id="10",
-	players_list=["admin", "user1"],
-	lifes=100,
+	# players_list=["Player", "!AI1", "!AI2", "!AI3"],
+	# players_list=["P1", "P2", "P3"],
+	# players_list=["P1", "P2"],
+	players_list=["!AI1", "!AI2"],
+	lifes=3,
 	tournId=None
 )
