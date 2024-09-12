@@ -4,7 +4,7 @@ import asyncio
 from django.conf import settings
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 import jwt
-from typing import List, Dict, Set
+from typing import List, Dict, Set, Tuple
 import uuid
 import base64
 
@@ -47,6 +47,7 @@ class Lobby():
 		self.players.append(hostname)
 		self.players[0] = hostname
 		self.public = public
+		self.started = False
 
 	def add_player(self, player_id):
 		if len(self.players) == self.player_num:
@@ -64,17 +65,23 @@ class Lobby():
 # cas 1 => moins de messages, il faut mettre en place une boucle
 # cas 2 => bcp de messages, bcp de fonctions, plus simple
 
+""" 
+Status:
+	- waiting for a lobby
+	- in lobby => turnament or not
+	- in game
+ """
+
 class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 
 	matchmaking_group = 'main_group'
 	matchmaking_lock = asyncio.Lock()
 	# list all the players online to handle invitations
-	online_players : dict[str, int] = {}
+	online_players : dict[str, Tuple[int, str, str]] = {}
 	in_game_players : set[str] = set()
 	# list all available lobbies to send to front
 	lobbies: dict[str, Lobby] = {}
-	# list all games being played to handle results
-	active_games: List[Lobby] = []
+	
 
 
 
@@ -133,7 +140,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 
 	async def disconnect(self, code):
 		async with MatchMakingConsumer.matchmaking_lock:
-			if self.username in MatchMakingConsumer.in_game_players:
+			if self.username in MatchMakingConsumer.online_players:
 				MatchMakingConsumer.online_players[self.username] -= 1
 				if MatchMakingConsumer.online_players[self.username] >= 1:
 					return
