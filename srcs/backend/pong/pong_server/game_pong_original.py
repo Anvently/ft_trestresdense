@@ -13,8 +13,6 @@ import traceback
 
 
 # Constants
-TABLE_RATIO = 9 / 5
-
 PADDLE_LENGTH = 0.16
 PADDLE_THICKNESS = 0.02
 PLAYER_SPEED = 0.016
@@ -26,31 +24,33 @@ MAX_SPEED = 0.04		#must be less than 2*BALL_RADIUS + PADDLE_THICKNESS to avoid t
 
 WEST = 0
 EAST = 1
+NORTH = 2
+SOUTH = 3
 
-START_POS = [{"x": -TABLE_RATIO / 2 + PADDLE_THICKNESS / 2, 'y': 0, 'width': PADDLE_THICKNESS, 'height': PADDLE_LENGTH},
-			 {"x": TABLE_RATIO / 2 - PADDLE_THICKNESS / 2, "y": 0,"width": PADDLE_THICKNESS,"height": PADDLE_LENGTH,},
+START_POS = [{"x": PADDLE_THICKNESS / 2, 'y': 0.5, 'width': PADDLE_THICKNESS, 'height': PADDLE_LENGTH},
+			 {"x": 1 - PADDLE_THICKNESS / 2, "y": 0.5,"width": PADDLE_THICKNESS,"height": PADDLE_LENGTH,},
+			 {"x": 0.5, "y": PADDLE_THICKNESS / 2,"width": PADDLE_LENGTH,"height": PADDLE_THICKNESS},
+			 {"x": 0.5, "y":1 - PADDLE_THICKNESS / 2, "width": PADDLE_LENGTH,"height": PADDLE_THICKNESS}
 			 ]
 
-BALL_START = {"x": 0, "y": 0, "r": BALL_RADIUS, "speed": {"x": 0, "y": 0}, "last_hit": 0}
+BALL_START = {"x": 0.5, "y": 0.5, "r": BALL_RADIUS, "speed": {"x": 0, "y": 0}}
 
 
 # test AI
 # ai_direction = EAST
 
 class Player:
-	def __init__(self, player_id, position, lives=0):
+	def __init__(self, player_id, position, lives=0, type='wall'):
+		self.type = type
 		self.player_id = player_id
 		self.position = position
 		self.lives = lives
 		self.coordinates = START_POS[position]
 		self.has_joined = 0
 
-		print("Player constructor called")
-		print(f"x = {self.coordinates["x"]}")
-
 		# AI specific variables
 		self.last_time = int(time.time())
-		self.destination = 0
+		self.destination = 0.5
 
 	######### AI ##############
 	def AI_behavior(self, ballX, ballY, ballSpeedX, ballSpeedY) -> str:
@@ -58,21 +58,35 @@ class Player:
 			self.calculate_destination(ballX, ballY, ballSpeedX, ballSpeedY)
 			self.last_time = int(time.time())
 		
-		position = self.coordinates["y"]
-		print(f"destination : {self.destination}")
-		print(f"position : {position}")
+		if self.position == WEST or self.position == EAST:
+			position = self.coordinates["y"]
+		else:
+			position = self.coordinates["x"]
 
-		if self.destination < position - PLAYER_SPEED:
-			return "down"
-		elif self.destination > position + PLAYER_SPEED:
-			return "up"
+		if self.position == WEST or self.position == EAST:
+			position = self.coordinates["y"]
+			if self.destination < position - PLAYER_SPEED:
+				return "up"
+			elif self.destination > position + PLAYER_SPEED:
+				return "down"
+		else:
+			position = self.coordinates["x"]
+			if self.destination < position - PLAYER_SPEED:
+				return "up"
+			elif self.destination > position + PLAYER_SPEED:
+				return "down"
 		return ""
 
 	def calculate_destination(self, ballX, ballY, ballSpeedX, ballSpeedY):
-		self.destination = 0
-		if self.position == WEST and ballSpeedX < 0 or self.position == EAST and ballSpeedX > 0:
+		self.destination = 0.5
+		if self.position == WEST and ballSpeedX < 0 or self.position == EAST and ballSpeedX > 0 or self.position == NORTH and ballSpeedY < 0 or self.position == SOUTH and ballSpeedY > 0:
 			self.destination = self.calculate_impact(ballX, ballY, ballSpeedX, ballSpeedY)
 
+		# make the ai hit the edges of the paddle
+		# if self.destination < 0.5:
+		# 	self.destination += (PADDLE_LENGTH / 2 ) * 0.9
+		# else:
+		# 	self.destination -= (PADDLE_LENGTH / 2 ) * 0.9
 		rand = random.randint(0, 1)
 		if rand:
 			self.destination += (PADDLE_LENGTH / 2 ) * 0.9
@@ -89,10 +103,16 @@ class Player:
 		while True:
 			fpos_x += fspeed_x
 			fpos_y += fspeed_y
-			if not -TABLE_RATIO / 2 + BALL_RADIUS < fpos_x < TABLE_RATIO / 2 - BALL_RADIUS:
-				return fpos_y
-			if not -0.5 + BALL_RADIUS < fpos_y < 0.5 - BALL_RADIUS:
-				fspeed_y *= -1 
+			if not BALL_RADIUS < fpos_x < 1 - BALL_RADIUS:
+				if self.position == WEST or self.position == EAST:
+					return fpos_y
+				else:
+					fspeed_x *= -1 
+			if not BALL_RADIUS < fpos_y < 1 - BALL_RADIUS:
+				if self.position == NORTH or self.position == SOUTH:
+					return fpos_x
+				else:
+					fspeed_y *= -1 
 
 class PongLobby:
 	service_direction = 0
@@ -105,9 +125,11 @@ class PongLobby:
 		self.ball = None
 		self.players: List[Player] = []
 		self.match_id_pos = {}
-		for i in range(2):
-			self.players.append(Player(players_list[i], i, lifes))
+		for i in range(len(players_list)):
+			self.players.append(Player(players_list[i], i, lifes, 'player'))
 			self.match_id_pos[players_list[i]] = i
+		for i in range(self.player_num, 4):
+			self.players.append(Player('!wall', i))
 		self.ball = BALL_START
 		self.gameState = 0
 		self.mut_lock = asyncio.Lock()
@@ -135,8 +157,8 @@ class PongLobby:
 	def init_game(self):
 		# ball initialization
 		self.ball = {
-			"x": 0,
-			"y": 0,
+			"x": 0.5,
+			"y": 0.5,
 			"r": BALL_RADIUS,
 			"speed": {"x": 0, "y": 0}
 		}
@@ -179,11 +201,20 @@ class PongLobby:
 	def player_input(self, player_id, input):
 		position = self.match_id_pos[player_id]
 
-		if input == "up":
-			self.players[position].coordinates['y'] = min(TABLE_RATIO / 2 - PADDLE_LENGTH / 2, self.players[position].coordinates['y'] + PLAYER_SPEED)
-		elif input == "down":
-			self.players[position].coordinates['y'] = max(-TABLE_RATIO / 2 + PADDLE_LENGTH / 2, self.players[position].coordinates['y'] - PLAYER_SPEED)
+		# check if sender is not alive
+		if self.players[position].type != "player":
+			return
 
+		if input == "up":
+			if position == EAST or position == WEST:
+				self.players[position].coordinates['y'] = max(PADDLE_LENGTH / 2, self.players[position].coordinates['y'] - PLAYER_SPEED)
+			else:
+				self.players[position].coordinates['x'] = max(PADDLE_LENGTH / 2, self.players[position].coordinates['x'] - PLAYER_SPEED)
+		elif input == "down":
+			if position == EAST or position == WEST:
+				self.players[position].coordinates['y'] = min(1 - PADDLE_LENGTH / 2, self.players[position].coordinates['y'] + PLAYER_SPEED)
+			else:
+				self.players[position].coordinates['x'] = min(1 - PADDLE_LENGTH / 2, self.players[position].coordinates['x'] + PLAYER_SPEED)
 
 
 	async def	game_loop(self):
@@ -243,8 +274,8 @@ class PongLobby:
 		self.collision_logic()
 		self.check_goals()
 		self.compute_AI()	### AI TEST ###
-		# if self.check_winning_condition():
-			# self.gameState = 3
+		if self.check_winning_condition():
+			self.gameState = 3
 		return self.generate_JSON()
 
 	def compute_AI(self):
@@ -262,11 +293,18 @@ class PongLobby:
 		self.paddle_collision()
 
 	def wall_collision(self):
-		if not -0.5 + BALL_RADIUS < self.ball['y'] < 0.5 - BALL_RADIUS:
+		if self.players[NORTH].type != "player" and self.ball['y'] - BALL_RADIUS <= 0 and self.ball["speed"]['y'] < 0:
 			self.ball["speed"]['y'] *= -1
+		elif self.players[SOUTH].type != "player" and self.ball['y'] + BALL_RADIUS >= 1 and self.ball["speed"]['y'] > 0:
+			self.ball["speed"]['y'] *= -1
+		elif self.players[WEST].type != "player" and self.ball['x'] - BALL_RADIUS <= 0 and self.ball["speed"]['x'] < 0:
+			self.ball["speed"]['x'] *= -1
+		elif self.players[EAST].type != "player" and self.ball['x'] + BALL_RADIUS >= 1 and self.ball["speed"]['x'] > 0:
+			self.ball["speed"]['x'] *= -1
 
 	def paddle_collision(self):
-		for direction in range(0, 2):
+		for direction in range(0, self.player_num):
+			if self.players[direction].type == "player":
 				if self.rectCircleCollision(self.players[direction].coordinates['x'] - self.players[direction].coordinates['width'] / 2,
 										self.players[direction].coordinates['y'] - self.players[direction].coordinates['height'] / 2,
 										self.players[direction].coordinates['width'],
@@ -278,9 +316,10 @@ class PongLobby:
 
 	def paddle_rebound(self, direction):
 		# calculate the relative intersect: correspond to the relative position of ball/paddle intersection on the paddle (between -0.5 and 0.5)
-		relative_intersect = 0.5 - ((self.players[direction].coordinates["y"] + self.players[direction].coordinates["height"] / 2) - self.ball["y"]) / self.players[direction].coordinates["height"]
-		self.ball["last_hit"] = direction
-
+		if direction == WEST or direction == EAST:
+			relative_intersect = 0.5 - ((self.players[direction].coordinates["y"] + self.players[direction].coordinates["height"] / 2) - self.ball["y"]) / self.players[direction].coordinates["height"]
+		else:
+			relative_intersect = 0.5 + ((self.players[direction].coordinates["x"] + self.players[direction].coordinates["width"] / 2) - self.ball["x"]) / self.players[direction].coordinates["width"]
 
 		# calculate the bounce angle
 		bounce_angle = relative_intersect * (math.pi / 2)
@@ -300,6 +339,8 @@ class PongLobby:
 		# reverse direction of ball
 		if direction == EAST:
 			self.ball["speed"]["x"] *= -1
+		elif direction == SOUTH:
+			self.ball["speed"]["y"] *= -1
 
 
 	def rectCircleCollision(self, rectX, rectY, width, height, circX, circY, radius):
@@ -315,23 +356,30 @@ class PongLobby:
 	def check_goals(self):
 		#meh, pue un peu la merde dans le cas des buts marques tres pres du bord
 		goal_scored = False
-		if self.ball['x'] < -TABLE_RATIO / 2 - 0.2:
+		if self.ball['x'] < 0 and self.players[WEST].type == "player":
 			self.players[WEST].lives -= 1
 			print(f"WEST lost a life, {self.players[WEST].lives} remaining")
 			goal_scored = True
-		elif self.ball['x'] > TABLE_RATIO / 2 + 0.2:
+		elif self.ball['x'] > 1 and self.players[EAST].type == "player":
 			self.players[EAST].lives -= 1
 			print(f"EAST lost a life, {self.players[EAST].lives} remaining")
 			goal_scored = True
-
+		elif self.ball['y'] < 0 and self.players[NORTH].type == "player":
+			self.players[NORTH].lives -= 1
+			print(f"NORTH lost a life, {self.players[NORTH].lives} remaining")
+			goal_scored = True
+		elif self.ball['y'] > 1 and self.players[SOUTH].type == "player":
+			self.players[SOUTH].lives -= 1
+			print(f"SOUTH lost a life, {self.players[SOUTH].lives} remaining")
+			goal_scored = True
 
 		if goal_scored:
-			# self.check_eliminated_players()
+			self.check_eliminated_players()
 			self.reset_ball()
 
 	def	reset_ball(self):
-		self.ball['x'] = 0
-		self.ball['y'] = 0
+		self.ball['x'] = 0.5
+		self.ball['y'] = 0.5
 		speed = BALL_SERVICE_SPEED
 
 		self.update_service_direction()
@@ -340,6 +388,10 @@ class PongLobby:
 			angle_modifier = math.pi
 		elif self.service_direction == EAST:
 			angle_modifier = 0
+		elif self.service_direction == NORTH:
+			angle_modifier = 3 * math.pi / 2
+		elif self.service_direction == SOUTH:
+			angle_modifier = math.pi / 2
 
 		# random service_angle between 15 and 75 degrees, centered on service direction
 		service_angle = (random.randint(15, 75) * math.pi) / 180 - math.pi / 4 + angle_modifier
@@ -348,50 +400,56 @@ class PongLobby:
 
 	# change service direction to next live player
 	def update_service_direction(self):
-		self.service_direction = -self.service_direction
+		while True:
+			self.service_direction +=1
+			if self.service_direction >= self.player_num:
+				self.service_direction = 0
+			if self.players[self.service_direction].type == "player":
+				break
 
-	# def check_eliminated_players(self):
-	# 	for direction in range(0, self.player_num):
-	# 		if self.players[direction].lives == 0 and self.players[direction].type != "eliminated_player":
-	# 			# eliminate player
-	# 			self.players[direction].type = "eliminated_player"
-	# 			self.players[direction].coordinates["x"] = 0
-	# 			self.players[direction].coordinates["y"] = 0
-	# 			self.players[direction].coordinates["width"] = 0
-	# 			self.players[direction].coordinates["height"] = 0
-	# 			print(f"Player {self.players[direction].player_id} has been eliminated")
+	def check_eliminated_players(self):
+		for direction in range(0, self.player_num):
+			if self.players[direction].lives == 0 and self.players[direction].type != "eliminated_player":
+				# eliminate player
+				self.players[direction].type = "eliminated_player"
+				self.players[direction].coordinates["x"] = 0
+				self.players[direction].coordinates["y"] = 0
+				self.players[direction].coordinates["width"] = 0
+				self.players[direction].coordinates["height"] = 0
+				print(f"Player {self.players[direction].player_id} has been eliminated")
 
-	# def check_winning_condition(self) -> bool:
-	# 	count = 0
-	# 	for direction in range(0, self.player_num):
-	# 		if self.players[direction].type == "player":
-	# 			count += 1
-	# 	return count == 1
+	def check_winning_condition(self) -> bool:
+		count = 0
+		for direction in range(0, self.player_num):
+			if self.players[direction].type == "player":
+				count += 1
+		return count == 1
 
 	def generate_JSON(self) -> Dict[str, Any]:
 		json = {
 			'type': 'send_game_state',
+			'number_of_players' : self.player_num,
 			'ball_x': self.ball['x'],
 			'ball_y': self.ball['y'],
 			'ball_r': self.ball['r'],
 			'ball_speed_x': self.ball["speed"]['x'],
 			'ball_speed_y': self.ball["speed"]['y'],
-			'ball_last_hit': self.ball["last_hit"]
 		}
 
-		for index in range(2):
+		for index in range(self.player_num):
+			json[f"player{index}_type"] = self.players[index].type
 			json[f"player{index}_lives"] = self.players[index].lives
 			json[f"player{index}_x"] = self.players[index].coordinates['x']
 			json[f"player{index}_y"] = self.players[index].coordinates['y']
 			json[f"player{index}_width"] = self.players[index].coordinates['width']
 			json[f"player{index}_height"] = self.players[index].coordinates['height']
-
 		return json
 
 	def get_winner(self) -> str:
 		for i in range(self.player_num):
-			print(f"{self.players[i].player_id} won the game")
-			return self.players[i].player_id
+			if self.players[i].type == 'player':
+				print(f"{self.players[i].player_id} won the game")
+				return self.players[i].player_id
 		return None
 
 	def post_result(self):

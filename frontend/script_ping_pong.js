@@ -15,7 +15,7 @@ const wsRef = new WebSocket(
 	+ `/ws/pong/10/`
 );
 
-
+const TABLE_RATIO = 9/5;
 // canvas.width = containerCanva.clientWidth;
 // canvas.height = containerCanva.clientHeight;
 
@@ -27,9 +27,9 @@ const SOUTH = 3;
 
 
 var players = [
-		{type: "wall", lives: 0, x: 0, y: 0, width: 0, height: 0}
+		{lives: 0, x: 0, y: 0, width: 0, height: 0}
 	];
-var ball = {x: 0.5, y: 0.5, r: 0, speedX: 0, speedY: 0};
+var ball = {x: 0.5, y: 0.5, r: 0, speedX: 0, speedY: 0, last_hit: 0};
 var number_of_players;
 var user_id;
 
@@ -42,11 +42,22 @@ const scene = new THREE.Scene();
 // CAMERA
 // FOV, ratio, near clipping, far clipping
 const camera = new THREE.PerspectiveCamera( 75, 1, 0.1, 1000);
-camera.position.z = 8;
-camera.position.y = -5;
+// camera.position.z = 2;
+// camera.position.y = -12;
+camera.position.z = 16;
+camera.position.y = -6;
 camera.lookAt(0, 0, 0);
 
 // LIGHT
+// const light = new THREE.DirectionalLight( 0xffffff, 1 );
+// light.position.set( -1, 1, 1);
+// light.castShadow = true;
+// scene.add( light );
+// //Set up shadow properties for the light
+// light.shadow.mapSize.width = 512;
+// light.shadow.mapSize.height = 512;
+// light.shadow.camera.near = 0.5;
+// light.shadow.camera.far = 500;
 
 const spotLight = new THREE.SpotLight( 0xffffff );
 spotLight.position.set( 0, 5, 10 );
@@ -58,37 +69,20 @@ spotLight.shadow.camera.near = 5;
 spotLight.shadow.camera.far = 40;
 spotLight.shadow.camera.fov = 30;
 
-// const spotLightHelper = new THREE.SpotLightHelper( spotLight );
-// scene.add( spotLightHelper );
+const spotLightHelper = new THREE.SpotLightHelper( spotLight );
+scene.add( spotLightHelper );
 
 
 scene.add( spotLight );
 
 // RENDERER
 const renderer = new THREE.WebGLRenderer();
-renderer.setSize(1200, 1200);
+renderer.setSize(1200, 800);
 
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap; // default THREE.PCFShadowMap
 
 document.body.appendChild(renderer.domElement);
-
-// Define different geometries
-const paddleGeometry = [
-	new THREE.BoxGeometry(0.2, 1.6, 0.2),
-	new THREE.BoxGeometry(0.2, 1.6, 0.2),
-	new THREE.BoxGeometry(1.6,0.2, 0.2),
-	new THREE.BoxGeometry(1.6,0.2, 0.2)
-];
-
-// Define different materials
-const paddleMaterial = [
-	new THREE.MeshStandardMaterial({ color: 0x0000ff }), // Blue
-	new THREE.MeshStandardMaterial({ color: 0xff0000 }), // Red
-	new THREE.MeshStandardMaterial({ color: 0x00ff00 }), // Green
-	new THREE.MeshStandardMaterial({ color: 0xffff00 })  // Yellow
-];
-
 
 // OBJECTS
 	// create ball
@@ -102,39 +96,34 @@ sphere.receiveShadow = true;
 scene.add( sphere );
 
 	// create field plane
-const planeGeometry = new THREE.PlaneGeometry( 10, 10 );
+const planeGeometry = new THREE.PlaneGeometry( 9/5 * 10, 10 );
 const planeMaterial = new THREE.MeshStandardMaterial( {color: 0x00ffff} );
 const plane = new THREE.Mesh(planeGeometry, planeMaterial);
 
 plane.castShadow = true;
 plane.receiveShadow = true;
-plane.position.z -= 0.15; // minus ball radius
-
+plane.position.z -= 0.015; // minus ball radius
 scene.add(plane);
 
+	// create paddles
+const westPaddleGeometry = new THREE.CylinderGeometry(0.8, 0.8, 0.2, 16);
+const westPaddleMaterial = new THREE.MeshStandardMaterial( { color: 0xff0000 } );
+const westPaddle = new THREE.Mesh( westPaddleGeometry, westPaddleMaterial );
+westPaddle.castShadow = true;
+westPaddle.receiveShadow = true;
+scene.add(westPaddle);
+westPaddle.position.z += 3.8;
+westPaddle.rotation.z += Math.PI / 2;
 
 
-const paddles = [];
-	
-function create_paddles(number_of_players)
-{
-	for (var i = 0; i < number_of_players; i++)
-	{
-		const geometry = paddleGeometry[i % paddleGeometry.length];
-		const material = paddleMaterial[i % paddleMaterial.length];
-		const paddle = new THREE.Mesh(geometry, material);
-
-		paddle.castShadow = true;
-		paddle.receiveShadow = true;
-
-		paddles.push(paddle);
-		scene.add(paddle);
-	}
-	console.log("create paddles");
-}
-
-create_paddles(2);
-
+const eastPaddleGeometry = new THREE.CylinderGeometry(0.8, 0.8, 0.1, 16);
+const eastPaddleMaterial = new THREE.MeshStandardMaterial( { color: 0xff0000 } );
+const eastPaddle = new THREE.Mesh( eastPaddleGeometry, eastPaddleMaterial );
+eastPaddle.castShadow = true;
+eastPaddle.receiveShadow = true;
+scene.add(eastPaddle);
+eastPaddle.position.z += 2.8;
+eastPaddle.rotation.z += Math.PI / 2;
 ///////////////////////////////////////////////////
 
 
@@ -151,13 +140,42 @@ window.onload = function() {
 
 function draw_3d()
 {
-	sphere.position.x = ball.x * 10 - 5;
-	sphere.position.y = ball.y * 10 - 5;
-	for (var dir = 0; dir < number_of_players; dir++)
-	{
-		paddles[dir].position.x = players[dir].x * 10 - 5;
-		paddles[dir].position.y = players[dir].y * 10 - 5;
+	sphere.position.x = ball.x * 10;
+	sphere.position.y = ball.y * 10;
+
+
+	// Define the bounds
+	var min_x = -0.9 * TABLE_RATIO; // -9/10 of the table length
+	var max_x = 0.9 * TABLE_RATIO;  // 9/10 of the table length
+
+	// Define the value r where z should be 0
+	var r = 0;
+	if (ball.last_hit == WEST)
+		r = TABLE_RATIO / 4;
+	else
+		r = -TABLE_RATIO / 4;
+
+	// Calculate z based on ball.x position
+	var z;
+	if (ball.x <= r) {
+		// Ball is on the left of r, calculate z from 1 to 0
+		z = (ball.x - min_x) / (r - min_x);
+	} else {
+		// Ball is on the right of r, calculate z from 0 to 1
+		z = 1 - (ball.x - r) / (max_x - r);
 	}
+
+	// Ensure z is within the range [0, 1]
+	z = Math.max(0, Math.min(1, z));
+
+	sphere.position.z = 4 * (1 - z) + 0.075;
+	console.log(z);
+
+	// DRAW PADDLES
+	westPaddle.position.x = players[0].x * 10
+	westPaddle.position.y = players[0].y * 10
+	eastPaddle.position.x = players[1].x * 10
+	eastPaddle.position.y = players[1].y * 10
 
 	renderer.render(scene, camera);
 }
@@ -222,11 +240,12 @@ wsRef.onmessage = function (e) {
 		ball.r = parseFloat(msg.ball_r);
 		ball.speedX = parseFloat(msg.ball_speed_x);
 		ball.speedY = parseFloat(msg.ball_speed_y);
+		ball.last_hit = parseInt(msg.ball_last_hit);
 
-		for (var i = 0; i < number_of_players; i++)
+
+		for (var i = 0; i < 2; i++)
 		{
 			players[i] = {
-						type: msg[`player${i}_type`],
 						lives: msg[`player${i}_lives`],
 						x: msg[`player${i}_x`],
 						y: msg[`player${i}_y`],
@@ -235,6 +254,8 @@ wsRef.onmessage = function (e) {
 					};
 		}
 		draw_3d();
+
+
 		// draw();
 	}
 }
