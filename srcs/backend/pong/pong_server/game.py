@@ -15,21 +15,23 @@ import traceback
 
 # Constants
 TABLE_LENGHT = 9 / 5
+REBOUND_RING_RADIUS = 0.6
 
-PADDLE_MAX_X = [-0.2, 1.2]
-PADDLE_MIN_X = [-1.2, 0.5]
+PADDLE_MAX_X = [-REBOUND_RING_RADIUS, 1.2]
+PADDLE_MIN_X = [-1.2, REBOUND_RING_RADIUS]
 PADDLE_MAX_Y = [1, 1,]
 PADDLE_MIN_Y = [-1, -1]
 PADDLE_LEFT_DIR = [-1, 1]
 
-PADDLE_LENGTH = 0.16
+PADDLE_LENGTH = 0.2
 PADDLE_THICKNESS = 0.02
-PLAYER_SPEED = 0.016
+PLAYER_SPEED = 0.015
 
 BALL_RADIUS = 0.015
-BALL_SERVICE_SPEED = 0.005
-BALL_SPEED = 0.01
-MAX_SPEED = 0.04		#must be less than 2*BALL_RADIUS + PADDLE_THICKNESS to avoid the ball passing through
+BALL_SERVICE_SPEED = 0.01
+BALL_SPEED = 0.03
+MIN_SPEED = 0.03
+MAX_SPEED = 0.08		#must be less than 2*BALL_RADIUS + PADDLE_THICKNESS to avoid the ball passing through
 
 WEST = 0
 EAST = 1
@@ -38,8 +40,7 @@ START_POS = [{"x": -TABLE_LENGHT / 2 + PADDLE_THICKNESS / 2, "y": 0, "angle": ma
 			{"x": TABLE_LENGHT / 2 - PADDLE_THICKNESS / 2, "y": 0, "angle": 0,"width": PADDLE_THICKNESS,"height": PADDLE_LENGTH,},
 			]
 
-BALL_START = {"x": 0, "y": 0, "r": BALL_RADIUS, "speed": {"x": 0, "y": 0}, "last_hit": 0}
-
+BALL_START = {"x": 0, "y": 0, "r": BALL_RADIUS, "speed": {"x": 0, "y": 0}, "last_hit": {"x": 0, "y": 0}}
 
 # test AI
 # ai_direction = EAST
@@ -51,52 +52,6 @@ class Player:
 		self.lives = lives
 		self.coordinates = START_POS[side]
 		self.has_joined = 0
-
-		# AI specific variables
-		# self.last_time = int(time.time())
-		# self.destination = 0
-
-	######### AI ##############
-	# def AI_behavior(self, ballX, ballY, ballSpeedX, ballSpeedY) -> str:
-	# 	if int(time.time()) != self.last_time:
-	# 		self.calculate_destination(ballX, ballY, ballSpeedX, ballSpeedY)
-	# 		self.last_time = int(time.time())
-		
-	# 	position = self.coordinates["y"]
-	# 	print(f"destination : {self.destination}")
-	# 	print(f"position : {position}")
-
-	# 	if self.destination < position - PLAYER_SPEED:
-	# 		return "down"
-	# 	elif self.destination > position + PLAYER_SPEED:
-	# 		return "up"
-	# 	return ""
-
-	# def calculate_destination(self, ballX, ballY, ballSpeedX, ballSpeedY):
-	# 	self.destination = 0
-	# 	if self.position == WEST and ballSpeedX < 0 or self.position == EAST and ballSpeedX > 0:
-	# 		self.destination = self.calculate_impact(ballX, ballY, ballSpeedX, ballSpeedY)
-
-	# 	rand = random.randint(0, 1)
-	# 	if rand:
-	# 		self.destination += (PADDLE_LENGTH / 2 ) * 0.9
-	# 	else:
-	# 		self.destination -= (PADDLE_LENGTH / 2 ) * 0.9
-
-
-	# def calculate_impact(self, ballX, ballY, ballSpeedX, ballSpeedY):
-	# 	fpos_x = ballX
-	# 	fpos_y = ballY
-	# 	fspeed_x = ballSpeedX
-	# 	fspeed_y = ballSpeedY
-
-	# 	while True:
-	# 		fpos_x += fspeed_x
-	# 		fpos_y += fspeed_y
-	# 		if not -TABLE_LENGHT / 2 + BALL_RADIUS < fpos_x < TABLE_LENGHT / 2 - BALL_RADIUS:
-	# 			return fpos_y
-	# 		if not -0.5 + BALL_RADIUS < fpos_y < 0.5 - BALL_RADIUS:
-	# 			fspeed_y *= -1 
 
 class PongLobby:
 	service_direction = 0
@@ -118,10 +73,6 @@ class PongLobby:
 		self.loop = None
 		self.waiting_for = self.player_num
 		self.winner = None
-
-		##### AI TEST
-		# self.last_time = int(time.time())
-		# self.destination = 0.5
 
 	def check_lobby_id(id:str) -> bool:
 		if id in lobbys_list:
@@ -244,7 +195,6 @@ class PongLobby:
 		self.move_ball()
 		self.collision_logic()
 		self.check_goals()
-		# self.compute_AI()	### AI TEST ###
 		# if self.check_winning_condition():
 			# self.gameState = 3
 		return self.generate_JSON()
@@ -253,11 +203,6 @@ class PongLobby:
 		self.players[WEST].coordinates["angle"] = -math.atan2(self.players[WEST].coordinates["y"], -self.players[WEST].coordinates["x"])
 		self.players[EAST].coordinates["angle"] = -math.atan2(self.players[EAST].coordinates["y"], -self.players[EAST].coordinates["x"])
 
-	# def compute_AI(self):
-	# 	for i in range(self.player_num):
-	# 		if self.players[i].player_id.startswith("!AI"):
-	# 			input = self.players[i].AI_behavior(self.ball["x"], self.ball["y"], self.ball["speed"]["x"], self.ball["speed"]["y"])
-	# 			self.player_input(self.players[i].player_id, input)
 
 	def move_ball(self):
 		self.ball['x'] += self.ball["speed"]['x']
@@ -272,7 +217,27 @@ class PongLobby:
 											(self.ball["x"],self.ball["y"]),
 											self.ball["r"]):
 				print("collision detected")
+				# save the collision coordinates
+				self.ball["last_hit"]["x"] = self.ball["x"]
+				self.ball["last_hit"]["y"] = self.ball["y"]
+				# bounce the ball
 				self.collision_rebound()
+				# change speed
+	# 			self.change_ball_speed()
+
+	# def	change_ball_speed(self):
+	# 	# normalize the speed
+	# 	speed = math.sqrt(self.ball["speed"]["x"]**2 + self.ball["speed"]["y"]**2)
+
+	# 	# Accelerate the ball depending on how far from the net it has been hit
+	# 	if speed < MAX_SPEED:
+	# 		acceleration = abs(self.ball["last_hit"]["x"]) + 0.2 #between 0.8 and 1.4
+	# 		print("acceleration = ", acceleration)
+	# 		self.ball["speed"]["x"] *= acceleration
+	# 		self.ball["speed"]["y"] *= acceleration
+	# 	speed = math.sqrt(self.ball["speed"]["x"]**2 + self.ball["speed"]["y"]**2)
+	# 	if speed < MIN_SPEED:
+	# 		speed = MIN_SPEED
 
 	def collision_rebound(self):
 		direction = WEST
@@ -287,7 +252,7 @@ class PongLobby:
 		return reflected_vector
 
 	def check_goals(self):
-		if not -3 < self.ball["x"] < 3 or not -2 < self.ball["y"] < 2:
+		if not -2 < self.ball["x"] < 2 or not -1 < self.ball["y"] < 1:
 			self.reset_ball()
 			print("goal!")
 
@@ -295,6 +260,8 @@ class PongLobby:
 	def	reset_ball(self):
 		self.ball['x'] = 0
 		self.ball['y'] = 0
+		self.ball["last_hit"]['x'] = 0
+		self.ball["last_hit"]['y'] = 0
 		speed = BALL_SERVICE_SPEED
 
 		if self.service_direction == WEST:
@@ -320,7 +287,8 @@ class PongLobby:
 			"ball_r": self.ball["r"],
 			"ball_speed_x": self.ball["speed"]["x"],
 			"ball_speed_y": self.ball["speed"]["y"],
-			"ball_last_hit": self.ball["last_hit"]
+			"ball_last_hit_x": self.ball["last_hit"]["x"],
+			"ball_last_hit_y": self.ball["last_hit"]["y"],
 		}
 
 		for index in range(2):
