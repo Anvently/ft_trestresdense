@@ -24,12 +24,16 @@ PADDLE_LEFT_DIR = [-1, 1]
 
 PADDLE_LENGTH = 0.1
 PADDLE_THICKNESS = 0.01
-PLAYER_SPEED = 0.02
+PLAYER_SPEED = 0.012
 
 BALL_RADIUS = 0.013
-BALL_SERVICE_SPEED = 0.01
-MIN_SPEED = 0.02
-MAX_SPEED = 0.04		#must be less than 2*BALL_RADIUS + PADDLE_THICKNESS to avoid the ball passing through
+BALL_SERVICE_SPEED = 0.001
+MIN_SPEED = 0.01
+MAX_SPEED = 0.03		#must be less than BALL_RADIUS + PADDLE_THICKNESS to avoid the ball passing through
+
+PADDLE_REBOUND_ANGLE = (math.pi / 180) * 30
+PLAYING_FIELD_RADIUS = 2.5 #centered on the middle of the table (0,0)
+REBOUND_LINE_X = 0.4
 
 WEST = 0
 EAST = 1
@@ -40,21 +44,20 @@ START_POS = [{"x": -TABLE_LENGHT / 2 + PADDLE_THICKNESS / 2, "y": 0, "angle": ma
 
 BALL_START = {"x": 0, "y": 0, "r": BALL_RADIUS, "speed": {"x": 0, "y": 0}, "last_hit": {"x": 0, "y": 0}}
 
-# test AI
-# ai_direction = EAST
 
 class Player:
-	def __init__(self, player_id, side, lives=0):
+	def __init__(self, player_id, side):
 		self.player_id = player_id
 		self.side = side
-		self.lives = lives
+		self.points = 0
 		self.coordinates = START_POS[side]
 		self.has_joined = 0
 
 class PongLobby:
-	service_direction = 0
+	service_direction = -1
+	service_count = 0
 
-	def __init__(self, lobby_id: str, players_list: List[str], lifes,  tournId=None) -> None:
+	def __init__(self, lobby_id: str, players_list: List[str],  tournId=None) -> None:
 		self.lobby_id = lobby_id
 		self.player_num = len(players_list)
 		if tournId:
@@ -63,7 +66,7 @@ class PongLobby:
 		self.players: List[Player] = []
 		self.match_id_pos = {}
 		for i in range(2):
-			self.players.append(Player(players_list[i], i, lifes))
+			self.players.append(Player(players_list[i], i))
 			self.match_id_pos[players_list[i]] = i
 		self.ball = BALL_START
 		self.gameState = 0
@@ -207,9 +210,9 @@ class PongLobby:
 		self.ball['y'] += self.ball["speed"]['y']
 
 	def	collision_logic(self):
-		if self.ball["x"] < PADDLE_MAX_X[0] and self.ball["last_hit"]["x"] >= 0:
+		if self.ball["x"] < PADDLE_MAX_X[0] + 0.1 and self.ball["last_hit"]["x"] >= 0: # -0.1 and + 0.1 si jamais la raquette est sur sa limite et un bout depasse du fait de l'angle de la raquette	
 			direction = WEST
-		elif self.ball["x"] > PADDLE_MIN_X[1] and self.ball["last_hit"]["x"] <= 0 :
+		elif self.ball["x"] > PADDLE_MIN_X[1] - 0.1 and self.ball["last_hit"]["x"] <= 0:
 			direction = EAST
 		else:
 			return
@@ -228,6 +231,7 @@ class PongLobby:
 			self.collision_rebound()
 			# change speed
 			self.change_ball_speed()
+		
 
 	def	change_ball_speed(self):
 		# normalize speed
@@ -244,11 +248,43 @@ class PongLobby:
 		self.ball["speed"]["x"] *= new_speed / speed
 		self.ball["speed"]["y"] *= new_speed / speed
 
+	# PADDLE ANGLE REFLECTION
 	def collision_rebound(self):
-		direction = WEST
-		if self.ball["x"] > 0:
+		# check the concerned paddle
+		if self.ball["last_hit"]["x"] < 0:
+			direction = WEST
+		else:
 			direction = EAST
-		self.ball["speed"]["x"], self.ball["speed"]["y"] = self.reflect_vector((self.ball["speed"]["x"], self.ball["speed"]["y"]) , (math.cos(self.players[direction].coordinates["angle"]), math.sin(self.players[direction].coordinates["angle"])))
+
+		ball_trajectory = ((self.ball["x"] + self.ball["speed"]["x"], self.ball["y"] + self.ball["speed"]["y"]), (self.ball["x"], self.ball["y"]))
+
+		x1 = self.players[direction].coordinates["x"] - (self.players[direction].coordinates["height"] / 2) * math.sin(self.players[direction].coordinates["angle"])
+		y1 = self.players[direction].coordinates["y"] - (self.players[direction].coordinates["height"] / 2) * math.cos(self.players[direction].coordinates["angle"])
+		x2 = 2 * self.players[direction].coordinates["x"] - x1
+		y2 = 2 * self.players[direction].coordinates["y"] - y1
+		paddle_segment = ((x1, y1), (x2, y2))
+		
+		# find the relative collision point on the paddle (with line intersections)
+		# intersection between ball trajectory and paddle
+		isIntersect, xInter, yInter = line_intersection(ball_trajectory, paddle_segment)
+
+		relative_intersect = 0.5 - ((y2 - yInter) / (y2 - y1))
+		# calculate the ball's new angle
+		bounce_angle = relative_intersect * (PADDLE_REBOUND_ANGLE)
+		angle = self.players[direction].coordinates["angle"] + bounce_angle
+
+		# normalize the speed
+		speed = math.sqrt(self.ball["speed"]["x"]**2 + self.ball["speed"]["y"]**2)
+		self.ball["speed"]["x"] = speed * math.cos(angle)
+		self.ball["speed"]["y"] = speed * math.sin(angle)
+
+
+	# REFLECT VECTOR COLLISION
+	# def collision_rebound(self):
+	# 	direction = WEST
+	# 	if self.ball["x"] > 0:
+	# 		direction = EAST
+	# 	self.ball["speed"]["x"], self.ball["speed"]["y"] = self.reflect_vector((self.ball["speed"]["x"], self.ball["speed"]["y"]) , (math.cos(self.players[direction].coordinates["angle"]), math.sin(self.players[direction].coordinates["angle"])))
 
 	def reflect_vector(self, vector, normal_vector):
 		""" Reflect a vector over a normal vector. """
@@ -256,33 +292,92 @@ class PongLobby:
 		reflected_vector = [v - 2 * dot_product * n for v, n in zip(vector, normal_vector)]
 		return reflected_vector
 
+
 	def check_goals(self):
-		if not -2 < self.ball["x"] < 2 or not -1 < self.ball["y"] < 1:
+		point_scored = False
+		# if ball is out of bound
+		if (self.ball["x"]**2 + self.ball["y"]**2) >  PLAYING_FIELD_RADIUS**2:
+			# check last_hit x to know last player who touched the ball (attacking player)
+			if self.ball["last_hit"]["x"] < 0:
+				attacker = WEST
+			else:
+				attacker = EAST
+			# if the ball crossed the rebound line on the table, on the defending player side
+			if self.ball_rebound_on_table(not attacker):
+				# point for attacking player
+				self.players[attacker].points += 1
+				point_scored = True
+				print(f"{self.players[attacker].player_id} marked a point !")
+			else:
+				# point for defending player
+				self.players[not attacker].points += 1
+				point_scored = True
+				print(f"{self.players[not attacker].player_id} marked a point !")
+		# if point scored reset ball
+		if point_scored == True:
 			self.reset_ball()
-			print("goal!")
+
+
+	def ball_rebound_on_table(self, defender):
+		rebound_line_x = REBOUND_LINE_X
+		if defender == WEST:
+			rebound_line_x = -REBOUND_LINE_X
+
+		ball_trajectory = (((self.ball["x"] + self.ball["speed"]["x"]),(self.ball["y"] + self.ball["speed"]["y"])), ((self.ball["x"]),(self.ball["y"])))
+		rebound_line = (((rebound_line_x),(0.5)), ((rebound_line_x),(-0.5)))
+
+		isIntersect, xInter, yInter = line_intersection(ball_trajectory, rebound_line)
+
+		if isIntersect and -0.5 < yInter < 0.5:
+			return True
+		return False
+
 
 
 	def	reset_ball(self):
-		self.ball['x'] = 0
-		self.ball['y'] = 0
-		self.ball["last_hit"]['x'] = 0
+		self.ball["last_hit"]['x'] = -REBOUND_LINE_X * self.service_direction
 		self.ball["last_hit"]['y'] = 0
-		speed = BALL_SERVICE_SPEED
 
-		if self.service_direction == WEST:
-			angle_modifier = math.pi
-		elif self.service_direction == EAST:
-			angle_modifier = 0
+		self.ball['x'] = (PADDLE_MIN_X[1] - 0.02) * self.service_direction
+		self.ball['y'] = 0
 
-		# random service_angle between 15 and 75 degrees, centered on service direction
-		# service_angle = (random.randint(15, 75) * math.pi) / 180 - math.pi / 4 + angle_modifier
-		service_angle = angle_modifier # STRAIGHT SERVICE
+		self.ball["speed"]["x"] = BALL_SERVICE_SPEED * self.service_direction
+		self.ball["speed"]["y"] = 0
 
-		self.ball["speed"]["x"] = speed * math.cos(service_angle)
-		self.ball["speed"]["y"] = speed * math.sin(service_angle)
+		# alternate every 2 services
+		self.service_count += 1
+		if self.service_count >= 2:
+			self.service_count = 0
+			self.service_direction *= -1
 
-		# change service direction to other player
-		self.service_direction = not self.service_direction
+
+
+
+
+
+
+
+	# def	reset_ball(self):
+	# 	self.ball['x'] = 0
+	# 	self.ball['y'] = 0
+	# 	self.ball["last_hit"]['x'] = 0
+	# 	self.ball["last_hit"]['y'] = 0
+	# 	speed = BALL_SERVICE_SPEED
+
+	# 	if self.service_direction == WEST:
+	# 		angle_modifier = math.pi
+	# 	elif self.service_direction == EAST:
+	# 		angle_modifier = 0
+
+	# 	# random service_angle between 15 and 75 degrees, centered on service direction
+	# 	service_angle = (random.randint(15, 75) * math.pi) / 180 - math.pi / 4 + angle_modifier
+	# 	# service_angle = angle_modifier # STRAIGHT SERVICE
+
+	# 	self.ball["speed"]["x"] = speed * math.cos(service_angle)
+	# 	self.ball["speed"]["y"] = speed * math.sin(service_angle)
+
+	# 	# change service direction to other player
+	# 	self.service_direction = not self.service_direction
 
 
 
@@ -299,7 +394,7 @@ class PongLobby:
 		}
 
 		for index in range(2):
-			json[f"player{index}_lives"] = self.players[index].lives
+			json[f"player{index}_points"] = self.players[index].points
 			json[f"player{index}_x"] = self.players[index].coordinates["x"]
 			json[f"player{index}_y"] = self.players[index].coordinates["y"]
 			json[f"player{index}_angle"] = (self.players[index].coordinates["angle"])
@@ -336,17 +431,6 @@ class PongLobby:
 		self.stop_game_loop()
 
 
-
-
-
-lobbys_list : Dict[str, PongLobby] = dict()
-lobbys_list["10"] = PongLobby(
-	lobby_id="10",
-	players_list=["P1", "P2"],
-	# players_list=["!AI1", "!AI2"],
-	lifes=100,
-	tournId=None
-)
 
 
 
@@ -422,4 +506,74 @@ def check_collision(rect_center, width, height, angle, circle_center, radius):
 
 	return False
 
+
+########### LINE INTERSECT
+
+def line_intersection(line1, line2):
+	xdiff = (line1[0][0] - line1[1][0], line2[0][0] - line2[1][0])
+	ydiff = (line1[0][1] - line1[1][1], line2[0][1] - line2[1][1])
+
+	def det(a, b):
+		return a[0] * b[1] - a[1] * b[0]
+
+	div = det(xdiff, ydiff)
+	if div == 0:
+		return False, 0, 0
+
+	d = (det(*line1), det(*line2))
+	x = det(d, xdiff) / div
+	y = det(d, ydiff) / div
+	return True, x, y
+
+
+def segments_intersect(p1, q1, p2, q2):
+    def cross_product(o, a, b):
+        # Compute the cross product of vectors OA and OB
+        # A positive cross product indicates a counter-clockwise turn, 
+        # a negative cross product indicates a clockwise turn, and zero indicates collinear points
+        return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+
+    def is_point_on_segment(p, seg_start, seg_end):
+        # Check if point p is on the segment defined by seg_start and seg_end
+        return min(seg_start[0], seg_end[0]) <= p[0] <= max(seg_start[0], seg_end[0]) and \
+               min(seg_start[1], seg_end[1]) <= p[1] <= max(seg_start[1], seg_end[1])
+
+    # Compute the four orientations needed for the general and special cases
+    o1 = cross_product(p1, q1, p2)
+    o2 = cross_product(p1, q1, q2)
+    o3 = cross_product(p2, q2, p1)
+    o4 = cross_product(p2, q2, q1)
+
+    # General case
+    if o1 * o2 < 0 and o3 * o4 < 0:
+        return True
+
+    # Special Cases
+    # p1, q1 and p2 are collinear and p2 lies on segment p1q1
+    if o1 == 0 and is_point_on_segment(p2, p1, q1):
+        return True
+
+    # p1, q1 and q2 are collinear and q2 lies on segment p1q1
+    if o2 == 0 and is_point_on_segment(q2, p1, q1):
+        return True
+
+    # p2, q2 and p1 are collinear and p1 lies on segment p2q2
+    if o3 == 0 and is_point_on_segment(p1, p2, q2):
+        return True
+
+    # p2, q2 and q1 are collinear and q1 lies on segment p2q2
+    if o4 == 0 and is_point_on_segment(q1, p2, q2):
+        return True
+
+    # If none of the cases
+    return False
+
+
+lobbys_list : Dict[str, PongLobby] = dict()
+lobbys_list["10"] = PongLobby(
+	lobby_id="10",
+	players_list=["P1", "P2"],
+	# players_list=["!AI1", "!AI2"],
+	tournId=None
+)
 
