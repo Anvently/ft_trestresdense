@@ -15,23 +15,21 @@ import traceback
 
 # Constants
 TABLE_LENGHT = 9 / 5
-REBOUND_RING_RADIUS = 0.6
 
-PADDLE_MAX_X = [-REBOUND_RING_RADIUS, 1.2]
-PADDLE_MIN_X = [-1.2, REBOUND_RING_RADIUS]
+PADDLE_MAX_X = [-0.6, 1.2]
+PADDLE_MIN_X = [-1.2, 0.6]
 PADDLE_MAX_Y = [1, 1,]
 PADDLE_MIN_Y = [-1, -1]
 PADDLE_LEFT_DIR = [-1, 1]
 
-PADDLE_LENGTH = 0.2
-PADDLE_THICKNESS = 0.02
-PLAYER_SPEED = 0.015
+PADDLE_LENGTH = 0.1
+PADDLE_THICKNESS = 0.01
+PLAYER_SPEED = 0.02
 
-BALL_RADIUS = 0.015
+BALL_RADIUS = 0.013
 BALL_SERVICE_SPEED = 0.01
-BALL_SPEED = 0.03
-MIN_SPEED = 0.03
-MAX_SPEED = 0.08		#must be less than 2*BALL_RADIUS + PADDLE_THICKNESS to avoid the ball passing through
+MIN_SPEED = 0.02
+MAX_SPEED = 0.04		#must be less than 2*BALL_RADIUS + PADDLE_THICKNESS to avoid the ball passing through
 
 WEST = 0
 EAST = 1
@@ -209,35 +207,42 @@ class PongLobby:
 		self.ball['y'] += self.ball["speed"]['y']
 
 	def	collision_logic(self):
-		for i in range(self.player_num):
-			if check_collision((self.players[i].coordinates["x"], self.players[i].coordinates["y"]),
-											self.players[i].coordinates["width"],
-											self.players[i].coordinates["height"],
-											self.players[i].coordinates["angle"],
-											(self.ball["x"],self.ball["y"]),
-											self.ball["r"]):
-				print("collision detected")
-				# save the collision coordinates
-				self.ball["last_hit"]["x"] = self.ball["x"]
-				self.ball["last_hit"]["y"] = self.ball["y"]
-				# bounce the ball
-				self.collision_rebound()
-				# change speed
-	# 			self.change_ball_speed()
+		if self.ball["x"] < PADDLE_MAX_X[0] and self.ball["last_hit"]["x"] >= 0:
+			direction = WEST
+		elif self.ball["x"] > PADDLE_MIN_X[1] and self.ball["last_hit"]["x"] <= 0 :
+			direction = EAST
+		else:
+			return
+		
+		if check_collision((self.players[direction].coordinates["x"], self.players[direction].coordinates["y"]),
+										self.players[direction].coordinates["width"],
+										self.players[direction].coordinates["height"],
+										self.players[direction].coordinates["angle"],
+										(self.ball["x"],self.ball["y"]),
+										self.ball["r"]):
+			print("collision detected")
+			# save the collision coordinates
+			self.ball["last_hit"]["x"] = self.ball["x"]
+			self.ball["last_hit"]["y"] = self.ball["y"]
+			# bounce the ball
+			self.collision_rebound()
+			# change speed
+			self.change_ball_speed()
 
-	# def	change_ball_speed(self):
-	# 	# normalize the speed
-	# 	speed = math.sqrt(self.ball["speed"]["x"]**2 + self.ball["speed"]["y"]**2)
-
-	# 	# Accelerate the ball depending on how far from the net it has been hit
-	# 	if speed < MAX_SPEED:
-	# 		acceleration = abs(self.ball["last_hit"]["x"]) + 0.2 #between 0.8 and 1.4
-	# 		print("acceleration = ", acceleration)
-	# 		self.ball["speed"]["x"] *= acceleration
-	# 		self.ball["speed"]["y"] *= acceleration
-	# 	speed = math.sqrt(self.ball["speed"]["x"]**2 + self.ball["speed"]["y"]**2)
-	# 	if speed < MIN_SPEED:
-	# 		speed = MIN_SPEED
+	def	change_ball_speed(self):
+		# normalize speed
+		speed = math.sqrt(self.ball["speed"]["x"]**2 + self.ball["speed"]["y"]**2)
+		# Accelerate the ball depending on how far from the net it has been hit
+		acceleration = abs(self.ball["last_hit"]["x"]) + 0.2 #between 0.8 and 1.4
+		new_speed = speed * acceleration
+		# check for boundaries
+		if new_speed < MIN_SPEED:
+			new_speed = MIN_SPEED
+		elif new_speed > MAX_SPEED:
+			new_speed = MAX_SPEED
+		# change ball speed
+		self.ball["speed"]["x"] *= new_speed / speed
+		self.ball["speed"]["y"] *= new_speed / speed
 
 	def collision_rebound(self):
 		direction = WEST
@@ -270,7 +275,9 @@ class PongLobby:
 			angle_modifier = 0
 
 		# random service_angle between 15 and 75 degrees, centered on service direction
-		service_angle = (random.randint(15, 75) * math.pi) / 180 - math.pi / 4 + angle_modifier
+		# service_angle = (random.randint(15, 75) * math.pi) / 180 - math.pi / 4 + angle_modifier
+		service_angle = angle_modifier # STRAIGHT SERVICE
+
 		self.ball["speed"]["x"] = speed * math.cos(service_angle)
 		self.ball["speed"]["y"] = speed * math.sin(service_angle)
 
