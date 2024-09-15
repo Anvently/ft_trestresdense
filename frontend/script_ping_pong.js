@@ -15,7 +15,6 @@ const wsRef = new WebSocket(
 
 // TODO
 	// Front-End
-		// - better net
 		// - ball fall to the floor when out
 		// - ping pong sound
 		// - lighting
@@ -37,6 +36,11 @@ const REBOUND_FAR_OUT = 10
 const WEST = 0;
 const EAST = 1;
 
+const CAMERA_SPEED = 0.1
+const CAMERA_RADIAL_SPEED = 0.01
+
+
+
 const FOOT_POS = {
 	X: [-6, -6, 0, 0, 6, 6], // X coordinates for each foot
 	Y: [-4.5, 4.5, -4.5, 4.5, -4.5, 4.5]  // Y coordinates for each foot
@@ -48,6 +52,9 @@ var players = [
 	];
 var ball = {x: 0.5, y: 0.5, r: 0, speed: {x: 0, y: 0}, last_hit: {x: 0, y: 0}};
 var user_id;
+var my_direction = -1;
+
+
 
 
 
@@ -66,11 +73,11 @@ camera.up.set(0, 0, 1); // Set Z as the up direction
 // camera.lookAt(0, 0, -4);
 
 	// Standard View
-camera.position.set(0, -12, 15)
-camera.lookAt(0, 0, 0);
+// camera.position.set(0, -12, 15)
+// camera.lookAt(0, 0, 0);
 
 	// display view
-// camera.position.set(-10, -12, 3)
+// camera.position.set(-6, -6, 3)
 // camera.lookAt(0, 0, 0);
 
 	// Table Level View
@@ -176,7 +183,7 @@ function create_net(group)
 	var num_horizontals = 10
 
 	var width = 10;
-	var height = 1;
+	var height = 0.7;
 
 	// top
 	{
@@ -188,16 +195,38 @@ function create_net(group)
 		mesh.position.z = 0.9;
 		group.add(mesh);
 	}
+	// left side
+	{
+		const geometry = new THREE.BoxGeometry(0.15, 0.15, 1.4);
+		const material = new THREE.MeshPhongMaterial({ color: 0x000000 });
+		const mesh = new THREE.Mesh(geometry, material);
+		mesh.castShadow = true;
+		mesh.receiveShadow = true;
+		mesh.position.y = -5.075;
+		mesh.position.z = 0.35;
+		group.add(mesh);
+	}
+	// right side
+	{
+		const geometry = new THREE.BoxGeometry(0.15, 0.15, 1.4);
+		const material = new THREE.MeshPhongMaterial({ color: 0x000000 });
+		const mesh = new THREE.Mesh(geometry, material);
+		mesh.castShadow = true;
+		mesh.receiveShadow = true;
+		mesh.position.y = 5.075;
+		mesh.position.z = 0.35;
+		group.add(mesh);
+	}
 
 	// vertical threads
 	for (var i = 0; i < num_verticals; i++)
 	{
-		const geometry = new THREE.BoxGeometry(width / (5 * num_verticals), width / (5 * num_verticals), 1);
+		const geometry = new THREE.BoxGeometry(width / (5 * num_verticals), width / (5 * num_verticals), 0.7);
 		const material = new THREE.MeshStandardMaterial({ color: 0x000000 });
 		const mesh = new THREE.Mesh(geometry, material);
 		mesh.castShadow = true;
-		mesh.receiveShadow = true;
-		mesh.position.z = 0.4;
+		// mesh.receiveShadow = true;
+		mesh.position.z = 0.45;
 		mesh.position.y = (i * width / (num_verticals)) - 5;
 		group.add(mesh);
 	}
@@ -208,8 +237,8 @@ function create_net(group)
 		const material = new THREE.MeshStandardMaterial({ color: 0x000000 });
 		const mesh = new THREE.Mesh(geometry, material);
 		mesh.castShadow = true;
-		mesh.receiveShadow = true;
-		mesh.position.z = (i * height / (num_horizontals));
+		// mesh.receiveShadow = true;
+		mesh.position.z = (i * height / (num_horizontals) + 0.1);
 		mesh.position.y = 0;
 		group.add(mesh);
 	}
@@ -270,14 +299,14 @@ const createPaddle = (color) => {
 
 ///////////////////////////////////////////////////
 
+// SOUND
+// var ping_sound = new Audio("sound/ping_sound.mp3");
+// var pong_sound = new Audio("sound/pong_sound.mp3");
+
 
 window.onload = function() {
-	// Afficher une fenêtre popup pour demander à l'utilisateur d'entrer une valeur
+	// TEMPORARY Afficher une fenêtre popup pour demander à l'utilisateur d'entrer une valeur 
 	user_id = prompt("Veuillez entrer une valeur :");
-
-	// Afficher la valeur dans la console pour vérification
-	console.log("Valeur saisie par l'utilisateur : " + user_id);
-
 
 	objects.paddle.push(createPaddle(0xff0000)); // West paddle
 	objects.paddle.push(createPaddle(0xff0000)); // East paddle
@@ -286,23 +315,12 @@ window.onload = function() {
 
 
 
-const radius = 20; // Distance from the origin
-let angle = 0; // Initial angle
-function rotate_camera()
-{
-	// Update the camera position
-	angle += 0.01; // Adjust the angle for rotation speed
-	camera.position.x = radius * Math.cos(angle);
-	camera.position.y = radius * Math.sin(angle);
-	camera.position.z = 5; // Fixed height; adjust as needed
-	camera.lookAt(0, 0, 0);
-}
+
 
 function draw_3d()
 {
-
 	// rotate_camera()
-
+	set_camera()
 
 	// DRAW BALL
 	objects.ball.position.x = ball.x * 10;
@@ -310,20 +328,132 @@ function draw_3d()
 	objects.ball.position.z = set_ball_height()
 
 	// DRAW PADDLES
-
 	for (var i = 0; i < 2; i++)
 	{
 		objects.paddle[i].position.x = players[i].x * 10;
 		objects.paddle[i].position.y = players[i].y * 10;
 		set_paddle_height(i)
 		objects.paddle[i].rotation.z = players[i].angle + Math.PI / 2;
-
 	}
 
-
+	// SOUND
+	// ball_sound()
 
 	renderer.render(scene, camera);
 }
+
+var previous_hit_x = 0;
+var sound_type = 1 // 1 is PONG, 0 is PING
+function ball_sound()
+{
+	// PING when ball hit the table
+	if (sound_type == 0)
+	{
+		if ((ball.speed.x > 0 && ball.x  > REBOUND_LINE_X) // ball is going EAST
+			|| ball.speed.x < 0 && ball.x < -REBOUND_LINE_X)
+		{
+			play_sound(sound_type)
+			sound_type = !sound_type
+		}
+	}
+
+	// PONG when ball hit the paddle
+	else
+	{
+		if (previous_hit_x != ball.last_hit.x)
+		{
+			previous_hit_x = ball.last_hit.x
+			play_sound(sound_type)
+			sound_type = !sound_type
+		}
+	}
+}
+
+function play_sound(sound_type)
+{
+	if (sound_type == 0)
+	{
+		ping_sound.play()
+		console.log("PING!")
+	}
+	else if (sound_type == 1)
+	{
+		pong_sound.play()
+		console.log("PONG!")
+	}
+}
+
+function set_camera()
+{
+	// find my position // Find a better way to avoid recalculation ? eventOnFirstMessage ?
+	for (var i = 0; i < 2; i++)
+	{
+		if (players[i].id == user_id)
+			my_direction = i;
+	}
+
+	if (my_direction == -1)
+		spectator_camera()
+	else
+		set_POV_camera()
+}
+
+
+let angle = 0;
+function spectator_camera()
+{
+	const radius = 20;
+
+	angle += 0.005;
+	camera.position.x = radius * Math.cos(angle);
+	camera.position.y = radius * Math.sin(angle);
+	camera.position.z = 10;
+	camera.lookAt(0, 0, 0);
+}
+
+function set_POV_camera()
+{
+	// calculate camera destination
+	var camera_destination = {x: 0, y: 0, z: 0}
+
+	var radius = 15;
+	var camera_angle = 0;
+	var player_angle = players[my_direction].angle;
+	var middle_angle = 0
+
+	if (my_direction == WEST)
+		middle_angle = Math.PI
+	else if (my_direction == EAST)
+		player_angle += Math.PI;
+
+	radius = Math.abs(players[my_direction].x**2 + players[my_direction].y**2) * 5 + 10
+	player_angle = normalizeAngle(player_angle);
+	camera_angle = middle_angle + player_angle / 2;
+
+	camera_destination.x = radius * Math.cos(camera_angle);
+	camera_destination.y = radius * Math.sin(camera_angle);
+
+	camera.position.z = 3;
+
+	// Move camera + smoothness
+	if (camera.position.x < camera_destination.x)
+		camera.position.x += (camera_destination.x - camera.position.x) * CAMERA_SPEED
+	else if (camera.position.x > camera_destination.x)
+		camera.position.x -= (camera.position.x - camera_destination.x) * CAMERA_SPEED
+
+	if (camera.position.y < camera_destination.y)
+		camera.position.y += (camera_destination.y - camera.position.y) * CAMERA_SPEED
+	else if (camera.position.y > camera_destination.y)
+		camera.position.y -= (camera.position.y - camera_destination.y) * CAMERA_SPEED
+
+	camera.lookAt(0, 0, 0);
+}
+
+function normalizeAngle(angle)
+{
+	return angle - 2 * Math.PI * Math.floor((angle + Math.PI) / (2 * Math.PI));
+}
+
 
 function set_paddle_height(direction)
 {
@@ -357,7 +487,6 @@ function set_ball_height()
 			xStart = REBOUND_LINE_X;
 			zStart = 0;
 			xEnd = REBOUND_FAR_OUT * ball.speed.x * 10 + 1;
-			console.log(ball.speed.x)
 			zEnd = 0;
 		}
 		else // the ball is before the rebound line
@@ -440,6 +569,7 @@ wsRef.onmessage = function (e) {
 		for (var i = 0; i < 2; i++)
 		{
 			players[i] = {
+						id: msg[`player${i}_id`],
 						points: msg[`player${i}_points`],
 						x: msg[`player${i}_x`],
 						y: msg[`player${i}_y`],

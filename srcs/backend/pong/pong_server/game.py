@@ -125,18 +125,31 @@ class PongLobby:
 
 
 	def player_input(self, player_id, input):
+		if player_id not in self.match_id_pos:
+			return
 		side = self.match_id_pos[player_id]
 
-		if input == "up":
+		# SIDE VIEW CONTROLS
+		# if input == "up":
+		# 	self.players[side].coordinates['y'] = min(PADDLE_MAX_Y[side], self.players[side].coordinates['y'] + PLAYER_SPEED)
+		# elif input == "down":
+		# 	self.players[side].coordinates['y'] = max(PADDLE_MIN_Y[side], self.players[side].coordinates['y'] - PLAYER_SPEED)
+		# elif input == "left":
+		# 	self.players[side].coordinates['x'] = max(PADDLE_MIN_X[side], self.players[side].coordinates['x'] - PLAYER_SPEED)
+		# elif input == "right":
+		# 	self.players[side].coordinates['x'] = min(PADDLE_MAX_X[side], self.players[side].coordinates['x'] + PLAYER_SPEED)
+		# self.set_paddle_angle()
+
+		# POV VIEW CONTROLS
+		if (input == "left" and side == WEST) or (input == "right" and side == EAST):
 			self.players[side].coordinates['y'] = min(PADDLE_MAX_Y[side], self.players[side].coordinates['y'] + PLAYER_SPEED)
-		elif input == "down":
+		elif (input == "right" and side == WEST) or (input == "left" and side == EAST):
 			self.players[side].coordinates['y'] = max(PADDLE_MIN_Y[side], self.players[side].coordinates['y'] - PLAYER_SPEED)
-		elif input == "left":
+		elif (input == "down" and side == WEST) or (input == "up" and side == EAST):
 			self.players[side].coordinates['x'] = max(PADDLE_MIN_X[side], self.players[side].coordinates['x'] - PLAYER_SPEED)
-		elif input == "right":
+		elif (input == "up" and side == WEST) or (input == "down" and side == EAST):
 			self.players[side].coordinates['x'] = min(PADDLE_MAX_X[side], self.players[side].coordinates['x'] + PLAYER_SPEED)
 		self.set_paddle_angle()
-
 
 
 	async def	game_loop(self):
@@ -394,6 +407,7 @@ class PongLobby:
 		}
 
 		for index in range(2):
+			json[f"player{index}_id"] = self.players[index].player_id
 			json[f"player{index}_points"] = self.players[index].points
 			json[f"player{index}_x"] = self.players[index].coordinates["x"]
 			json[f"player{index}_y"] = self.players[index].coordinates["y"]
