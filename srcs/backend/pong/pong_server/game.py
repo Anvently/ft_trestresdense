@@ -39,20 +39,34 @@ BALL_START = {"x": 0.5, "y": 0.5, "r": BALL_RADIUS, "speed": {"x": 0, "y": 0}}
 # test AI
 # ai_direction = EAST
 
+
 class Player:
-	def __init__(self, player_id, position, lives=0, type='wall'):
-		self.type = type
+	def __init__(self, player_id, position, lives=0):
 		self.player_id = player_id
 		self.position = position
 		self.lives = lives
 		self.coordinates = START_POS[position]
 		self.has_joined = 0
-
 		# AI specific variables
 		self.last_time = int(time.time())
-		self.destination = 0.5
 
 	######### AI ##############
+	def AI_behavior(self, ballX, ballY, ballSpeedX, ballSpeedY) -> str:
+		raise Exception("Please override AI_behavior().")
+
+	def calculate_destination(self, ballX, ballY, ballSpeedX, ballSpeedY):
+		raise Exception("Please override calculate_destination().")
+
+	def calculate_impact(self, ballX, ballY, ballSpeedX, ballSpeedY):
+		raise Exception("Please override calculate_impact().")
+
+class Player2D(Player):
+
+	def __init__(self, player_id, position, lives=0, type='wall'):
+		super().__init__(player_id, position, lives)
+		self.type = type
+		self.destination = 0.5
+
 	def AI_behavior(self, ballX, ballY, ballSpeedX, ballSpeedY) -> str:
 		if int(time.time()) != self.last_time:
 			self.calculate_destination(ballX, ballY, ballSpeedX, ballSpeedY)
@@ -76,7 +90,7 @@ class Player:
 			elif self.destination > position + PLAYER_SPEED:
 				return "down"
 		return ""
-
+	
 	def calculate_destination(self, ballX, ballY, ballSpeedX, ballSpeedY):
 		self.destination = 0.5
 		if self.position == WEST and ballSpeedX < 0 or self.position == EAST and ballSpeedX > 0 or self.position == NORTH and ballSpeedY < 0 or self.position == SOUTH and ballSpeedY > 0:
@@ -92,7 +106,6 @@ class Player:
 			self.destination += (PADDLE_LENGTH / 2 ) * 0.9
 		else:
 			self.destination -= (PADDLE_LENGTH / 2 ) * 0.9
-
 
 	def calculate_impact(self, ballX, ballY, ballSpeedX, ballSpeedY):
 		fpos_x = ballX
@@ -115,9 +128,8 @@ class Player:
 					fspeed_y *= -1 
 
 class PongLobby:
-	service_direction = 0
 
-	def __init__(self, lobby_id: str, players_list: List[str], lifes,  tournId=None) -> None:
+	def __init__(self, lobby_id: str, players_list: List[str], settings: Dict[str, Any], tournId=None) -> None:
 		self.lobby_id = lobby_id
 		self.player_num = len(players_list)
 		if tournId:
@@ -125,22 +137,13 @@ class PongLobby:
 		self.ball = None
 		self.players: List[Player] = []
 		self.match_id_pos = {}
-		for i in range(len(players_list)):
-			self.players.append(Player(players_list[i], i, lifes, 'Player'))
-			self.match_id_pos[players_list[i]] = i
-		for i in range(self.player_num, 4):
-			self.players.append(Player('!wall', i))
+		self.settings = settings
 		self.ball = BALL_START
 		self.gameState = 0
 		self.mut_lock = asyncio.Lock()
 		self.loop = None
 		self.waiting_for = self.player_num
 		self.winner = None
-		self.settings = {}
-
-		##### AI TEST
-		# self.last_time = int(time.time())
-		# self.destination = 0.5
 
 
 	def check_lobby_id(id:str) -> bool:
@@ -153,17 +156,7 @@ class PongLobby:
 		if username in [Player.player_id for Player in self.players]:
 			return True
 		return False
-
-	# init variables
-	def init_game(self):
-		# ball initialization
-		self.ball = {
-			"x": 0.5,
-			"y": 0.5,
-			"r": BALL_RADIUS,
-			"speed": {"x": 0, "y": 0}
-		}
-
+	
 	async def start_game_loop(self):
 		print("loop started")
 		self.loop = asyncio.create_task(self.game_loop())
@@ -187,36 +180,14 @@ class PongLobby:
 		self.waiting_for += 1
 
 	def send_result(self):
-		pass
+		raise Exception("Please override send_result()")
 		# API call to send result to matchmaking
 			# -> gameState == 3 match was played -> get stats in self and send them
 			# -> gameState == 0 game was canceled
 		# should the matchmaking delete the PongLobby upon receiving the result ?
 
-	""" 
-	 add end game
-	 refuse input for eliminated players
-
-	   """
-
 	def player_input(self, player_id, input):
-		position = self.match_id_pos[player_id]
-
-		# check if sender is not alive
-		if self.players[position].type != "Player":
-			return
-
-		if input == "up":
-			if position == EAST or position == WEST:
-				self.players[position].coordinates['y'] = max(PADDLE_LENGTH / 2, self.players[position].coordinates['y'] - PLAYER_SPEED)
-			else:
-				self.players[position].coordinates['x'] = max(PADDLE_LENGTH / 2, self.players[position].coordinates['x'] - PLAYER_SPEED)
-		elif input == "down":
-			if position == EAST or position == WEST:
-				self.players[position].coordinates['y'] = min(1 - PADDLE_LENGTH / 2, self.players[position].coordinates['y'] + PLAYER_SPEED)
-			else:
-				self.players[position].coordinates['x'] = min(1 - PADDLE_LENGTH / 2, self.players[position].coordinates['x'] + PLAYER_SPEED)
-
+		raise Exception("Please override player_input()")
 
 	async def	game_loop(self):
 		try:
@@ -246,7 +217,6 @@ class PongLobby:
 					data = self.compute_game()
 				await player_channel.group_send(self.lobby_id, data)
 			self.gameState = 2
-
 			# play !
 				# launch ball
 			self.reset_ball()
@@ -268,8 +238,6 @@ class PongLobby:
 			await player_channel.group_send(self.lobby_id, {'type':'error', 'detail':'error in game loop'})
 			traceback.print_exc()
 
-
-
 	def	compute_game(self):
 		self.move_ball()
 		self.collision_logic()
@@ -286,10 +254,79 @@ class PongLobby:
 				self.player_input(self.players[i].player_id, input)
 
 	def move_ball(self):
+		raise Exception("Please override player_input()")
+
+	def	collision_logic(self):
+		raise Exception("Please override collision_logic()")
+
+	def check_goals(self):
+		raise Exception("Please override check_goals()")
+
+	def	reset_ball(self):
+		raise Exception("Please override reset_balls()")
+
+	def check_winning_condition(self) -> bool:
+		raise Exception("Please override check_winning_condition()")
+
+	def generate_JSON(self) -> Dict[str, Any]:
+		raise Exception("Please override generate_JSON()")
+
+	def get_winner(self) -> str:
+		for i in range(self.player_num):
+			if self.players[i].type == 'Player':
+				print(f"{self.players[i].player_id} won the game")
+				return self.players[i].player_id
+		return None
+
+
+class PongLobby2D(PongLobby):
+	service_direction = 0
+	
+	def __init__(self, lobby_id: str, players_list: List[str], settings: Dict[str, Any], tournId=None) -> None:
+		super().__init__(lobby_id, players_list, settings, tournId)
+		for i in range(len(players_list)):
+			self.players.append(Player2D(players_list[i], i, self.settings['lives'], 'Player'))
+			self.match_id_pos[players_list[i]] = i
+		for i in range(self.player_num, 4):
+			self.players.append(Player('!wall', i))
+		
+			##### AI TEST
+		# self.last_time = int(time.time())
+		# self.destination = 0.5
+
+	# init variables
+	def init_game(self):
+		# ball initialization
+		self.ball = {
+			"x": 0.5,
+			"y": 0.5,
+			"r": BALL_RADIUS,
+			"speed": {"x": 0, "y": 0}
+		}
+	
+	def player_input(self, player_id, input):
+		position = self.match_id_pos[player_id]
+
+		# check if sender is not alive
+		if self.players[position].type != "Player":
+			return
+
+		if input == "up":
+			if position == EAST or position == WEST:
+				self.players[position].coordinates['y'] = max(PADDLE_LENGTH / 2, self.players[position].coordinates['y'] - PLAYER_SPEED)
+			else:
+				self.players[position].coordinates['x'] = max(PADDLE_LENGTH / 2, self.players[position].coordinates['x'] - PLAYER_SPEED)
+		elif input == "down":
+			if position == EAST or position == WEST:
+				self.players[position].coordinates['y'] = min(1 - PADDLE_LENGTH / 2, self.players[position].coordinates['y'] + PLAYER_SPEED)
+			else:
+				self.players[position].coordinates['x'] = min(1 - PADDLE_LENGTH / 2, self.players[position].coordinates['x'] + PLAYER_SPEED)
+
+	def move_ball(self):
 		self.ball['x'] += self.ball["speed"]['x']
 		self.ball['y'] += self.ball["speed"]['y']
 
-	def	collision_logic(self):
+	def collision_logic(self):
 		self.wall_collision()
 		self.paddle_collision()
 
@@ -353,7 +390,7 @@ class PongLobby:
 		distanceSquared = distanceX**2 + distanceY**2
 
 		return distanceSquared <= radius**2
-
+	
 	def check_goals(self):
 		#meh, pue un peu la merde dans le cas des buts marques tres pres du bord
 		goal_scored = False
@@ -399,6 +436,13 @@ class PongLobby:
 		self.ball["speed"]["x"] = speed * math.cos(service_angle)
 		self.ball["speed"]["y"] = speed * math.sin(service_angle)
 
+	def check_winning_condition(self) -> bool:
+		count = 0
+		for direction in range(0, self.player_num):
+			if self.players[direction].type == "Player":
+				count += 1
+		return count == 1
+	
 	# change service direction to next live Player
 	def update_service_direction(self):
 		while True:
@@ -419,13 +463,6 @@ class PongLobby:
 				self.players[direction].coordinates["height"] = 0
 				print(f"Player {self.players[direction].player_id} has been eliminated")
 
-	def check_winning_condition(self) -> bool:
-		count = 0
-		for direction in range(0, self.player_num):
-			if self.players[direction].type == "Player":
-				count += 1
-		return count == 1
-
 	def generate_JSON(self) -> Dict[str, Any]:
 		json = {
 			'type': 'send_game_state',
@@ -445,15 +482,8 @@ class PongLobby:
 			json[f"Player{index}_width"] = self.players[index].coordinates['width']
 			json[f"Player{index}_height"] = self.players[index].coordinates['height']
 		return json
-
-	def get_winner(self) -> str:
-		for i in range(self.player_num):
-			if self.players[i].type == 'Player':
-				print(f"{self.players[i].player_id} won the game")
-				return self.players[i].player_id
-		return None
-
-	def post_result(self):
+	
+	def send_result(self):
 		data = Dict()
 		data['game_id'] =  self.lobby_id
 		if self.gameState == 0:
@@ -472,14 +502,12 @@ class PongLobby:
 					)
 		except Exception as e:
 			pass
-		self.stop_game_loop()
-
 
 lobbys_list : Dict[str, Any] = dict()
 lobbys_list["10"] = PongLobby(
 	lobby_id="10",
 	players_list=["P1", "P2"],
-	lifes=100,
+	lives=100,
 	# players_list=["P1", "!AI1"],
 	tournId=None
 )

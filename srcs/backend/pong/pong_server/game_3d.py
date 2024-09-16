@@ -258,11 +258,6 @@ class PongLobby3D:
 				input = self.players[i].AI_behavior(self.ball["x"], self.ball["y"], self.ball["speed"]["x"], self.ball["speed"]["y"])
 				self.player_input(self.players[i].player_id, input)
 
-
-
-
-
-
 	def move_ball(self):
 		if not self.is_service:
 			self.ball['x'] += self.ball["speed"]['x']

@@ -137,9 +137,6 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 				"data": "{user} joined the game.".format(user=content['username'])}
 		)
 
-	async def error(self, content):
-		await self._send_error(content['detail'], 4005, True)
-
 	async def key_input(self, content):
 		if content['username'] not in self.users:
 			await self._send_error('Invalid username')
