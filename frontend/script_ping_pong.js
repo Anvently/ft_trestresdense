@@ -286,6 +286,7 @@ const createPaddle = (color) => {
 	group.rotation.z = Math.PI / 2;
 	group.position.z = 1;
 
+	console.log("paddle created")
 	return group;
 }
 
@@ -319,6 +320,8 @@ function draw_3d() {
 	for (var i = 0; i < 2; i++) {
 		objects.paddle[i].position.x = players[i].x * 10;
 		objects.paddle[i].position.y = players[i].y * 10;
+
+
 		set_paddle_height(i)
 		objects.paddle[i].rotation.z = players[i].angle + Math.PI / 2;
 	}
@@ -584,6 +587,7 @@ wsRef.onmessage = function (e) {
 					
 					};
 		}
+		console.log("msg = ", msg)
 		draw_3d();
 	}
 }
