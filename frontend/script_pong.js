@@ -9,10 +9,6 @@ const 	loginBUTT = document.getElementById("submit-btn");
 //     e.preventDefault();
 // });
 
-const wsRef = new WebSocket(
-	`wss://${location.hostname}:8083/ws/pong/10/`)
-
-
 // canvas.width = containerCanva.clientWidth;
 // canvas.height = containerCanva.clientHeight;
 
@@ -143,11 +139,57 @@ window.onload = function() {
 	// Afficher la valeur dans la console pour vérification
 	console.log("Valeur saisie par l'utilisateur : " + user_id);
 
+	const wsRef = new WebSocket(
+		'wss://'
+		+ `${location.hostname}` + ':8083'
+		+ `/ws/pong/10/`
+	);
+	
+
+	wsRef.onmessage = function (e) {
+		const msg = JSON.parse(e.data);
+		if (msg.hasOwnProperty("type") === false)
+			return
+		else if (msg["type"] === "ping")
+			wsRef.send(JSON.stringify({type: 'join_game', username: `${user_id}`}));
+		else if (msg["type"] === "send_game_state") {
+			number_of_players = parseInt(msg.number_of_players);
+			ball.x = parseFloat(msg.ball_x);
+			ball.y = parseFloat(msg.ball_y);
+			ball.r = parseFloat(msg.ball_r);
+			ball.speedX = parseFloat(msg.ball_speed_x);
+			ball.speedY = parseFloat(msg.ball_speed_y);
+
+			for (var i = 0; i < number_of_players; i++)
+			{
+				players[i] = {
+							type: msg[`player${i}_type`],
+							lives: msg[`player${i}_lives`],
+							x: msg[`player${i}_x`],
+							y: msg[`player${i}_y`],
+							width: msg[`player${i}_width`],
+							height: msg[`player${i}_height`]
+						};
+			}
+			draw_3d();
+			// draw();
+		}
+	}
+
+	setInterval(() => {
+		if (pressKey.key_up === true)
+			wsRef.send(JSON.stringify({type: 'key_input', username:user_id,  input: "up" }));
+		if (pressKey.key_down === true)
+			wsRef.send(JSON.stringify({type: 'key_input', username:user_id,  input: "down" }));
+
+	}, 15);
+
 };
 
 
 function draw_3d()
 {
+	console.log(number_of_players)
 	sphere.position.x = ball.x * 10 - 5;
 	sphere.position.y = ball.y * 10 - 5;
 	for (var dir = 0; dir < number_of_players; dir++)
@@ -206,35 +248,6 @@ function draw()
 }
 
 
-wsRef.onmessage = function (e) {
-	const msg = JSON.parse(e.data);
-	if (msg.hasOwnProperty("type") === false)
-		return
-	else if (msg["type"] === "ping")
-		wsRef.send(JSON.stringify({type: 'join_game', username: `${user_id}`}));
-	else if (msg["type"] === "send_game_state") {
-		number_of_players = parseInt(msg.number_of_players);
-		ball.x = parseFloat(msg.ball_x);
-		ball.y = parseFloat(msg.ball_y);
-		ball.r = parseFloat(msg.ball_r);
-		ball.speedX = parseFloat(msg.ball_speed_x);
-		ball.speedY = parseFloat(msg.ball_speed_y);
-
-		for (var i = 0; i < number_of_players; i++)
-		{
-			players[i] = {
-						type: msg[`player${i}_type`],
-						lives: msg[`player${i}_lives`],
-						x: msg[`player${i}_x`],
-						y: msg[`player${i}_y`],
-						width: msg[`player${i}_width`],
-						height: msg[`player${i}_height`]
-					};
-		}
-		draw_3d();
-		// draw();
-	}
-}
 
 		// INPUT
 		var pressKey = {
@@ -257,12 +270,6 @@ window.addEventListener("keyup", e => {
 		pressKey.key_down = false;
 });
 
-setInterval(() => {
-	if (pressKey.key_up === true)
-		wsRef.send(JSON.stringify({type: 'key_input', username:user_id,  input: "up" }));
-	if (pressKey.key_down === true)
-		wsRef.send(JSON.stringify({type: 'key_input', username:user_id,  input: "down" }));
 
-}, 15);
 
 
