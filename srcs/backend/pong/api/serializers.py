@@ -1,5 +1,7 @@
 from rest_framework import serializers
 from pong_server.game import PongLobby
+from pong_server.pong2d import PongLobby2D
+from pong_server.pong3d import PongLobby3D
 from pong_server.consumers import lobbys_list
 from typing import Dict, List, Any
 
@@ -7,6 +9,7 @@ class GameSettingsSerializer(serializers.Serializer):
 
 	number_life = serializers.IntegerField(min_value = 1)
 	number_players = serializers.IntegerField(max_value = 4)
+	allow_spectators = serializers.BooleanField(default=  True, required = False)
 
 	def create(self, validated_data):
 		""" Return game_settings object """
@@ -15,18 +18,27 @@ class GameSettingsSerializer(serializers.Serializer):
 class GameSerializer(serializers.Serializer):
 
 	game_id = serializers.CharField()
+	game_name = serializers.ChoiceField(choices=('pong2d', 'pong3d'))
 	turnament_id = serializers.CharField(allow_blank = True, required = False)
 	player_list = serializers.ListField(child=serializers.CharField())
 	settings = GameSettingsSerializer()
 
 	def save(self):
 		"""Append the game to the list of active games"""
-		lobbys_list[self.validated_data['game_id']] = PongLobby(
-			lobby_id=self.validated_data['game_id'],
-			players_list=self.validated_data['player_list'],
-			lifes=self.validated_data['settings']['number_life'],
-			tournId=self.validated_data.get('turnament_id')
-		)
+		if self.validated_data['game_name'] == 'pong2d':
+			lobbys_list[self.validated_data['game_id']] = PongLobby2D(
+				lobby_id=self.validated_data['game_id'],
+				players_list=self.validated_data['player_list'],
+				settings=self.validated_data['settings'],
+				tournId=self.validated_data.get('turnament_id')
+			)
+		elif self.validated_data['game_name'] == 'pong3d':
+			lobbys_list[self.validated_data['game_id']] = PongLobby3D(
+				lobby_id=self.validated_data['game_id'],
+				players_list=self.validated_data['player_list'],
+				settings=self.validated_data['settings'],
+				tournId=self.validated_data.get('turnament_id')
+			)
 
 	def validate(self, data):
 		number_players = data['settings']['number_players']
@@ -46,6 +58,12 @@ class GameSerializer(serializers.Serializer):
 			raise serializers.ValidationError(
 				f"The number of players in settings ({number_players}) must be an even number."
 			)
+		
+		if data['game_name'] == 'pong3d' and number_players > 2:
+			raise serializers.ValidationError(
+				f"Pong in 3D is limited to 2 players."
+			)
+
 		return data
 
 	def to_representation(self, obj: PongLobby):

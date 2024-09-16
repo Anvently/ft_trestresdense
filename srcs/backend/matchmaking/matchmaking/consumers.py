@@ -4,7 +4,7 @@ import asyncio
 from django.conf import settings
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 import jwt
-from typing import List, Dict, Set, Tuple
+from typing import List, Dict, Set, Tuple, Any
 import uuid
 import base64
 
@@ -36,6 +36,14 @@ def is_in_game(username):
 		return False
 
 
+""" 
+
+Lobby 1 (Pong2d, 3/4)
+Lobby 2 (Pong3d, Turnament, 6/8)
+
+
+ """
+
 class Lobby():
 	def __init__(self, hostname, name, player_num=2, lifes=3, public=True ) -> None:
 		self.hostname = hostname
@@ -48,6 +56,7 @@ class Lobby():
 		self.players[0] = hostname
 		self.public = public
 		self.started = False
+		self.game_name = None
 
 	def add_player(self, player_id):
 		if len(self.players) == self.player_num:
@@ -58,6 +67,9 @@ class Lobby():
 	def remove_player(self, player_id):
 		if player_id in self.players:
 			self.players.remove(player_id)
+
+	def start(self):
+		""" Send a request to backend to instantiate the lobby """
 
 
 # QUESTION: est ce que on lance une boucle qui envoie une mise a jour du matchmking toutes les x secondes ou
@@ -77,10 +89,10 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 	matchmaking_group = 'main_group'
 	matchmaking_lock = asyncio.Lock()
 	# list all the players online to handle invitations
-	online_players : dict[str, Tuple[int, str, str]] = {}
-	in_game_players : set[str] = set()
+	online_players : Dict[str, Dict[str, Any]] = {}
+	# in_game_players : set[str] = set()
 	# list all available lobbies to send to front
-	lobbies: dict[str, Lobby] = {}
+	lobbies: Dict[str, Lobby] = {}
 	
 
 
