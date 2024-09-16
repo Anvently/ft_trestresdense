@@ -356,19 +356,11 @@ class PongLobby3D:
 			rebound_line = ((REBOUND_LINE_X, 5), (REBOUND_LINE_X, -5))
 		else:
 			rebound_line = ((-REBOUND_LINE_X, 5), (-REBOUND_LINE_X, -5))
-
 		ball_trajectory = ((self.ball["x"], self.ball["y"]), (self.ball["x"] + self.ball["speed"]["x"], self.ball["y"] + self.ball["speed"]["y"]))
 		isIntersect, interX, interY = line_intersection(rebound_line, ball_trajectory)
-
-		print("is intersect = ", isIntersect)
-		print("interX = ", interX)
-		print("interY = ", interY)
-
 		if isIntersect and not -0.5 < interY < 0.5:
 			print ("ball is out")
 			self.ball["is_out"] = True
-
-
 
 	def check_goals(self):
 		point_scored = False
