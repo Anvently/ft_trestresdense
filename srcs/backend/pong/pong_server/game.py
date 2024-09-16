@@ -12,7 +12,6 @@ from django.conf import settings
 import traceback
 
 
-
 # Constants
 TABLE_LENGHT = 9 / 5
 
@@ -27,9 +26,8 @@ PADDLE_THICKNESS = 0.02
 PLAYER_SPEED = 0.01
 
 BALL_RADIUS = 0.013
-BALL_SERVICE_SPEED = 0.001
 MIN_SPEED = 0.02
-MAX_SPEED = 0.06		#must be less than BALL_RADIUS + PADDLE_THICKNESS to avoid the ball passing through
+MAX_SPEED = 0.05		#must be less than BALL_RADIUS + PADDLE_THICKNESS to avoid the ball passing through
 
 PADDLE_REBOUND_ANGLE = (math.pi / 180) * 35
 PLAYING_FIELD_RADIUS = 2.5 #centered on the middle of the table (0,0)
@@ -52,6 +50,51 @@ class Player:
 		self.points = 0
 		self.coordinates = START_POS[side]
 		self.has_joined = 0
+
+		# AI specific variables
+		self.last_time = int(time.time())
+		self.destination = {"x": 0, "y": 0}
+
+	def AI_behavior(self, ballX, ballY, ballSpeedX, ballSpeedY) -> str:
+		if int(time.time()) != self.last_time:
+			self.calculate_destination(ballX, ballY, ballSpeedX, ballSpeedY)
+			self.last_time = int(time.time())
+		
+		position = self.coordinates["y"]
+		if self.destination["y"] < position - PLAYER_SPEED:
+			if self.side == WEST:
+				return "right"
+			else:
+				return "left"
+		elif self.destination["y"] > position + PLAYER_SPEED:
+			if self.side == WEST:
+				return "left"
+			else:
+				return "right"
+		return ""
+	
+	def calculate_destination(self, ballX, ballY, ballSpeedX, ballSpeedY):
+		self.destination["x"] = 0
+		self.destination["y"] = 0
+		if self.side == WEST and ballSpeedX < 0 or self.side == EAST and ballSpeedX > 0:
+			self.destination["y"] = self.calculate_impact(ballX, ballY, ballSpeedX, ballSpeedY)
+		print(f"player {self.side} new destination : {self.destination}")
+		
+
+	def calculate_impact(self, ballX, ballY, ballSpeedX, ballSpeedY):
+		fpos_x = ballX
+		fpos_y = ballY
+		fspeed_x = ballSpeedX
+		fspeed_y = ballSpeedY
+
+		while True:
+			fpos_x += fspeed_x
+			fpos_y += fspeed_y
+			if self.side == WEST and fpos_x <= self.coordinates["x"]:
+				return fpos_y
+			elif self.side == EAST and fpos_x >= self.coordinates["x"]:
+				return fpos_y
+
 
 class PongLobby:
 	service_direction = -1
@@ -205,6 +248,7 @@ class PongLobby:
 		self.move_ball()
 		self.collision_logic()
 		self.check_goals()
+		self.compute_AI()
 		if self.check_winning_condition():
 			self.gameState = 3
 		return self.generate_JSON()
@@ -212,6 +256,16 @@ class PongLobby:
 	def set_paddle_angle(self):
 		self.players[WEST].coordinates["angle"] = -math.atan2(self.players[WEST].coordinates["y"], -self.players[WEST].coordinates["x"])
 		self.players[EAST].coordinates["angle"] = -math.atan2(self.players[EAST].coordinates["y"], -self.players[EAST].coordinates["x"])
+
+	def compute_AI(self):
+		for i in range(self.player_num):
+			if self.players[i].player_id.startswith("!AI"):
+				input = self.players[i].AI_behavior(self.ball["x"], self.ball["y"], self.ball["speed"]["x"], self.ball["speed"]["y"])
+				self.player_input(self.players[i].player_id, input)
+
+
+
+
 
 
 	def move_ball(self):
@@ -284,6 +338,30 @@ class PongLobby:
 		self.ball["speed"]["x"] = speed * math.cos(angle)
 		self.ball["speed"]["y"] = speed * math.sin(angle)
 
+
+# PADDLE_MAX_X = [-0.8, 1.2]
+# PADDLE_MIN_X = [-1.2, 0.8]
+# 	def check_goals(self):
+
+# 		# for both directions
+# 			# if ball is between net and rebound line
+# 			# 	AND is not on the table on the y axis
+# 				# ball is out
+# 			# elif ball is after paddle max depth
+# 				# ball is out
+
+# 		if self.ball["x"] > 
+
+# 		# ball is beyond WEST rebound line
+# 		if self.ball["x"] < -REBOUND_LINE_X and self.ball["speed"]["x"] < 0:
+# 			if self.ball["x"] < PADDLE_MIN_X - 0.1
+
+# 			if self.ball["y"] < 0.5 and 
+# 		# ball is beyond EAST rebound line
+# 		elif self.ball["x"] > REBOUND_LINE_X and self.ball["speed"]["x"] > 0:
+
+
+
 	def check_goals(self):
 		point_scored = False
 		# if ball is out of bound
@@ -312,9 +390,11 @@ class PongLobby:
 	def check_winning_condition(self):
 		if self.players[0].points >= 11 and self.players[0].points >= self.players[1].points + 2:
 			print("Winner is :", self.players[0].player_id)
+			return True
 		elif self.players[1].points >= 11 and self.players[1].points >= self.players[0].points + 2:
 			print("Winner is:", self.players[1].player_id)
-
+			return True
+		return False
 
 	def ball_rebound_on_table(self, defender):
 		rebound_line_x = REBOUND_LINE_X
@@ -494,52 +574,42 @@ def line_intersection(line1, line2):
 
 def segments_intersect(p1, q1, p2, q2):
 	def cross_product(o, a, b):
-		# Compute the cross product of vectors OA and OB
-		# A positive cross product indicates a counter-clockwise turn, 
-		# a negative cross product indicates a clockwise turn, and zero indicates collinear points
 		return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
 
 	def is_point_on_segment(p, seg_start, seg_end):
-		# Check if point p is on the segment defined by seg_start and seg_end
 		return min(seg_start[0], seg_end[0]) <= p[0] <= max(seg_start[0], seg_end[0]) and \
 			min(seg_start[1], seg_end[1]) <= p[1] <= max(seg_start[1], seg_end[1])
 
-	# Compute the four orientations needed for the general and special cases
 	o1 = cross_product(p1, q1, p2)
 	o2 = cross_product(p1, q1, q2)
 	o3 = cross_product(p2, q2, p1)
 	o4 = cross_product(p2, q2, q1)
 
-	# General case
 	if o1 * o2 < 0 and o3 * o4 < 0:
 		return True
-
-	# Special Cases
 	# p1, q1 and p2 are collinear and p2 lies on segment p1q1
 	if o1 == 0 and is_point_on_segment(p2, p1, q1):
 		return True
-
 	# p1, q1 and q2 are collinear and q2 lies on segment p1q1
 	if o2 == 0 and is_point_on_segment(q2, p1, q1):
 		return True
-
 	# p2, q2 and p1 are collinear and p1 lies on segment p2q2
 	if o3 == 0 and is_point_on_segment(p1, p2, q2):
 		return True
-
 	# p2, q2 and q1 are collinear and q1 lies on segment p2q2
 	if o4 == 0 and is_point_on_segment(q1, p2, q2):
 		return True
-
 	# If none of the cases
 	return False
+
+
 
 
 lobbys_list : Dict[str, PongLobby] = dict()
 lobbys_list["10"] = PongLobby(
 	lobby_id="10",
 	players_list=["P1", "P2"],
-	# players_list=["!AI1", "!AI2"],
+	# players_list=["P1", "!AI1"],
 	tournId=None
 )
 

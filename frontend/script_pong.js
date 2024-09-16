@@ -10,10 +10,7 @@ const 	loginBUTT = document.getElementById("submit-btn");
 // });
 
 const wsRef = new WebSocket(
-	'wss://'
-	+ 'localhost:8083'
-	+ `/ws/pong/10/`
-);
+	`wss://${location.hostname}:8083/ws/pong/10/`)
 
 
 // canvas.width = containerCanva.clientWidth;
