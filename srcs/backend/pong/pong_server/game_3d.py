@@ -26,7 +26,7 @@ PLAYER_SPEED = 0.01
 
 BALL_RADIUS = 0.013
 MIN_SPEED = 0.02
-MAX_SPEED = 0.05		#must be less than BALL_RADIUS + PADDLE_THICKNESS to avoid the ball passing through
+MAX_SPEED = 0.04		#must be less than BALL_RADIUS + PADDLE_THICKNESS to avoid the ball passing through
 
 PADDLE_REBOUND_ANGLE = (math.pi / 180) * 35
 PLAYING_FIELD_RADIUS = 2.5 #centered on the middle of the table (0,0)
@@ -77,7 +77,7 @@ class Player3D:
 		self.destination["y"] = 0
 		if self.side == WEST and ballSpeedX < 0 or self.side == EAST and ballSpeedX > 0:
 			self.destination["y"] = self.calculate_impact(ballX, ballY, ballSpeedX, ballSpeedY)
-		print(f"Player3D {self.side} new destination : {self.destination}")
+		print(f"player {self.side} new destination : {self.destination}")
 		
 
 	def calculate_impact(self, ballX, ballY, ballSpeedX, ballSpeedY):
@@ -121,7 +121,7 @@ class PongLobby3D:
 
 	def check_user(self, username:str):
 		"""Check that the user belong to the lobby"""
-		if username in [Player3D.player_id for Player3D in self.players]:
+		if username in [player.player_id for player in self.players]:
 			return True
 		return False
 
@@ -203,7 +203,7 @@ class PongLobby3D:
 					self.gameState = 1
 			if self.gameState == 0:
 				await player_channel.group_send(self.lobby_id, {"type": "cancel",
-																"message": "A Player3D failed to load"
+																"message": "A player failed to load"
 																})
 				self.send_result()
 				self.loop.cancel()
@@ -286,21 +286,33 @@ class PongLobby3D:
 			# change speed
 			self.change_ball_speed()
 		
-
 	def	change_ball_speed(self):
-		# normalize speed
-		speed = math.sqrt(self.ball["speed"]["x"]**2 + self.ball["speed"]["y"]**2)
-		# Accelerate the ball depending on how far from the net it has been hit
-		acceleration = abs(self.ball["last_hit"]["x"]) + 0.2 #between 0.8 and 1.4
-		new_speed = speed * acceleration
-		# check for boundaries
-		if new_speed < MIN_SPEED:
-			new_speed = MIN_SPEED
-		elif new_speed > MAX_SPEED:
-			new_speed = MAX_SPEED
-		# change ball speed
-		self.ball["speed"]["x"] *= new_speed / speed
-		self.ball["speed"]["y"] *= new_speed / speed
+		# set speed depending on the value of player.x when hitting
+			# between 0 (close to the net) and 1 when far from the net
+		acceleration = (abs(self.ball["last_hit"]["x"]) - PADDLE_MIN_X[1]) / (PADDLE_MAX_X[1] - PADDLE_MIN_X[1])
+
+		speed = MIN_SPEED + (MAX_SPEED - MIN_SPEED) * acceleration
+
+		current_speed = math.sqrt(self.ball["speed"]["x"]**2 + self.ball["speed"]["y"]**2)
+		scale = speed / current_speed
+		self.ball["speed"]["x"] *= scale
+		self.ball["speed"]["y"] *= scale
+
+
+	# def	change_ball_speed(self):
+		# # normalize speed
+		# speed = math.sqrt(self.ball["speed"]["x"]**2 + self.ball["speed"]["y"]**2)
+		# # Accelerate the ball depending on how far from the net it has been hit
+		# acceleration = abs(self.ball["last_hit"]["x"]) + 0.2 #between 0.8 and 1.4
+		# new_speed = speed * acceleration
+		# # check for boundaries
+		# if new_speed < MIN_SPEED:
+		# 	new_speed = MIN_SPEED
+		# elif new_speed > MAX_SPEED:
+		# 	new_speed = MAX_SPEED
+		# # change ball speed
+		# self.ball["speed"]["x"] *= new_speed / speed
+		# self.ball["speed"]["y"] *= new_speed / speed
 
 	# PADDLE ANGLE REFLECTION
 	def collision_rebound(self):
@@ -356,19 +368,19 @@ class PongLobby3D:
 		point_scored = False
 		# if ball is out of bound
 		if (self.ball["x"]**2 + self.ball["y"]**2) >  PLAYING_FIELD_RADIUS**2:
-			# check last_hit x to know last Player3D who touched the ball (attacking Player3D)
+			# check last_hit x to know last player who touched the ball (attacking player)
 			if self.ball["last_hit"]["x"] < 0:
 				attacker = WEST
 			else:
 				attacker = EAST
-			# if the ball crossed the rebound line on the table, on the defending Player3D side
+			# if the ball crossed the rebound line on the table, on the defending player side
 			if self.ball_rebound_on_table(not attacker):
-				# point for attacking Player3D
+				# point for attacking player
 				self.players[attacker].points += 1
 				point_scored = True
 				print(f"{self.players[attacker].player_id} marked a point !")
 			else:
-				# point for defending Player3D
+				# point for defending player
 				self.players[not attacker].points += 1
 				point_scored = True
 				print(f"{self.players[not attacker].player_id} marked a point !")
@@ -438,13 +450,13 @@ class PongLobby3D:
 		}
 
 		for index in range(2):
-			json[f"Player3D{index}_id"] = self.players[index].player_id
-			json[f"Player3D{index}_points"] = self.players[index].points
-			json[f"Player3D{index}_x"] = self.players[index].coordinates["x"]
-			json[f"Player3D{index}_y"] = self.players[index].coordinates["y"]
-			json[f"Player3D{index}_angle"] = (self.players[index].coordinates["angle"])
-			json[f"Player3D{index}_width"] = self.players[index].coordinates["width"]
-			json[f"Player3D{index}_height"] = self.players[index].coordinates["height"]
+			json[f"player{index}_id"] = self.players[index].player_id
+			json[f"player{index}_points"] = self.players[index].points
+			json[f"player{index}_x"] = self.players[index].coordinates["x"]
+			json[f"player{index}_y"] = self.players[index].coordinates["y"]
+			json[f"player{index}_angle"] = (self.players[index].coordinates["angle"])
+			json[f"player{index}_width"] = self.players[index].coordinates["width"]
+			json[f"player{index}_height"] = self.players[index].coordinates["height"]
 
 		return json
 
