@@ -36,8 +36,8 @@ BALL_START = {"x": 0.5, "y": 0.5, "r": BALL_RADIUS, "speed": {"x": 0, "y": 0}}
 
 class Player2D(Player):
 
-	def __init__(self, player_id, position, lives=0, type='wall'):
-		super().__init__(player_id, position, lives)
+	def __init__(self, player_id, side, lives=0, type='wall'):
+		super().__init__(player_id, side, lives)
 		self.type = type
 		self.destination = 0.5
 
@@ -46,12 +46,12 @@ class Player2D(Player):
 			self.calculate_destination(ballX, ballY, ballSpeedX, ballSpeedY)
 			self.last_time = int(time.time())
 		
-		if self.position == WEST or self.position == EAST:
+		if self.side == WEST or self.side == EAST:
 			position = self.coordinates["y"]
 		else:
 			position = self.coordinates["x"]
 
-		if self.position == WEST or self.position == EAST:
+		if self.side == WEST or self.side == EAST:
 			position = self.coordinates["y"]
 			if self.destination < position - PLAYER_SPEED:
 				return "up"
@@ -67,7 +67,7 @@ class Player2D(Player):
 	
 	def calculate_destination(self, ballX, ballY, ballSpeedX, ballSpeedY):
 		self.destination = 0.5
-		if self.position == WEST and ballSpeedX < 0 or self.position == EAST and ballSpeedX > 0 or self.position == NORTH and ballSpeedY < 0 or self.position == SOUTH and ballSpeedY > 0:
+		if self.side == WEST and ballSpeedX < 0 or self.side == EAST and ballSpeedX > 0 or self.side == NORTH and ballSpeedY < 0 or self.side == SOUTH and ballSpeedY > 0:
 			self.destination = self.calculate_impact(ballX, ballY, ballSpeedX, ballSpeedY)
 
 		# make the ai hit the edges of the paddle
@@ -91,12 +91,12 @@ class Player2D(Player):
 			fpos_x += fspeed_x
 			fpos_y += fspeed_y
 			if not BALL_RADIUS < fpos_x < 1 - BALL_RADIUS:
-				if self.position == WEST or self.position == EAST:
+				if self.side == WEST or self.side == EAST:
 					return fpos_y
 				else:
 					fspeed_x *= -1 
 			if not BALL_RADIUS < fpos_y < 1 - BALL_RADIUS:
-				if self.position == NORTH or self.position == SOUTH:
+				if self.side == NORTH or self.side == SOUTH:
 					return fpos_x
 				else:
 					fspeed_y *= -1 

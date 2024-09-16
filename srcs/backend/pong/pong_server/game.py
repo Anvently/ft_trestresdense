@@ -40,11 +40,11 @@ BALL_START = {"x": 0.5, "y": 0.5, "r": BALL_RADIUS, "speed": {"x": 0, "y": 0}}
 
 
 class Player:
-	def __init__(self, player_id, position, lives=0):
+	def __init__(self, player_id, side, lives=0):
 		self.player_id = player_id
-		self.position = position
+		self.side = side
 		self.lives = lives
-		self.coordinates = START_POS[position]
+		self.coordinates = START_POS[side]
 		self.has_joined = 0
 		# AI specific variables
 		self.last_time = int(time.time())

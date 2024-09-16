@@ -177,7 +177,7 @@ lobbys_list["10"] = PongLobby2D(
 )
 lobbys_list["11"] = PongLobby3D(
 	lobby_id="11",
-	players_list=["P1", "P2"],
-	# players_list=["P1", "!AI1"],
+	# players_list=["P1", "P2"],
+	players_list=["P1", "!AI1"],
 	tournId=None,settings={'lives':100}
 )

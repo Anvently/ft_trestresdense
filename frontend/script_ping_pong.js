@@ -1,5 +1,9 @@
 import * as THREE from "https://cdn.skypack.dev/three@0.132.2";
 
+
+const 	start_button = document.getElementById("start_button");
+const player0_score = document.getElementById('player0_score');
+const player1_score = document.getElementById('player1_score');
 // TODO
 	// Front-End
 		// - ping pong sound
@@ -46,7 +50,7 @@ camera.up.set(0, 0, 1); // Set Z as the up direction
 
 // RENDERER //////////////////////////////////////////////////
 const renderer = new THREE.WebGLRenderer();
-renderer.setSize(1200, 800);
+renderer.setSize(1500, 1000);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
@@ -265,7 +269,7 @@ const createPaddle = (color) => {
 	group.add(handleMesh);
 
 	// CYLINDER
-	const cylinderGeometry = new THREE.CylinderGeometry((PADDLE_LENGTH / 2) * 10, (PADDLE_LENGTH / 2) * 10, PADDLE_THICKNESS * 10, 16);
+	const cylinderGeometry = new THREE.CylinderGeometry((PADDLE_LENGTH / 2) * 10, (PADDLE_LENGTH / 2) * 10, PADDLE_THICKNESS * 10, 24);
 	const cylinderMaterial = new THREE.MeshStandardMaterial({ color: color });
 	const cylinder = new THREE.Mesh(cylinderGeometry, cylinderMaterial);
 	cylinder.castShadow = true;
@@ -275,16 +279,19 @@ const createPaddle = (color) => {
 	group.rotation.z = Math.PI / 2;
 	group.position.z = 1;
 
-	console.log("paddle created")
 	return group;
 }
 
 // SOUND
-// var ping_sound = new Audio("sound/ping_sound.mp3");
-// var pong_sound = new Audio("sound/pong_sound.mp3");
+var ping_sound = new Audio("sound/ping_sound.mp3");
+var pong_sound = new Audio("sound/pong_sound.mp3");
 
 
-
+start_button.addEventListener('click', () => {
+	// ping_sound.play();;
+	pong_sound.play()
+	
+});
 
 
 window.onload = function() {
@@ -316,6 +323,7 @@ window.onload = function() {
 			ball.speed.y = parseFloat(msg.ball_speed_y);
 			ball.last_hit.x = parseFloat(msg.ball_last_hit_x);
 			ball.last_hit.y = parseFloat(msg.ball_last_hit_y);
+			ball.is_out = msg.ball_is_out;
 			for (var i = 0; i < 2; i++)
 			{
 				players[i] = {
@@ -326,10 +334,8 @@ window.onload = function() {
 							angle: msg[`player${i}_angle`],
 							width: msg[`player${i}_width`],
 							height: msg[`player${i}_height`]
-						
 						};
 			}
-			console.log("msg = ", msg)
 			draw_3d();
 		}
 	}
@@ -371,7 +377,12 @@ function draw_3d() {
 	}
 
 	// SOUND
-	// ball_sound()
+	ball_sound()
+
+	// SHOW SCORE
+
+	player0_score.textContent = players[0].points;
+	player1_score.textContent = players[1].points;
 
 	renderer.render(scene, camera);
 }
@@ -383,7 +394,8 @@ function ball_sound() {
 	if (sound_type == 0) { // PING when ball hit the table
 		if ((ball.speed.x > 0 && ball.x  > REBOUND_LINE_X) // ball is going EAST
 			|| ball.speed.x < 0 && ball.x < -REBOUND_LINE_X) {
-			play_sound(sound_type)
+			if (!ball.is_out)
+				play_sound(sound_type)
 			sound_type = !sound_type
 		}
 	} else { // PONG when ball hit the paddle
@@ -411,7 +423,6 @@ function set_camera() {
 		if (players[i].id == user_id)
 			my_direction = i;
 	}
-
 	if (my_direction == -1)
 		spectator_camera()
 	else
@@ -471,7 +482,6 @@ function normalizeAngle(angle) {
 	return angle - 2 * Math.PI * Math.floor((angle + Math.PI) / (2 * Math.PI));
 }
 
-
 function set_paddle_height(direction) {
 	if ((ball.x < 0 && direction == WEST) || (ball.x > 0 && direction == EAST) ) {
 		if (objects.paddle[direction].position.z > Math.max(objects.ball.position.z, 0.8))
@@ -479,115 +489,54 @@ function set_paddle_height(direction) {
 		else if (objects.paddle[direction].position.z < objects.ball.position.z)
 			objects.paddle[direction].position.z += 0.01
 	} else {
-		if (objects.paddle[direction].position.z > 1)
+		if (objects.paddle[direction].position.z >= 1.01)
 			objects.paddle[direction].position.z -= 0.01
-		else
+		else if (objects.paddle[direction].position.z < 1)
 			objects.paddle[direction].position.z += 0.01
 	}
 }
 
 function set_ball_height() {
-    var xStart, zStart, xEnd, zEnd;
+	var xStart, zStart, xEnd, zEnd;
 
-    const isEast = ball.speed.x > 0;
-    const passedReboundLine = isEast ? ball.x > REBOUND_LINE_X : ball.x < -REBOUND_LINE_X;
+	const isEast = ball.speed.x > 0;
+	const passedReboundLine = isEast ? ball.x > REBOUND_LINE_X : ball.x < -REBOUND_LINE_X;
 
 	if (is_service)
 		return 1;
-    else if (passedReboundLine && !ball.is_out) {
-        xStart = isEast ? REBOUND_LINE_X : -REBOUND_LINE_X;
-        zStart = 0;
-        xEnd = (isEast ? REBOUND_FAR_OUT * ball.speed.x * 10 + 1 : REBOUND_FAR_OUT * ball.speed.x * 10 - 1);
-        zEnd = 0;
-    } else {
-        xEnd = isEast ? REBOUND_LINE_X : -REBOUND_LINE_X;
-        zEnd = 0;
-        if (ball.last_hit.x !== 0) {
-            xStart = ball.last_hit.x;
-            zStart = parabolic_z(
-                ball.last_hit.x * 10,
-                isEast ? -REBOUND_LINE_X * 10 : REBOUND_LINE_X * 10,
-                0,
-                isEast ? -2 * 10 : 2 * 10,
-                0,
-                REBOUND_HEIGHT
-            );
-        } else {
-            xStart = 0;
-            zStart = 1;
-        }
-    }
+	else if (passedReboundLine && !ball.is_out) {
+		xStart = isEast ? REBOUND_LINE_X : -REBOUND_LINE_X;
+		zStart = 0;
+		xEnd = (isEast ? REBOUND_FAR_OUT * ball.speed.x * 10 + 1 : REBOUND_FAR_OUT * ball.speed.x * 10 - 1);
+		zEnd = 0;
+	} else {
+		xEnd = isEast ? REBOUND_LINE_X : -REBOUND_LINE_X;
+		zEnd = 0;
+		if (ball.last_hit.x !== 0) {
+			xStart = ball.last_hit.x;
+			zStart = parabolic_z(
+				ball.last_hit.x * 10,
+				isEast ? -REBOUND_LINE_X * 10 : REBOUND_LINE_X * 10,
+				0,
+				isEast ? -2 * 10 : 2 * 10,
+				0,
+				REBOUND_HEIGHT
+			);
+		} else {
+			xStart = 0;
+			zStart = 1;
+		}
+	}
 
-    return parabolic_z(
-        objects.ball.position.x,
-        xStart * 10,
-        zStart,
-        xEnd * 10,
-        zEnd,
-        REBOUND_HEIGHT
-    );
+	return parabolic_z(
+		objects.ball.position.x,
+		xStart * 10,
+		zStart,
+		xEnd * 10,
+		zEnd,
+		REBOUND_HEIGHT
+	);
 }
-
-// function set_ball_height()
-// {
-// 	var xStart;
-// 	var zStart;
-// 	var xEnd;
-// 	var zEnd;
-	
-// 	if (ball.speed.x > 0) // ball is going EAST
-// 	{
-// 		if (ball.x > REBOUND_LINE_X) // the ball passed the rebound line // + AND rebound was on the line
-// 		{
-// 			xStart = REBOUND_LINE_X;
-// 			zStart = 0;
-// 			xEnd = REBOUND_FAR_OUT * ball.speed.x * 10 + 1;
-// 			zEnd = 0;
-// 		}
-// 		else // the ball is before the rebound line
-// 		{
-// 			xEnd = REBOUND_LINE_X;
-// 			zEnd = 0;
-// 			if (ball.last_hit.x !== 0)
-// 			{
-// 				xStart = ball.last_hit.x;
-// 				zStart = parabolic_z(ball.last_hit.x * 10, -REBOUND_LINE_X * 10, 0, -2 * 10, 0, REBOUND_HEIGHT);
-// 			}
-// 			else //service
-// 			{
-// 				xStart = 0;
-// 				zStart = 1;
-// 			}
-// 		}
-// 	}
-// 	else if (ball.speed.x < 0) // Ball is going west
-// 	{
-// 		if (ball.x < -REBOUND_LINE_X) // the ball passed the rebound line
-// 		{
-// 			xStart = -REBOUND_LINE_X;
-// 			zStart = 0;
-// 			xEnd = REBOUND_FAR_OUT * ball.speed.x * 10 -1;
-// 			zEnd = 0;
-// 		}
-// 		else // the ball is before the rebound line
-// 		{
-// 			xEnd = -REBOUND_LINE_X; 
-// 			zEnd = 0;
-// 			if (ball.last_hit.x !== 0)
-// 			{
-// 				xStart = ball.last_hit.x
-// 				zStart = parabolic_z(ball.last_hit.x * 10, REBOUND_LINE_X * 10, 0, 2 * 10, 0, REBOUND_HEIGHT)
-// 			}
-// 			else //service
-// 			{
-// 				xEnd = -REBOUND_LINE_X;
-// 				xStart = 0;
-// 				zStart = 1;
-// 			}
-// 		}
-// 	}
-// 	return parabolic_z(objects.ball.position.x, xStart * 10, zStart, xEnd * 10, zEnd, REBOUND_HEIGHT);
-// }
 
 function parabolic_z(x, x1, z1, x2, z2, height) {
 	var xMid = (x1 + x2) / 2;
@@ -601,8 +550,6 @@ function parabolic_z(x, x1, z1, x2, z2, height) {
 		return a2 * ((x - xMid) ** 2) + k;
 	}
 }
-
-
 
 // INPUT ///////////////////////////////////////
 var pressKey = {

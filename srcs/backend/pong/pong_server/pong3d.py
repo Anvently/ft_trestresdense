@@ -49,28 +49,40 @@ class Player3D(Player):
 		self.points = 0
 		self.coordinates = START_POS[position]
 		
-	def AI_behavior(self, ballX, ballY, ballSpeedX, ballSpeedY) -> str:
+	def AI_behavior(self, ballX, ballY, ballSpeedX, ballSpeedY, is_service, service_direction) -> str:
 		if int(time.time()) != self.last_time:
-			self.calculate_destination(ballX, ballY, ballSpeedX, ballSpeedY)
+			self.calculate_destination(ballX, ballY, ballSpeedX, ballSpeedY, is_service, service_direction)
 			self.last_time = int(time.time())
 		
-		position = self.coordinates["y"]
-		if self.destination["y"] < position - PLAYER_SPEED:
+		if self.destination["y"] < self.coordinates["y"] - PLAYER_SPEED:
 			if self.side == WEST:
 				return "right"
 			else:
 				return "left"
-		elif self.destination["y"] > position + PLAYER_SPEED:
+		elif self.destination["y"] > self.coordinates["y"] + PLAYER_SPEED:
 			if self.side == WEST:
 				return "left"
 			else:
 				return "right"
+		if self.destination["x"] < self.coordinates["x"] - PLAYER_SPEED:
+			if self.side == WEST:
+				return "down"
+			else:
+				return "up"
+		elif self.destination["x"] > self.coordinates["x"] + PLAYER_SPEED:
+			if self.side == WEST:
+				return "up"
+			else:
+				return "down"
 		return ""
 	
-	def calculate_destination(self, ballX, ballY, ballSpeedX, ballSpeedY):
-		self.destination["x"] = 0
+	def calculate_destination(self, ballX, ballY, ballSpeedX, ballSpeedY, is_service, service_direction):
+		self.destination["x"] = PADDLE_LEFT_DIR[self.side] * 1.2
 		self.destination["y"] = 0
-		if self.side == WEST and ballSpeedX < 0 or self.side == EAST and ballSpeedX > 0:
+
+		if is_service:
+			self.destination["x"] = 0
+		elif self.side == WEST and ballSpeedX < 0 or self.side == EAST and ballSpeedX > 0:
 			self.destination["y"] = self.calculate_impact(ballX, ballY, ballSpeedX, ballSpeedY)
 		print(f"player {self.side} new destination : {self.destination}")
 		
@@ -163,7 +175,7 @@ class PongLobby3D(PongLobby):
 	def compute_AI(self):
 		for i in range(self.player_num):
 			if self.players[i].player_id.startswith("!AI"):
-				input = self.players[i].AI_behavior(self.ball["x"], self.ball["y"], self.ball["speed"]["x"], self.ball["speed"]["y"])
+				input = self.players[i].AI_behavior(self.ball["x"], self.ball["y"], self.ball["speed"]["x"], self.ball["speed"]["y"], self.is_service, self.service_direction)
 				self.player_input(self.players[i].player_id, input)
 
 	def move_ball(self):
@@ -259,10 +271,10 @@ class PongLobby3D(PongLobby):
 		ball_trajectory = ((self.ball["x"], self.ball["y"]), (self.ball["x"] + self.ball["speed"]["x"], self.ball["y"] + self.ball["speed"]["y"]))
 		isIntersect, interX, interY = line_intersection(rebound_line, ball_trajectory)
 		if isIntersect and not -0.5 < interY < 0.5:
-			print ("ball is out")
 			self.ball["is_out"] = True
 
 	def check_goals(self):
+		self.check_missed_rebound()
 		point_scored = False
 		# if ball is out of bound
 		if (self.ball["x"]**2 + self.ball["y"]**2) >  PLAYING_FIELD_RADIUS**2:
