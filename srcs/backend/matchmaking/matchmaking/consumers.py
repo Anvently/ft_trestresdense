@@ -58,6 +58,7 @@ Status:
 	- waiting for a lobby
 	- in lobby => tournament or not
 	- in game
+	- waiting for next tourny game
  """
 
 class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
@@ -66,7 +67,6 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 	matchmaking_lock = asyncio.Lock()
 	# list all the players online to handle invitations
 	online_players : Dict[str, Dict[str, Any]] = {}
-	# in_game_players : set[str] = set()
 	# list all available lobbies to send to front
 	lobbies: Dict[str, Lobby] = {}
 	
@@ -77,12 +77,11 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 	def __init(self, *args, **kwargs):
 
 		self.username = None
-		self._is_in_lobby = False
 		self._is_host = False
 		self._lobby_id = None
 		self._tournament_id = None
 		self._is_valid = False
-		self._is_in_game = False
+		self.status = 0
 		super().__init__(*args, **kwargs)
 
 
@@ -101,51 +100,46 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 			self.scope['error_code'] = 4001
 		return False
 
-	def _is_valid_client(self):
+	async def _is_valid_client(self):
 		if MatchMakingConsumer.DISABLE_AUTH:
 			return True
 		if not self._auth_client():
 			return False
-		# if _is_already_connected(): => Does it make sense ?
-			# return False
+		async with MatchMakingConsumer.matchmaking_lock:
+			if self.username in MatchMakingConsumer.online_players and MatchMakingConsumer.online_players[self.username]["status"] < 2:
+				return False
 		return True
 
 	def check_infos(self):
-		if self.username in MatchMakingConsumer.in_game_players:
-			MatchMakingConsumer.online_players[self.username]["in_game"] = True
-			self._lobby_id = MatchMakingConsumer.online_players[self.username]["lobby_id"] = MatchMakingConsumer.in_game_players[self.username]["lobby_id"]
-			if "tournament_id" in MatchMakingConsumer.in_game_players[self.username]:
-				MatchMakingConsumer.online_players[self.username]["tournament_id"]= MatchMakingConsumer.in_game_players[self.username]["tournament_id"]
-				self._tournament_id = MatchMakingConsumer.in_game_players[self.username]["tournament_id"]
+		if self.username in MatchMakingConsumer.online_players:
+			self.status = MatchMakingConsumer.online_players[self.username]['status']
+			self._lobby_id = self.status = MatchMakingConsumer.online_players[self.username]['lobby_id']
+			self._tournament_id = self.status = MatchMakingConsumer.online_players[self.username]['tournament_id']
+		else:
+			MatchMakingConsumer.online_players[self.username] = {'status': 0, 'lobby_id': None, 'tournament_id': None}
+
 
 	async def connect(self):
 		await self.accept()
-		if self.is_valid_client():
+		if await self.is_valid_client():
 			self._is_valid = True
 			await self.channel_layer.group_add(MatchMakingConsumer.matchmaking_group, self.channel_name)
 			async with MatchMakingConsumer.matchmaking_lock:
-				if self.username in MatchMakingConsumer.online_players:
-					MatchMakingConsumer.online_players[self.username]["connections"] += 1
-				else:
-					MatchMakingConsumer.online_players[self.username] = {"connections": 1}
-					self.check_infos()
+				self.check_infos()
 		else:
 			await self._send_error(self.scope['error'], self.scope['error_code'], True)
 
 	async def disconnect(self, code):
 		async with MatchMakingConsumer.matchmaking_lock:
-			if self.username in MatchMakingConsumer.online_players:
-				MatchMakingConsumer.online_players[self.username]["connections"] -= 1
-				if MatchMakingConsumer.online_players[self.username]["connections"] >= 1:
-					return
-				else:
-					del MatchMakingConsumer.online_players[self.username]
-			if self._is_in_lobby:
+			if self.status == 0:
+				del MatchMakingConsumer.online_players[self.username]
+			elif self.status == 1:
 				if self._is_host == 1:
 					await self.lobby_cancel(self._lobby_id)
 				else:
 					MatchMakingConsumer.lobbies[self._lobby_id].remove_player(self.username)
 				await self.channel_layer.group_discard(self._lobby_id, self.channel_name)
+		await self.channel_layer.group_send(MatchMakingConsumer.matchmaking_group, {"type": "player_disconnected", "player_id": self.username})
 		await self.channel_layer.group_discard(MatchMakingConsumer.matchmaking_group, self.channel_name)
 
 
@@ -171,7 +165,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 
 
 	async def lobby_canceled(self, content):
-		if not self._is_in_lobby:
+		if self.status!= 1:
 			return
 		if not self._is_host:
 			await self.send_json(content)

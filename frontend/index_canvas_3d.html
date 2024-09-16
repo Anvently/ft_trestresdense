@@ -31,13 +31,15 @@
 </header>
 <main> 
   <div id="container-canva" >
-    <!-- <canvas id="canvas"> </canvas>  -->
-    <!-- <script src="script_pong.js" type="module"> </script> -->
     <script src="script_ping_pong.js" type="module"> </script>
-  </div>
+    <p>
+		P1 score: <span id="player0_score"></span><br>
+		P2 score: <span id="player1_score"></span>
+	</p>
+</div>
 </main>
   <form>
-    <div class="form-group">
+    <!-- <div class="form-group">
       <div class="form-field" id="username">
         <div>
           <i class="fa-solid fa-table-tennis-paddle-ball"></i>
@@ -49,8 +51,8 @@
           <i class="fa-solid fa-lock"></i>
         </div>
         <input type="text" placeholder="LOBBYID" id="lobby-id" />
-      </div>
-      <button type="submit" id="submit-btn"> Login </button>
+      </div> -->
+      <button type="button" id="start_button"> Start Game </button>
   </form>
 </body>
 </html>
