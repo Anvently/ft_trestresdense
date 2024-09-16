@@ -3,15 +3,15 @@ import time
 import math
 import random
 import asyncio
-from channels.layers import get_channel_layer
 from django.http.request import HttpRequest
 import requests
 from typing import List, Dict, Any, Tuple
 import json
 from django.conf import settings
 import traceback
+from pong_server.game import PongLobby, Player
 
-# Constants
+# # Constants
 TABLE_LENGHT = 9 / 5
 
 PADDLE_MAX_X = [-0.8, 1.2]
@@ -42,18 +42,13 @@ START_POS = [{"x": -TABLE_LENGHT / 2 + PADDLE_THICKNESS / 2, "y": 0, "angle": ma
 BALL_START = {"x": 0, "y": 0, "r": BALL_RADIUS, "speed": {"x": 0, "y": 0}, "last_hit": {"x": 0, "y": 0}}
 
 
-class Player3D:
-	def __init__(self, player_id, side):
-		self.player_id = player_id
-		self.side = side
-		self.points = 0
-		self.coordinates = START_POS[side]
-		self.has_joined = 0
-
-		# AI specific variables
-		self.last_time = int(time.time())
+class Player3D(Player):
+	def __init__(self, player_id, position, lives=0):
+		super().__init__(player_id, position, lives)
 		self.destination = {"x": 0, "y": 0}
-
+		self.points = 0
+		self.coordinates = START_POS[position]
+		
 	def AI_behavior(self, ballX, ballY, ballSpeedX, ballSpeedY) -> str:
 		if int(time.time()) != self.last_time:
 			self.calculate_destination(ballX, ballY, ballSpeedX, ballSpeedY)
@@ -95,20 +90,13 @@ class Player3D:
 				return fpos_y
 
 
-class PongLobby3D:
+class PongLobby3D(PongLobby):
 	service_direction = -1
 	service_count = 0
 	is_service = True
 
-	def __init__(self, lobby_id: str, players_list: List[str],  tournId=None, settings: Dict[str, Any] = {}) -> None:
-		self.settings = settings
-		self.lobby_id = lobby_id
-		self.player_num = len(players_list)
-		if tournId:
-			self.tournId = tournId
-		self.ball = None
-		self.players: List[Player3D] = []
-		self.match_id_pos = {}
+	def __init__(self, lobby_id: str, players_list: List[str], settings: Dict[str, Any], tournId=None) -> None:
+		super().__init__(lobby_id, players_list, settings, tournId)
 		for i in range(2):
 			self.players.append(Player3D(players_list[i], i))
 			self.match_id_pos[players_list[i]] = i
@@ -119,47 +107,26 @@ class PongLobby3D:
 		self.waiting_for = self.player_num
 		self.winner = None
 
-	def check_user(self, username:str):
-		"""Check that the user belong to the lobby"""
-		if username in [player.player_id for player in self.players]:
-			return True
-		return False
-
-	async def start_game_loop(self):
-		print("loop started")
-		self.loop = asyncio.create_task(self.game_loop())
-
-	async def stop_game_loop(self):
-		if self.loop:
-			self.loop.cancel()
-
-	async def player_join(self, player_id: str) -> bool:
-		""" Template of player_list: ["user1", "user1_guest"] """
-		if not self.check_user(player_id):
-			return False
-		self.players[self.match_id_pos[player_id]].has_joined = 1
-		self.waiting_for -= 1
-		if not self.loop:
-			await self.start_game_loop()
-		return True
-
-	def player_leave(self, player_id: str):
-		""" Template of player_list: ["user1", "user1_guest"] """
-		self.waiting_for += 1
-
 	def send_result(self):
-		pass
-		# API call to send result to matchmaking
-			# -> gameState == 3 match was played -> get stats in self and send them
-			# -> gameState == 0 game was canceled
-		# should the matchmaking delete the PongLobby3D upon receiving the result ?
-
-	""" 
-	add end game
-	refuse input for eliminated players
-
-	"""
-
+		data = Dict()
+		data['game_id'] =  self.lobby_id
+		if self.gameState == 0:
+			data['status'] = 'canceled'
+			data['winner'] = self.get_winner()
+		else:
+			data['status'] = 'terminated'
+			data['winner'] = self.winner
+		try:
+			requests.post('http://matchmaking:8003/result/?format=json',
+					data=json.dumps(data),
+					headers = {
+						'Host': 'localhost',
+						'Authorization': "Bearer {0}".format(settings.API_TOKEN.decode('ASCII'))
+						}
+					)
+		except Exception as e:
+			pass
+		self.stop_game_loop()
 
 	def player_input(self, player_id, input):
 		if player_id not in self.match_id_pos:
@@ -188,65 +155,6 @@ class PongLobby3D:
 			self.players[side].coordinates['x'] = min(PADDLE_MAX_X[side], self.players[side].coordinates['x'] + PLAYER_SPEED)
 		self.set_paddle_angle()
 
-
-	async def	game_loop(self):
-		try:
-			loop_start = time.time()
-			player_channel = get_channel_layer()
-			# pregame : check that all players are present
-			while time.time() - loop_start < 3600 and self.gameState == 0:
-				await asyncio.sleep(0.05)
-				async with self.mut_lock:
-					data = self.compute_game()
-				await player_channel.group_send(self.lobby_id, data)
-				if self.waiting_for == 0:
-					self.gameState = 1
-			if self.gameState == 0:
-				await player_channel.group_send(self.lobby_id, {"type": "cancel",
-																"message": "A player failed to load"
-																})
-				self.send_result()
-				self.loop.cancel()
-				return
-			await player_channel.group_send(self.lobby_id, {"type": "game_start"})
-			loop_start = time.time()
-			print("game has started")
-			while time.time() - loop_start < 3:
-				await asyncio.sleep(0.05)
-				async with self.mut_lock:
-					data = self.compute_game()
-				await player_channel.group_send(self.lobby_id, data)
-			self.gameState = 2
-
-			# play !
-				# launch ball
-			self.reset_ball()
-			while self.gameState == 2:
-				await asyncio.sleep(0.016)	# 0.16 -> 60Hz
-				async with self.mut_lock:
-					data = self.compute_game()
-				await player_channel.group_send(self.lobby_id, data)
-			await player_channel.group_send(
-				self.lobby_id, {
-					"type": "game_finish",
-					"content": f"{self.get_winner()} has winned the game."
-				}
-			)
-			self.send_result()
-			# remove from list
-		except Exception as e:
-			print(e)
-			await player_channel.group_send(self.lobby_id, {'type':'error', 'detail':'error in game loop'})
-			traceback.print_exc()
-
-	def	compute_game(self):
-		self.move_ball()
-		self.collision_logic()
-		self.check_goals()
-		self.compute_AI()
-		if self.check_winning_condition():
-			self.gameState = 3
-		return self.generate_JSON()
 
 	def set_paddle_angle(self):
 		self.players[WEST].coordinates["angle"] = -math.atan2(self.players[WEST].coordinates["y"], -self.players[WEST].coordinates["x"])
@@ -459,34 +367,6 @@ class PongLobby3D:
 			json[f"player{index}_height"] = self.players[index].coordinates["height"]
 
 		return json
-
-	def get_winner(self) -> str:
-		for i in range(self.player_num):
-			print(f"{self.players[i].player_id} won the game")
-			return self.players[i].player_id
-		return None
-
-	def post_result(self):
-		data = Dict()
-		data['game_id'] =  self.lobby_id
-		if self.gameState == 0:
-			data['status'] = 'canceled'
-			data['winner'] = self.get_winner()
-		else:
-			data['status'] = 'terminated'
-			data['winner'] = self.winner
-		try:
-			requests.post('http://matchmaking:8003/result/?format=json',
-					data=json.dumps(data),
-					headers = {
-						'Host': 'localhost',
-						'Authorization': "Bearer {0}".format(settings.API_TOKEN.decode('ASCII'))
-						}
-					)
-		except Exception as e:
-			pass
-		self.stop_game_loop()
-
 
 
 

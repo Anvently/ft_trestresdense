@@ -1,13 +1,5 @@
 import * as THREE from "https://cdn.skypack.dev/three@0.132.2";
 
-const wsRef = new WebSocket(
-	'wss://'
-	+ `${location.hostname}:8083`
-	+ `/ws/pong/11/`
-);
-
-
-
 // TODO
 	// Front-End
 		// - ball fall to the floor when out
@@ -305,6 +297,59 @@ window.onload = function() {
 	objects.paddle.push(createPaddle(0xf00000)); // West paddle
 	objects.paddle.push(createPaddle(0x0000f0)); // East paddle
 	objects.paddle.forEach(paddle => scene.add(paddle))
+
+	const wsRef = new WebSocket(
+		'wss://'
+		+ `${location.hostname}:8083`
+		+ `/ws/pong/11/`
+	);
+
+	wsRef.onmessage = function (e) {
+		const msg = JSON.parse(e.data);
+		if (msg.hasOwnProperty("type") === false)
+			return
+		else if (msg["type"] === "ping")
+			wsRef.send(JSON.stringify({type: 'join_game', username: `${user_id}`}));
+		else if (msg["type"] === "send_game_state") {
+			is_service = msg.is_service;
+			ball.x = parseFloat(msg.ball_x);
+			ball.y = parseFloat(msg.ball_y);
+			ball.r = parseFloat(msg.ball_r);
+			ball.speed.x = parseFloat(msg.ball_speed_x);
+			ball.speed.y = parseFloat(msg.ball_speed_y);
+			ball.last_hit.x = parseFloat(msg.ball_last_hit_x);
+			ball.last_hit.y = parseFloat(msg.ball_last_hit_y);
+			for (var i = 0; i < 2; i++)
+			{
+				players[i] = {
+							id: msg[`player${i}_id`],
+							points: msg[`player${i}_points`],
+							x: msg[`player${i}_x`],
+							y: msg[`player${i}_y`],
+							angle: msg[`player${i}_angle`],
+							width: msg[`player${i}_width`],
+							height: msg[`player${i}_height`]
+						
+						};
+			}
+			console.log("msg = ", msg)
+			draw_3d();
+		}
+	}
+
+	setInterval(() => {
+		if (pressKey.key_up === true)
+			wsRef.send(JSON.stringify({type: 'key_input', username:user_id,  input: "up" }));
+		if (pressKey.key_down === true)
+			wsRef.send(JSON.stringify({type: 'key_input', username:user_id,  input: "down" }));
+		if (pressKey.key_left === true)
+			wsRef.send(JSON.stringify({type: 'key_input', username:user_id,  input: "left" }));
+		if (pressKey.key_right === true)
+			wsRef.send(JSON.stringify({type: 'key_input', username:user_id,  input: "right" }));
+	}, 15);
+	
+	
+
 };
 
 
@@ -559,39 +604,6 @@ function parabolic_z(x, x1, z1, x2, z2, height) {
 }
 
 
-wsRef.onmessage = function (e) {
-	const msg = JSON.parse(e.data);
-	if (msg.hasOwnProperty("type") === false)
-		return
-	else if (msg["type"] === "ping")
-		wsRef.send(JSON.stringify({type: 'join_game', username: `${user_id}`}));
-	else if (msg["type"] === "send_game_state") {
-		is_service = msg.is_service;
-		ball.x = parseFloat(msg.ball_x);
-		ball.y = parseFloat(msg.ball_y);
-		ball.r = parseFloat(msg.ball_r);
-		ball.speed.x = parseFloat(msg.ball_speed_x);
-		ball.speed.y = parseFloat(msg.ball_speed_y);
-		ball.last_hit.x = parseFloat(msg.ball_last_hit_x);
-		ball.last_hit.y = parseFloat(msg.ball_last_hit_y);
-		for (var i = 0; i < 2; i++)
-		{
-			players[i] = {
-						id: msg[`player${i}_id`],
-						points: msg[`player${i}_points`],
-						x: msg[`player${i}_x`],
-						y: msg[`player${i}_y`],
-						angle: msg[`player${i}_angle`],
-						width: msg[`player${i}_width`],
-						height: msg[`player${i}_height`]
-					
-					};
-		}
-		console.log("msg = ", msg)
-		draw_3d();
-	}
-}
-
 // INPUT ///////////////////////////////////////
 var pressKey = {
 	key_up: false,
@@ -621,16 +633,5 @@ window.addEventListener("keyup", e => {
 	else if (e.key === "ArrowRight") 
 		pressKey.key_right = false;
 });
-
-setInterval(() => {
-	if (pressKey.key_up === true)
-		wsRef.send(JSON.stringify({type: 'key_input', username:user_id,  input: "up" }));
-	if (pressKey.key_down === true)
-		wsRef.send(JSON.stringify({type: 'key_input', username:user_id,  input: "down" }));
-	if (pressKey.key_left === true)
-		wsRef.send(JSON.stringify({type: 'key_input', username:user_id,  input: "left" }));
-	if (pressKey.key_right === true)
-		wsRef.send(JSON.stringify({type: 'key_input', username:user_id,  input: "right" }));
-}, 15);
 
 

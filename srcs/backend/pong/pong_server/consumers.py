@@ -6,7 +6,10 @@ import asyncio
 from django.conf import settings
 from channels.generic.websocket import AsyncWebsocketConsumer, AsyncJsonWebsocketConsumer
 from pong_server.authentication import verify_jwt
-from pong_server.game import PongLobby, lobbys_list
+from pong_server.pong2d import PongLobby2D
+from pong_server.pong3d import PongLobby3D
+from pong_server.game import PongLobby
+from typing import Dict, Any, List
 
 def verify_jwt(token, is_ttl_based=False, ttl_key="exp"):
 	data = jwt.decode(token, settings.RSA_PUBLIC_KEY, algorithms=["RS512"])
@@ -45,6 +48,11 @@ Check when last consumer disconnect
 
 """
 
+def check_lobby_id(id:str) -> bool:
+		if id in lobbys_list:
+			return True
+		return False
+
 class PongConsumer(AsyncJsonWebsocketConsumer):
 
 	def __init__(self, *args, **kwargs):
@@ -72,7 +80,7 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 
 	def	_is_valid_client(self) -> bool:
 		self.lobby_id = self.scope['url_route']['kwargs']["lobby_id"]
-		if PongLobby.check_lobby_id(self.lobby_id) == False:
+		if check_lobby_id(self.lobby_id) == False:
 			self.scope['error'] = "invalid lobby"
 			self.scope['error_code'] = 4003
 			return False
@@ -158,3 +166,18 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 
 	async def info_message(self, content):
 		await self.send_json(content)
+
+lobbys_list : Dict[str, Any] = dict()
+lobbys_list["10"] = PongLobby2D(
+	lobby_id="10",
+	players_list=["P1", "P2"],
+	settings={'lives':100},
+	# players_list=["P1", "!AI1"],
+	tournId=None
+)
+lobbys_list["11"] = PongLobby3D(
+	lobby_id="11",
+	players_list=["P1", "P2"],
+	# players_list=["P1", "!AI1"],
+	tournId=None,settings={'lives':100}
+)
