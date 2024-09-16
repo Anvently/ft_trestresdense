@@ -91,6 +91,7 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 	
 	async def connect(self):
 		await self.accept()
+		print(self.scope)
 		if self._is_valid_client():
 			await self.channel_layer.group_add(self.lobby_id, self.channel_name)
 		else:

@@ -10,13 +10,10 @@ const wsRef = new WebSocket(
 
 // TODO
 	// Front-End
-		// - ball fall to the floor when out
 		// - ping pong sound
 		// - lighting
 	// Back-End
 		// - AI
-		// - ball speed
-		// - revoir le goal_check, notifier le front end quand la ball est out pour eviter le rebond dans le vide 
 
 
 
@@ -450,7 +447,7 @@ function set_ball_height() {
 
 	if (is_service)
 		return 1;
-    else if (passedReboundLine) {
+    else if (passedReboundLine && !ball.is_out) {
         xStart = isEast ? REBOUND_LINE_X : -REBOUND_LINE_X;
         zStart = 0;
         xEnd = (isEast ? REBOUND_FAR_OUT * ball.speed.x * 10 + 1 : REBOUND_FAR_OUT * ball.speed.x * 10 - 1);
@@ -574,6 +571,7 @@ wsRef.onmessage = function (e) {
 		ball.speed.y = parseFloat(msg.ball_speed_y);
 		ball.last_hit.x = parseFloat(msg.ball_last_hit_x);
 		ball.last_hit.y = parseFloat(msg.ball_last_hit_y);
+		ball.is_out = msg.ball_is_out;
 		for (var i = 0; i < 2; i++)
 		{
 			players[i] = {
@@ -587,7 +585,6 @@ wsRef.onmessage = function (e) {
 					
 					};
 		}
-		console.log("msg = ", msg)
 		draw_3d();
 	}
 }
