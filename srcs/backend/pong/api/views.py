@@ -5,7 +5,8 @@ from rest_framework.response import Response
 from rest_framework.parsers import JSONParser
 from api.serializers import GameSerializer, LobbyResultSerializer, ScoreSerializer
 from pong_server.authentication import ApiJWTAuthentication, IsApiAuthenticatedAs
-from pong_server.game import lobbys_list, PongLobby
+from pong_server.game import PongLobby
+from pong_server.consumers import lobbys_list
 
 class PostGameView(APIView):
 	parser_classes = [JSONParser,]

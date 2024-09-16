@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from pong_server.game import PongLobby, lobbys_list
+from pong_server.game import PongLobby
+from pong_server.consumers import lobbys_list
 from typing import Dict, List, Any
 
 class GameSettingsSerializer(serializers.Serializer):
