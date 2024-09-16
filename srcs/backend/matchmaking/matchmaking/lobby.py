@@ -23,9 +23,9 @@ def generate_id(public):
 
 
 class Lobby():
-	def __init__(self, hostname, name, lives=3, player_num = 2 , type='classic', public: bool = True) -> None:
+	def __init__(self, hostname, name, lives=3, player_num = 2 , type='classic', public: bool = True, **kwargs) -> None:
 		self.hostname = hostname
-		self.check_rules(lives, player_num, type)
+		# self.check_rules(lives, player_num, type)
 		self.lobby_name = name
 		self.id = generate_id(public)
 		self.players: List[str]
@@ -33,6 +33,10 @@ class Lobby():
 		self.players[0] = hostname
 		self.public = public
 		self.started = False
+		self.tournament = kwargs.get('tournament', None)
+		self.lives = lives
+		self.game_type = type
+		self.player_num = player_num
 
 	def add_player(self, player_id):
 		if len(self.players) == self.player_num:
@@ -55,3 +59,5 @@ class Lobby():
 		self.game_type = type
 		self.player_num = player_num
 		self.lives = lives
+
+lobbies: Dict[str, Lobby] = {}

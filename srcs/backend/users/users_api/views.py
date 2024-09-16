@@ -5,7 +5,7 @@ from rest_framework import mixins
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated
 from rest_framework.parsers import JSONParser
 from rest_framework.response import Response
-from users_api.models import User, Lobby, Score, Turnament
+from users_api.models import User, Lobby, Score, Tournament
 from users_api.serializers import UserSerializer, LobbySerializer, ScoreSerializer, \
 		UserCreationSerializer, TurnamentSerializer
 from users_api.authentication import CookieUserJWTAuthentication, HeaderUserJWTAuthentication, \
@@ -37,7 +37,7 @@ class LobbyViewSet(viewsets.ReadOnlyModelViewSet):
 class TurnamentViewSet(viewsets.ReadOnlyModelViewSet):
 	serializer_class = TurnamentSerializer
 	lookup_field = "turnament_id"
-	queryset = Turnament.objects.all()
+	queryset = Tournament.objects.all()
 
 class ScoreViewSet(viewsets.ReadOnlyModelViewSet):
 	serializer_class = ScoreSerializer

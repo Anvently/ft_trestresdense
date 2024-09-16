@@ -8,7 +8,7 @@ from typing import List, Dict, Set, Tuple, Any
 import uuid
 import base64
 from matchmaking.lobby import Lobby
-from matchmaking.turnament import Turnament
+from matchmaking.tournament import Tournament
 
 def verify_jwt(token, is_ttl_based=False, ttl_key="exp"):
 	data = jwt.decode(token, settings.RSA_PUBLIC_KEY, algorithms=["RS512"])
@@ -56,7 +56,7 @@ async def jsonize_player(player_id):
 """
 Status:
 	- waiting for a lobby
-	- in lobby => turnament or not
+	- in lobby => tournament or not
 	- in game
  """
 

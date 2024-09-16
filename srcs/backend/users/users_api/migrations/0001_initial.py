@@ -28,10 +28,10 @@ class Migration(migrations.Migration):
             ],
         ),
         migrations.CreateModel(
-            name='Turnament',
+            name='Tournament',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('turnament_id', models.BigIntegerField(unique=True, verbose_name='turnament unique id')),
+                ('turnament_id', models.BigIntegerField(unique=True, verbose_name='tournament unique id')),
                 ('game_name', models.CharField(max_length=50)),
                 ('date', models.DateTimeField(auto_now_add=True)),
                 ('number_players', models.SmallIntegerField()),
@@ -79,7 +79,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name='lobby',
-            name='turnament',
-            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, related_name='lobbys_set', to='users_api.turnament', verbose_name='corresponding turnament'),
+            name='tournament',
+            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, related_name='lobbys_set', to='users_api.tournament', verbose_name='corresponding tournament'),
         ),
     ]
