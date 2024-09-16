@@ -39,7 +39,7 @@ START_POS = [{"x": -TABLE_LENGHT / 2 + PADDLE_THICKNESS / 2, "y": 0, "angle": ma
 			{"x": TABLE_LENGHT / 2 - PADDLE_THICKNESS / 2, "y": 0, "angle": 0,"width": PADDLE_THICKNESS,"height": PADDLE_LENGTH,},
 			]
 
-BALL_START = {"x": 0, "y": 0, "r": BALL_RADIUS, "speed": {"x": 0, "y": 0}, "last_hit": {"x": 0, "y": 0}}
+BALL_START = {"x": 0, "y": 0, "r": BALL_RADIUS, "speed": {"x": 0, "y": 0}, "last_hit": {"x": 0, "y": 0}, "is_out": False}
 
 
 class Player3D(Player):
@@ -172,6 +172,8 @@ class PongLobby3D(PongLobby):
 			self.ball['y'] += self.ball["speed"]['y']
 
 	def	collision_logic(self):
+		if self.ball["is_out"] == True:
+			return
 		if self.ball["x"] < PADDLE_MAX_X[0] + 0.1 and self.ball["last_hit"]["x"] >= 0: # -0.1 and + 0.1 si jamais la raquette est sur sa limite et un bout depasse du fait de l'angle de la raquette	
 			direction = WEST
 		elif self.ball["x"] > PADDLE_MIN_X[1] - 0.1 and self.ball["last_hit"]["x"] <= 0:
@@ -249,26 +251,22 @@ class PongLobby3D(PongLobby):
 		self.ball["speed"]["y"] = speed * math.sin(angle)
 
 
-# PADDLE_MAX_X = [-0.8, 1.2]
-# PADDLE_MIN_X = [-1.2, 0.8]
-# 	def check_goals(self):
+	def check_missed_rebound(self):
+		if self.ball["speed"]["x"] > 0: #going east
+			rebound_line = ((REBOUND_LINE_X, 5), (REBOUND_LINE_X, -5))
+		else:
+			rebound_line = ((-REBOUND_LINE_X, 5), (-REBOUND_LINE_X, -5))
 
-# 		# for both directions
-# 			# if ball is between net and rebound line
-# 			# 	AND is not on the table on the y axis
-# 				# ball is out
-# 			# elif ball is after paddle max depth
-# 				# ball is out
+		ball_trajectory = ((self.ball["x"], self.ball["y"]), (self.ball["x"] + self.ball["speed"]["x"], self.ball["y"] + self.ball["speed"]["y"]))
+		isIntersect, interX, interY = line_intersection(rebound_line, ball_trajectory)
 
-# 		if self.ball["x"] > 
+		print("is intersect = ", isIntersect)
+		print("interX = ", interX)
+		print("interY = ", interY)
 
-# 		# ball is beyond WEST rebound line
-# 		if self.ball["x"] < -REBOUND_LINE_X and self.ball["speed"]["x"] < 0:
-# 			if self.ball["x"] < PADDLE_MIN_X - 0.1
-
-# 			if self.ball["y"] < 0.5 and 
-# 		# ball is beyond EAST rebound line
-# 		elif self.ball["x"] > REBOUND_LINE_X and self.ball["speed"]["x"] > 0:
+		if isIntersect and not -0.5 < interY < 0.5:
+			print ("ball is out")
+			self.ball["is_out"] = True
 
 
 
@@ -332,6 +330,8 @@ class PongLobby3D(PongLobby):
 		self.ball["speed"]["x"] = MIN_SPEED * self.service_direction
 		self.ball["speed"]["y"] = 0
 
+		self.ball["is_out"] = False
+
 		self.players[WEST].coordinates["x"] = -TABLE_LENGHT/2 - 0.1
 		self.players[WEST].coordinates["y"] = 0
 		self.players[EAST].coordinates["x"] = TABLE_LENGHT/2 + 0.1
@@ -354,6 +354,7 @@ class PongLobby3D(PongLobby):
 			"ball_speed_y": self.ball["speed"]["y"],
 			"ball_last_hit_x": self.ball["last_hit"]["x"],
 			"ball_last_hit_y": self.ball["last_hit"]["y"],
+			"ball_is_out": self.ball["is_out"],
 			"is_service": self.is_service
 		}
 

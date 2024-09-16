@@ -2,13 +2,10 @@ import * as THREE from "https://cdn.skypack.dev/three@0.132.2";
 
 // TODO
 	// Front-End
-		// - ball fall to the floor when out
 		// - ping pong sound
 		// - lighting
 	// Back-End
 		// - AI
-		// - ball speed
-		// - revoir le goal_check, notifier le front end quand la ball est out pour eviter le rebond dans le vide 
 
 
 
@@ -337,6 +334,8 @@ window.onload = function() {
 		}
 	}
 
+	
+
 	setInterval(() => {
 		if (pressKey.key_up === true)
 			wsRef.send(JSON.stringify({type: 'key_input', username:user_id,  input: "up" }));
@@ -495,7 +494,7 @@ function set_ball_height() {
 
 	if (is_service)
 		return 1;
-    else if (passedReboundLine) {
+    else if (passedReboundLine && !ball.is_out) {
         xStart = isEast ? REBOUND_LINE_X : -REBOUND_LINE_X;
         zStart = 0;
         xEnd = (isEast ? REBOUND_FAR_OUT * ball.speed.x * 10 + 1 : REBOUND_FAR_OUT * ball.speed.x * 10 - 1);
@@ -602,6 +601,7 @@ function parabolic_z(x, x1, z1, x2, z2, height) {
 		return a2 * ((x - xMid) ** 2) + k;
 	}
 }
+
 
 
 // INPUT ///////////////////////////////////////
