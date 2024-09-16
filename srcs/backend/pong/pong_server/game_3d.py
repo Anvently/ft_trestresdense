@@ -39,7 +39,7 @@ BALL_START = {"x": 0.5, "y": 0.5, "r": BALL_RADIUS, "speed": {"x": 0, "y": 0}}
 # test AI
 # ai_direction = EAST
 
-class Player:
+class Player3D:
 	def __init__(self, player_id, position, lives=0, type='wall'):
 		self.type = type
 		self.player_id = player_id
@@ -114,7 +114,7 @@ class Player:
 				else:
 					fspeed_y *= -1 
 
-class PongLobby:
+class PongLobby3D:
 	service_direction = 0
 
 	def __init__(self, lobby_id: str, players_list: List[str], lifes,  tournId=None) -> None:
@@ -123,13 +123,13 @@ class PongLobby:
 		if tournId:
 			self.tournId = tournId
 		self.ball = None
-		self.players: List[Player] = []
+		self.players: List[Player3D] = []
 		self.match_id_pos = {}
 		for i in range(len(players_list)):
-			self.players.append(Player(players_list[i], i, lifes, 'player'))
+			self.players.append(Player3D(players_list[i], i, lifes, 'player3D'))
 			self.match_id_pos[players_list[i]] = i
 		for i in range(self.player_num, 4):
-			self.players.append(Player('!wall', i))
+			self.players.append(Player3D('!wall', i))
 		self.ball = BALL_START
 		self.gameState = 0
 		self.mut_lock = asyncio.Lock()
@@ -149,7 +149,7 @@ class PongLobby:
 
 	def check_user(self, username:str):
 		"""Check that the user belong to the lobby"""
-		if username in [player.player_id for player in self.players]:
+		if username in [player3D.player_id for player3D in self.players]:
 			return True
 		return False
 
@@ -190,7 +190,7 @@ class PongLobby:
 		# API call to send result to matchmaking
 			# -> gameState == 3 match was played -> get stats in self and send them
 			# -> gameState == 0 game was canceled
-		# should the matchmaking delete the PongLobby upon receiving the result ?
+		# should the matchmaking delete the PongLobby3D upon receiving the result ?
 
 	""" 
 	 add end game
@@ -202,7 +202,7 @@ class PongLobby:
 		position = self.match_id_pos[player_id]
 
 		# check if sender is not alive
-		if self.players[position].type != "player":
+		if self.players[position].type != "player3D":
 			return
 
 		if input == "up":
@@ -231,7 +231,7 @@ class PongLobby:
 					self.gameState = 1
 			if self.gameState == 0:
 				await player_channel.group_send(self.lobby_id, {"type": "cancel",
-																"message": "A player failed to load"
+																"message": "A player3D failed to load"
 																})
 				self.send_result()
 				self.loop.cancel()
@@ -293,18 +293,18 @@ class PongLobby:
 		self.paddle_collision()
 
 	def wall_collision(self):
-		if self.players[NORTH].type != "player" and self.ball['y'] - BALL_RADIUS <= 0 and self.ball["speed"]['y'] < 0:
+		if self.players[NORTH].type != "player3D" and self.ball['y'] - BALL_RADIUS <= 0 and self.ball["speed"]['y'] < 0:
 			self.ball["speed"]['y'] *= -1
-		elif self.players[SOUTH].type != "player" and self.ball['y'] + BALL_RADIUS >= 1 and self.ball["speed"]['y'] > 0:
+		elif self.players[SOUTH].type != "player3D" and self.ball['y'] + BALL_RADIUS >= 1 and self.ball["speed"]['y'] > 0:
 			self.ball["speed"]['y'] *= -1
-		elif self.players[WEST].type != "player" and self.ball['x'] - BALL_RADIUS <= 0 and self.ball["speed"]['x'] < 0:
+		elif self.players[WEST].type != "player3D" and self.ball['x'] - BALL_RADIUS <= 0 and self.ball["speed"]['x'] < 0:
 			self.ball["speed"]['x'] *= -1
-		elif self.players[EAST].type != "player" and self.ball['x'] + BALL_RADIUS >= 1 and self.ball["speed"]['x'] > 0:
+		elif self.players[EAST].type != "player3D" and self.ball['x'] + BALL_RADIUS >= 1 and self.ball["speed"]['x'] > 0:
 			self.ball["speed"]['x'] *= -1
 
 	def paddle_collision(self):
 		for direction in range(0, self.player_num):
-			if self.players[direction].type == "player":
+			if self.players[direction].type == "player3D":
 				if self.rectCircleCollision(self.players[direction].coordinates['x'] - self.players[direction].coordinates['width'] / 2,
 										self.players[direction].coordinates['y'] - self.players[direction].coordinates['height'] / 2,
 										self.players[direction].coordinates['width'],
@@ -356,19 +356,19 @@ class PongLobby:
 	def check_goals(self):
 		#meh, pue un peu la merde dans le cas des buts marques tres pres du bord
 		goal_scored = False
-		if self.ball['x'] < 0 and self.players[WEST].type == "player":
+		if self.ball['x'] < 0 and self.players[WEST].type == "player3D":
 			self.players[WEST].lives -= 1
 			print(f"WEST lost a life, {self.players[WEST].lives} remaining")
 			goal_scored = True
-		elif self.ball['x'] > 1 and self.players[EAST].type == "player":
+		elif self.ball['x'] > 1 and self.players[EAST].type == "player3D":
 			self.players[EAST].lives -= 1
 			print(f"EAST lost a life, {self.players[EAST].lives} remaining")
 			goal_scored = True
-		elif self.ball['y'] < 0 and self.players[NORTH].type == "player":
+		elif self.ball['y'] < 0 and self.players[NORTH].type == "player3D":
 			self.players[NORTH].lives -= 1
 			print(f"NORTH lost a life, {self.players[NORTH].lives} remaining")
 			goal_scored = True
-		elif self.ball['y'] > 1 and self.players[SOUTH].type == "player":
+		elif self.ball['y'] > 1 and self.players[SOUTH].type == "player3D":
 			self.players[SOUTH].lives -= 1
 			print(f"SOUTH lost a life, {self.players[SOUTH].lives} remaining")
 			goal_scored = True
@@ -398,30 +398,30 @@ class PongLobby:
 		self.ball["speed"]["x"] = speed * math.cos(service_angle)
 		self.ball["speed"]["y"] = speed * math.sin(service_angle)
 
-	# change service direction to next live player
+	# change service direction to next live player3D
 	def update_service_direction(self):
 		while True:
 			self.service_direction +=1
 			if self.service_direction >= self.player_num:
 				self.service_direction = 0
-			if self.players[self.service_direction].type == "player":
+			if self.players[self.service_direction].type == "player3D":
 				break
 
 	def check_eliminated_players(self):
 		for direction in range(0, self.player_num):
 			if self.players[direction].lives == 0 and self.players[direction].type != "eliminated_player":
-				# eliminate player
+				# eliminate player3D
 				self.players[direction].type = "eliminated_player"
 				self.players[direction].coordinates["x"] = 0
 				self.players[direction].coordinates["y"] = 0
 				self.players[direction].coordinates["width"] = 0
 				self.players[direction].coordinates["height"] = 0
-				print(f"Player {self.players[direction].player_id} has been eliminated")
+				print(f"Player3D {self.players[direction].player_id} has been eliminated")
 
 	def check_winning_condition(self) -> bool:
 		count = 0
 		for direction in range(0, self.player_num):
-			if self.players[direction].type == "player":
+			if self.players[direction].type == "player3D":
 				count += 1
 		return count == 1
 
@@ -437,17 +437,17 @@ class PongLobby:
 		}
 
 		for index in range(self.player_num):
-			json[f"player{index}_type"] = self.players[index].type
-			json[f"player{index}_lives"] = self.players[index].lives
-			json[f"player{index}_x"] = self.players[index].coordinates['x']
-			json[f"player{index}_y"] = self.players[index].coordinates['y']
-			json[f"player{index}_width"] = self.players[index].coordinates['width']
-			json[f"player{index}_height"] = self.players[index].coordinates['height']
+			json[f"player3D{index}_type"] = self.players[index].type
+			json[f"player3D{index}_lives"] = self.players[index].lives
+			json[f"player3D{index}_x"] = self.players[index].coordinates['x']
+			json[f"player3D{index}_y"] = self.players[index].coordinates['y']
+			json[f"player3D{index}_width"] = self.players[index].coordinates['width']
+			json[f"player3D{index}_height"] = self.players[index].coordinates['height']
 		return json
 
 	def get_winner(self) -> str:
 		for i in range(self.player_num):
-			if self.players[i].type == 'player':
+			if self.players[i].type == 'player3D':
 				print(f"{self.players[i].player_id} won the game")
 				return self.players[i].player_id
 		return None
@@ -474,16 +474,3 @@ class PongLobby:
 		self.stop_game_loop()
 
 
-
-
-
-lobbys_list : Dict[str, PongLobby] = dict()
-lobbys_list["10"] = PongLobby(
-	lobby_id="10",
-	# players_list=["Player", "!AI1", "!AI2", "!AI3"],
-	# players_list=["P1", "P2", "P3"],
-	# players_list=["P1", "P2"],
-	players_list=["!AI1", "!AI2"],
-	lifes=100,
-	tournId=None
-)

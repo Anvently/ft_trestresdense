@@ -10,7 +10,7 @@ from typing import List, Dict, Any, Tuple
 import json
 from django.conf import settings
 import traceback
-
+from pong_server.game_3d import PongLobby3D
 
 # Constants
 TABLE_LENGHT = 9 / 5
@@ -101,7 +101,8 @@ class PongLobby:
 	service_count = 0
 	is_service = True
 
-	def __init__(self, lobby_id: str, players_list: List[str],  tournId=None) -> None:
+	def __init__(self, lobby_id: str, players_list: List[str],  tournId=None, settings: Dict[str, Any] = None) -> None:
+		self.settings = settings
 		self.lobby_id = lobby_id
 		self.player_num = len(players_list)
 		if tournId:
@@ -605,9 +606,15 @@ def segments_intersect(p1, q1, p2, q2):
 
 
 
-lobbys_list : Dict[str, PongLobby] = dict()
+lobbys_list : Dict[str, Any] = dict()
 lobbys_list["10"] = PongLobby(
 	lobby_id="10",
+	players_list=["P1", "P2"],
+	# players_list=["P1", "!AI1"],
+	tournId=None
+)
+lobbys_list["11"] = PongLobby3D(
+	lobby_id="11",
 	players_list=["P1", "P2"],
 	# players_list=["P1", "!AI1"],
 	tournId=None
