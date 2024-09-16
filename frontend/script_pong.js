@@ -34,9 +34,13 @@ const scene = new THREE.Scene();
 
 // CAMERA
 // FOV, ratio, near clipping, far clipping
-const camera = new THREE.PerspectiveCamera( 75, 1, 0.1, 1000);
-camera.position.z = 8;
-camera.position.y = -5;
+// const camera = new THREE.PerspectiveCamera( 75, 1, 0.1, 1000);
+// camera.position.z = 8;
+// camera.position.y = -5;
+// camera.lookAt(0, 0, 0);
+
+const camera = new THREE.PerspectiveCamera( 179, 1, 0.1, 100);
+camera.position.z = 0.1;
 camera.lookAt(0, 0, 0);
 
 // LIGHT
@@ -107,6 +111,7 @@ scene.add(plane);
 
 
 
+
 const paddles = [];
 	
 function create_paddles(number_of_players)
@@ -121,12 +126,12 @@ function create_paddles(number_of_players)
 		paddle.receiveShadow = true;
 
 		paddles.push(paddle);
+		console.log("create paddle");
 		scene.add(paddle);
 	}
-	console.log("create paddles");
 }
 
-create_paddles(2);
+create_paddles(4);
 
 ///////////////////////////////////////////////////
 
@@ -189,7 +194,7 @@ window.onload = function() {
 
 function draw_3d()
 {
-	console.log(number_of_players)
+	// console.log(number_of_players)
 	sphere.position.x = ball.x * 10 - 5;
 	sphere.position.y = ball.y * 10 - 5;
 	for (var dir = 0; dir < number_of_players; dir++)
