@@ -11,88 +11,74 @@ import json
 from django.conf import settings
 import traceback
 
-
 # Constants
-PADDLE_LENGTH = 0.16
-PADDLE_THICKNESS = 0.02
-PLAYER_SPEED = 0.016
+TABLE_LENGHT = 9 / 5
 
-BALL_RADIUS = 0.015
-BALL_SERVICE_SPEED = 0.005
-BALL_SPEED = 0.01
-MAX_SPEED = 0.04		#must be less than 2*BALL_RADIUS + PADDLE_THICKNESS to avoid the ball passing through
+PADDLE_MAX_X = [-0.8, 1.2]
+PADDLE_MIN_X = [-1.2, 0.8]
+PADDLE_MAX_Y = [1, 1,]
+PADDLE_MIN_Y = [-1, -1]
+PADDLE_LEFT_DIR = [-1, 1]
+
+PADDLE_LENGTH = 0.1
+PADDLE_THICKNESS = 0.02
+PLAYER_SPEED = 0.01
+
+BALL_RADIUS = 0.013
+MIN_SPEED = 0.02
+MAX_SPEED = 0.05		#must be less than BALL_RADIUS + PADDLE_THICKNESS to avoid the ball passing through
+
+PADDLE_REBOUND_ANGLE = (math.pi / 180) * 35
+PLAYING_FIELD_RADIUS = 2.5 #centered on the middle of the table (0,0)
+REBOUND_LINE_X = 0.4
 
 WEST = 0
 EAST = 1
-NORTH = 2
-SOUTH = 3
 
-START_POS = [{"x": PADDLE_THICKNESS / 2, 'y': 0.5, 'width': PADDLE_THICKNESS, 'height': PADDLE_LENGTH},
-			 {"x": 1 - PADDLE_THICKNESS / 2, "y": 0.5,"width": PADDLE_THICKNESS,"height": PADDLE_LENGTH,},
-			 {"x": 0.5, "y": PADDLE_THICKNESS / 2,"width": PADDLE_LENGTH,"height": PADDLE_THICKNESS},
-			 {"x": 0.5, "y":1 - PADDLE_THICKNESS / 2, "width": PADDLE_LENGTH,"height": PADDLE_THICKNESS}
-			 ]
+START_POS = [{"x": -TABLE_LENGHT / 2 + PADDLE_THICKNESS / 2, "y": 0, "angle": math.pi, 'width': PADDLE_THICKNESS, 'height': PADDLE_LENGTH},
+			{"x": TABLE_LENGHT / 2 - PADDLE_THICKNESS / 2, "y": 0, "angle": 0,"width": PADDLE_THICKNESS,"height": PADDLE_LENGTH,},
+			]
 
-BALL_START = {"x": 0.5, "y": 0.5, "r": BALL_RADIUS, "speed": {"x": 0, "y": 0}}
+BALL_START = {"x": 0, "y": 0, "r": BALL_RADIUS, "speed": {"x": 0, "y": 0}, "last_hit": {"x": 0, "y": 0}}
 
-
-# test AI
-# ai_direction = EAST
 
 class Player3D:
-	def __init__(self, player_id, position, lives=0, type='wall'):
-		self.type = type
+	def __init__(self, player_id, side):
 		self.player_id = player_id
-		self.position = position
-		self.lives = lives
-		self.coordinates = START_POS[position]
+		self.side = side
+		self.points = 0
+		self.coordinates = START_POS[side]
 		self.has_joined = 0
 
 		# AI specific variables
 		self.last_time = int(time.time())
-		self.destination = 0.5
+		self.destination = {"x": 0, "y": 0}
 
-	######### AI ##############
 	def AI_behavior(self, ballX, ballY, ballSpeedX, ballSpeedY) -> str:
 		if int(time.time()) != self.last_time:
 			self.calculate_destination(ballX, ballY, ballSpeedX, ballSpeedY)
 			self.last_time = int(time.time())
 		
-		if self.position == WEST or self.position == EAST:
-			position = self.coordinates["y"]
-		else:
-			position = self.coordinates["x"]
-
-		if self.position == WEST or self.position == EAST:
-			position = self.coordinates["y"]
-			if self.destination < position - PLAYER_SPEED:
-				return "up"
-			elif self.destination > position + PLAYER_SPEED:
-				return "down"
-		else:
-			position = self.coordinates["x"]
-			if self.destination < position - PLAYER_SPEED:
-				return "up"
-			elif self.destination > position + PLAYER_SPEED:
-				return "down"
+		position = self.coordinates["y"]
+		if self.destination["y"] < position - PLAYER_SPEED:
+			if self.side == WEST:
+				return "right"
+			else:
+				return "left"
+		elif self.destination["y"] > position + PLAYER_SPEED:
+			if self.side == WEST:
+				return "left"
+			else:
+				return "right"
 		return ""
-
+	
 	def calculate_destination(self, ballX, ballY, ballSpeedX, ballSpeedY):
-		self.destination = 0.5
-		if self.position == WEST and ballSpeedX < 0 or self.position == EAST and ballSpeedX > 0 or self.position == NORTH and ballSpeedY < 0 or self.position == SOUTH and ballSpeedY > 0:
-			self.destination = self.calculate_impact(ballX, ballY, ballSpeedX, ballSpeedY)
-
-		# make the ai hit the edges of the paddle
-		# if self.destination < 0.5:
-		# 	self.destination += (PADDLE_LENGTH / 2 ) * 0.9
-		# else:
-		# 	self.destination -= (PADDLE_LENGTH / 2 ) * 0.9
-		rand = random.randint(0, 1)
-		if rand:
-			self.destination += (PADDLE_LENGTH / 2 ) * 0.9
-		else:
-			self.destination -= (PADDLE_LENGTH / 2 ) * 0.9
-
+		self.destination["x"] = 0
+		self.destination["y"] = 0
+		if self.side == WEST and ballSpeedX < 0 or self.side == EAST and ballSpeedX > 0:
+			self.destination["y"] = self.calculate_impact(ballX, ballY, ballSpeedX, ballSpeedY)
+		print(f"Player3D {self.side} new destination : {self.destination}")
+		
 
 	def calculate_impact(self, ballX, ballY, ballSpeedX, ballSpeedY):
 		fpos_x = ballX
@@ -103,21 +89,19 @@ class Player3D:
 		while True:
 			fpos_x += fspeed_x
 			fpos_y += fspeed_y
-			if not BALL_RADIUS < fpos_x < 1 - BALL_RADIUS:
-				if self.position == WEST or self.position == EAST:
-					return fpos_y
-				else:
-					fspeed_x *= -1 
-			if not BALL_RADIUS < fpos_y < 1 - BALL_RADIUS:
-				if self.position == NORTH or self.position == SOUTH:
-					return fpos_x
-				else:
-					fspeed_y *= -1 
+			if self.side == WEST and fpos_x <= self.coordinates["x"]:
+				return fpos_y
+			elif self.side == EAST and fpos_x >= self.coordinates["x"]:
+				return fpos_y
+
 
 class PongLobby3D:
-	service_direction = 0
+	service_direction = -1
+	service_count = 0
+	is_service = True
 
-	def __init__(self, lobby_id: str, players_list: List[str], lifes,  tournId=None) -> None:
+	def __init__(self, lobby_id: str, players_list: List[str],  tournId=None, settings: Dict[str, Any] = {}) -> None:
+		self.settings = settings
 		self.lobby_id = lobby_id
 		self.player_num = len(players_list)
 		if tournId:
@@ -125,11 +109,9 @@ class PongLobby3D:
 		self.ball = None
 		self.players: List[Player3D] = []
 		self.match_id_pos = {}
-		for i in range(len(players_list)):
-			self.players.append(Player3D(players_list[i], i, lifes, 'player3D'))
+		for i in range(2):
+			self.players.append(Player3D(players_list[i], i))
 			self.match_id_pos[players_list[i]] = i
-		for i in range(self.player_num, 4):
-			self.players.append(Player3D('!wall', i))
 		self.ball = BALL_START
 		self.gameState = 0
 		self.mut_lock = asyncio.Lock()
@@ -137,31 +119,11 @@ class PongLobby3D:
 		self.waiting_for = self.player_num
 		self.winner = None
 
-		##### AI TEST
-		# self.last_time = int(time.time())
-		# self.destination = 0.5
-
-
-	def check_lobby_id(id:str) -> bool:
-		if id in lobbys_list:
-			return True
-		return False
-
 	def check_user(self, username:str):
 		"""Check that the user belong to the lobby"""
-		if username in [player3D.player_id for player3D in self.players]:
+		if username in [Player3D.player_id for Player3D in self.players]:
 			return True
 		return False
-
-	# init variables
-	def init_game(self):
-		# ball initialization
-		self.ball = {
-			"x": 0.5,
-			"y": 0.5,
-			"r": BALL_RADIUS,
-			"speed": {"x": 0, "y": 0}
-		}
 
 	async def start_game_loop(self):
 		print("loop started")
@@ -193,28 +155,38 @@ class PongLobby3D:
 		# should the matchmaking delete the PongLobby3D upon receiving the result ?
 
 	""" 
-	 add end game
-	 refuse input for eliminated players
+	add end game
+	refuse input for eliminated players
 
-	   """
+	"""
+
 
 	def player_input(self, player_id, input):
-		position = self.match_id_pos[player_id]
-
-		# check if sender is not alive
-		if self.players[position].type != "player3D":
+		if player_id not in self.match_id_pos:
 			return
+		side = self.match_id_pos[player_id]
 
-		if input == "up":
-			if position == EAST or position == WEST:
-				self.players[position].coordinates['y'] = max(PADDLE_LENGTH / 2, self.players[position].coordinates['y'] - PLAYER_SPEED)
-			else:
-				self.players[position].coordinates['x'] = max(PADDLE_LENGTH / 2, self.players[position].coordinates['x'] - PLAYER_SPEED)
-		elif input == "down":
-			if position == EAST or position == WEST:
-				self.players[position].coordinates['y'] = min(1 - PADDLE_LENGTH / 2, self.players[position].coordinates['y'] + PLAYER_SPEED)
-			else:
-				self.players[position].coordinates['x'] = min(1 - PADDLE_LENGTH / 2, self.players[position].coordinates['x'] + PLAYER_SPEED)
+		# SIDE VIEW CONTROLS
+		# if input == "up":
+		# 	self.players[side].coordinates['y'] = min(PADDLE_MAX_Y[side], self.players[side].coordinates['y'] + PLAYER_SPEED)
+		# elif input == "down":
+		# 	self.players[side].coordinates['y'] = max(PADDLE_MIN_Y[side], self.players[side].coordinates['y'] - PLAYER_SPEED)
+		# elif input == "left":
+		# 	self.players[side].coordinates['x'] = max(PADDLE_MIN_X[side], self.players[side].coordinates['x'] - PLAYER_SPEED)
+		# elif input == "right":
+		# 	self.players[side].coordinates['x'] = min(PADDLE_MAX_X[side], self.players[side].coordinates['x'] + PLAYER_SPEED)
+		# self.set_paddle_angle()
+
+		# POV VIEW CONTROLS
+		if (input == "left" and side == WEST) or (input == "right" and side == EAST):
+			self.players[side].coordinates['y'] = min(PADDLE_MAX_Y[side], self.players[side].coordinates['y'] + PLAYER_SPEED)
+		elif (input == "right" and side == WEST) or (input == "left" and side == EAST):
+			self.players[side].coordinates['y'] = max(PADDLE_MIN_Y[side], self.players[side].coordinates['y'] - PLAYER_SPEED)
+		elif (input == "down" and side == WEST) or (input == "up" and side == EAST):
+			self.players[side].coordinates['x'] = max(PADDLE_MIN_X[side], self.players[side].coordinates['x'] - PLAYER_SPEED)
+		elif (input == "up" and side == WEST) or (input == "down" and side == EAST):
+			self.players[side].coordinates['x'] = min(PADDLE_MAX_X[side], self.players[side].coordinates['x'] + PLAYER_SPEED)
+		self.set_paddle_angle()
 
 
 	async def	game_loop(self):
@@ -231,7 +203,7 @@ class PongLobby3D:
 					self.gameState = 1
 			if self.gameState == 0:
 				await player_channel.group_send(self.lobby_id, {"type": "cancel",
-																"message": "A player3D failed to load"
+																"message": "A Player3D failed to load"
 																})
 				self.send_result()
 				self.loop.cancel()
@@ -267,16 +239,18 @@ class PongLobby3D:
 			await player_channel.group_send(self.lobby_id, {'type':'error', 'detail':'error in game loop'})
 			traceback.print_exc()
 
-
-
 	def	compute_game(self):
 		self.move_ball()
 		self.collision_logic()
 		self.check_goals()
-		self.compute_AI()	### AI TEST ###
+		self.compute_AI()
 		if self.check_winning_condition():
 			self.gameState = 3
 		return self.generate_JSON()
+
+	def set_paddle_angle(self):
+		self.players[WEST].coordinates["angle"] = -math.atan2(self.players[WEST].coordinates["y"], -self.players[WEST].coordinates["x"])
+		self.players[EAST].coordinates["angle"] = -math.atan2(self.players[EAST].coordinates["y"], -self.players[EAST].coordinates["x"])
 
 	def compute_AI(self):
 		for i in range(self.player_num):
@@ -284,172 +258,205 @@ class PongLobby3D:
 				input = self.players[i].AI_behavior(self.ball["x"], self.ball["y"], self.ball["speed"]["x"], self.ball["speed"]["y"])
 				self.player_input(self.players[i].player_id, input)
 
+
+
+
+
+
 	def move_ball(self):
-		self.ball['x'] += self.ball["speed"]['x']
-		self.ball['y'] += self.ball["speed"]['y']
+		if not self.is_service:
+			self.ball['x'] += self.ball["speed"]['x']
+			self.ball['y'] += self.ball["speed"]['y']
 
 	def	collision_logic(self):
-		self.wall_collision()
-		self.paddle_collision()
-
-	def wall_collision(self):
-		if self.players[NORTH].type != "player3D" and self.ball['y'] - BALL_RADIUS <= 0 and self.ball["speed"]['y'] < 0:
-			self.ball["speed"]['y'] *= -1
-		elif self.players[SOUTH].type != "player3D" and self.ball['y'] + BALL_RADIUS >= 1 and self.ball["speed"]['y'] > 0:
-			self.ball["speed"]['y'] *= -1
-		elif self.players[WEST].type != "player3D" and self.ball['x'] - BALL_RADIUS <= 0 and self.ball["speed"]['x'] < 0:
-			self.ball["speed"]['x'] *= -1
-		elif self.players[EAST].type != "player3D" and self.ball['x'] + BALL_RADIUS >= 1 and self.ball["speed"]['x'] > 0:
-			self.ball["speed"]['x'] *= -1
-
-	def paddle_collision(self):
-		for direction in range(0, self.player_num):
-			if self.players[direction].type == "player3D":
-				if self.rectCircleCollision(self.players[direction].coordinates['x'] - self.players[direction].coordinates['width'] / 2,
-										self.players[direction].coordinates['y'] - self.players[direction].coordinates['height'] / 2,
-										self.players[direction].coordinates['width'],
-										self.players[direction].coordinates['height'],
-										self.ball['x'],
-										self.ball['y'],
-										self.ball["r"]):
-					self.paddle_rebound(direction)
-
-	def paddle_rebound(self, direction):
-		# calculate the relative intersect: correspond to the relative position of ball/paddle intersection on the paddle (between -0.5 and 0.5)
-		if direction == WEST or direction == EAST:
-			relative_intersect = 0.5 - ((self.players[direction].coordinates["y"] + self.players[direction].coordinates["height"] / 2) - self.ball["y"]) / self.players[direction].coordinates["height"]
+		if self.ball["x"] < PADDLE_MAX_X[0] + 0.1 and self.ball["last_hit"]["x"] >= 0: # -0.1 and + 0.1 si jamais la raquette est sur sa limite et un bout depasse du fait de l'angle de la raquette	
+			direction = WEST
+		elif self.ball["x"] > PADDLE_MIN_X[1] - 0.1 and self.ball["last_hit"]["x"] <= 0:
+			direction = EAST
 		else:
-			relative_intersect = 0.5 + ((self.players[direction].coordinates["x"] + self.players[direction].coordinates["width"] / 2) - self.ball["x"]) / self.players[direction].coordinates["width"]
+			return
+		
+		if check_collision((self.players[direction].coordinates["x"], self.players[direction].coordinates["y"]),
+										self.players[direction].coordinates["width"],
+										self.players[direction].coordinates["height"],
+										self.players[direction].coordinates["angle"],
+										(self.ball["x"],self.ball["y"]),
+										self.ball["r"]):
+			self.is_service = False
+			# save the collision coordinates
+			self.ball["last_hit"]["x"] = self.ball["x"]
+			self.ball["last_hit"]["y"] = self.ball["y"]
+			# bounce the ball
+			self.collision_rebound()
+			# change speed
+			self.change_ball_speed()
+		
 
-		# calculate the bounce angle
-		bounce_angle = relative_intersect * (math.pi / 2)
-
-		# normalize the speed
+	def	change_ball_speed(self):
+		# normalize speed
 		speed = math.sqrt(self.ball["speed"]["x"]**2 + self.ball["speed"]["y"]**2)
+		# Accelerate the ball depending on how far from the net it has been hit
+		acceleration = abs(self.ball["last_hit"]["x"]) + 0.2 #between 0.8 and 1.4
+		new_speed = speed * acceleration
+		# check for boundaries
+		if new_speed < MIN_SPEED:
+			new_speed = MIN_SPEED
+		elif new_speed > MAX_SPEED:
+			new_speed = MAX_SPEED
+		# change ball speed
+		self.ball["speed"]["x"] *= new_speed / speed
+		self.ball["speed"]["y"] *= new_speed / speed
 
-		# if ball was at service speed, set to normal speed
-		if speed < BALL_SPEED:
-			speed = BALL_SPEED
-			# OPTIONNAL: accelerate each time the ball collides with a paddle
-		if speed < MAX_SPEED:
-			speed *= 1.1
-		self.ball["speed"]["x"] = speed * math.cos(bounce_angle)
-		self.ball["speed"]["y"] = speed * math.sin(bounce_angle)
+	# PADDLE ANGLE REFLECTION
+	def collision_rebound(self):
+		# check the concerned paddle
+		if self.ball["last_hit"]["x"] < 0:
+			direction = WEST
+		else:
+			direction = EAST
 
-		# reverse direction of ball
-		if direction == EAST:
-			self.ball["speed"]["x"] *= -1
-		elif direction == SOUTH:
-			self.ball["speed"]["y"] *= -1
+		ball_trajectory = ((self.ball["x"] + self.ball["speed"]["x"], self.ball["y"] + self.ball["speed"]["y"]), (self.ball["x"], self.ball["y"]))
+
+		x1 = self.players[direction].coordinates["x"] - (self.players[direction].coordinates["height"] / 2) * math.sin(self.players[direction].coordinates["angle"])
+		y1 = self.players[direction].coordinates["y"] - (self.players[direction].coordinates["height"] / 2) * math.cos(self.players[direction].coordinates["angle"])
+		x2 = 2 * self.players[direction].coordinates["x"] - x1
+		y2 = 2 * self.players[direction].coordinates["y"] - y1
+		paddle_segment = ((x1, y1), (x2, y2))
+		
+		isIntersect, xInter, yInter = line_intersection(ball_trajectory, paddle_segment)
+
+		relative_intersect = 0.5 - ((y2 - yInter) / (y2 - y1))
+		bounce_angle = relative_intersect * (PADDLE_REBOUND_ANGLE)
+		angle = self.players[direction].coordinates["angle"] + bounce_angle
+
+		speed = math.sqrt(self.ball["speed"]["x"]**2 + self.ball["speed"]["y"]**2)
+		self.ball["speed"]["x"] = speed * math.cos(angle)
+		self.ball["speed"]["y"] = speed * math.sin(angle)
 
 
-	def rectCircleCollision(self, rectX, rectY, width, height, circX, circY, radius):
-		closestX = max(rectX, min(circX, rectX + width))
-		closestY = max(rectY, min(circY, rectY + height))
+# PADDLE_MAX_X = [-0.8, 1.2]
+# PADDLE_MIN_X = [-1.2, 0.8]
+# 	def check_goals(self):
 
-		distanceX = circX - closestX
-		distanceY = circY - closestY
-		distanceSquared = distanceX**2 + distanceY**2
+# 		# for both directions
+# 			# if ball is between net and rebound line
+# 			# 	AND is not on the table on the y axis
+# 				# ball is out
+# 			# elif ball is after paddle max depth
+# 				# ball is out
 
-		return distanceSquared <= radius**2
+# 		if self.ball["x"] > 
+
+# 		# ball is beyond WEST rebound line
+# 		if self.ball["x"] < -REBOUND_LINE_X and self.ball["speed"]["x"] < 0:
+# 			if self.ball["x"] < PADDLE_MIN_X - 0.1
+
+# 			if self.ball["y"] < 0.5 and 
+# 		# ball is beyond EAST rebound line
+# 		elif self.ball["x"] > REBOUND_LINE_X and self.ball["speed"]["x"] > 0:
+
+
 
 	def check_goals(self):
-		#meh, pue un peu la merde dans le cas des buts marques tres pres du bord
-		goal_scored = False
-		if self.ball['x'] < 0 and self.players[WEST].type == "player3D":
-			self.players[WEST].lives -= 1
-			print(f"WEST lost a life, {self.players[WEST].lives} remaining")
-			goal_scored = True
-		elif self.ball['x'] > 1 and self.players[EAST].type == "player3D":
-			self.players[EAST].lives -= 1
-			print(f"EAST lost a life, {self.players[EAST].lives} remaining")
-			goal_scored = True
-		elif self.ball['y'] < 0 and self.players[NORTH].type == "player3D":
-			self.players[NORTH].lives -= 1
-			print(f"NORTH lost a life, {self.players[NORTH].lives} remaining")
-			goal_scored = True
-		elif self.ball['y'] > 1 and self.players[SOUTH].type == "player3D":
-			self.players[SOUTH].lives -= 1
-			print(f"SOUTH lost a life, {self.players[SOUTH].lives} remaining")
-			goal_scored = True
-
-		if goal_scored:
-			self.check_eliminated_players()
+		point_scored = False
+		# if ball is out of bound
+		if (self.ball["x"]**2 + self.ball["y"]**2) >  PLAYING_FIELD_RADIUS**2:
+			# check last_hit x to know last Player3D who touched the ball (attacking Player3D)
+			if self.ball["last_hit"]["x"] < 0:
+				attacker = WEST
+			else:
+				attacker = EAST
+			# if the ball crossed the rebound line on the table, on the defending Player3D side
+			if self.ball_rebound_on_table(not attacker):
+				# point for attacking Player3D
+				self.players[attacker].points += 1
+				point_scored = True
+				print(f"{self.players[attacker].player_id} marked a point !")
+			else:
+				# point for defending Player3D
+				self.players[not attacker].points += 1
+				point_scored = True
+				print(f"{self.players[not attacker].player_id} marked a point !")
+		# if point scored reset ball
+		if point_scored == True:
+			print(f"score is {self.players[WEST].points} to {self.players[EAST].points}")
 			self.reset_ball()
 
+	def check_winning_condition(self):
+		if self.players[0].points >= 11 and self.players[0].points >= self.players[1].points + 2:
+			print("Winner is :", self.players[0].player_id)
+			return True
+		elif self.players[1].points >= 11 and self.players[1].points >= self.players[0].points + 2:
+			print("Winner is:", self.players[1].player_id)
+			return True
+		return False
+
+	def ball_rebound_on_table(self, defender):
+		rebound_line_x = REBOUND_LINE_X
+		if defender == WEST:
+			rebound_line_x = -REBOUND_LINE_X
+
+		ball_trajectory = (((self.ball["x"] + self.ball["speed"]["x"]),(self.ball["y"] + self.ball["speed"]["y"])), ((self.ball["x"]),(self.ball["y"])))
+		rebound_line = (((rebound_line_x),(0.5)), ((rebound_line_x),(-0.5)))
+
+		isIntersect, xInter, yInter = line_intersection(ball_trajectory, rebound_line)
+
+		if isIntersect and -0.5 < yInter < 0.5:
+			return True
+		return False
+
 	def	reset_ball(self):
-		self.ball['x'] = 0.5
-		self.ball['y'] = 0.5
-		speed = BALL_SERVICE_SPEED
+		self.is_service = True
 
-		self.update_service_direction()
+		self.ball["last_hit"]['x'] = -REBOUND_LINE_X * self.service_direction
+		self.ball["last_hit"]['y'] = 0
 
-		if self.service_direction == WEST:
-			angle_modifier = math.pi
-		elif self.service_direction == EAST:
-			angle_modifier = 0
-		elif self.service_direction == NORTH:
-			angle_modifier = 3 * math.pi / 2
-		elif self.service_direction == SOUTH:
-			angle_modifier = math.pi / 2
+		self.ball['x'] =  (TABLE_LENGHT/2) * self.service_direction
+		self.ball['y'] = 0
 
-		# random service_angle between 15 and 75 degrees, centered on service direction
-		service_angle = (random.randint(15, 75) * math.pi) / 180 - math.pi / 4 + angle_modifier
-		self.ball["speed"]["x"] = speed * math.cos(service_angle)
-		self.ball["speed"]["y"] = speed * math.sin(service_angle)
+		self.ball["speed"]["x"] = MIN_SPEED * self.service_direction
+		self.ball["speed"]["y"] = 0
 
-	# change service direction to next live player3D
-	def update_service_direction(self):
-		while True:
-			self.service_direction +=1
-			if self.service_direction >= self.player_num:
-				self.service_direction = 0
-			if self.players[self.service_direction].type == "player3D":
-				break
+		self.players[WEST].coordinates["x"] = -TABLE_LENGHT/2 - 0.1
+		self.players[WEST].coordinates["y"] = 0
+		self.players[EAST].coordinates["x"] = TABLE_LENGHT/2 + 0.1
+		self.players[EAST].coordinates["y"] = 0
 
-	def check_eliminated_players(self):
-		for direction in range(0, self.player_num):
-			if self.players[direction].lives == 0 and self.players[direction].type != "eliminated_player":
-				# eliminate player3D
-				self.players[direction].type = "eliminated_player"
-				self.players[direction].coordinates["x"] = 0
-				self.players[direction].coordinates["y"] = 0
-				self.players[direction].coordinates["width"] = 0
-				self.players[direction].coordinates["height"] = 0
-				print(f"Player3D {self.players[direction].player_id} has been eliminated")
+		# alternate every 2 services
+		self.service_count += 1
+		if self.service_count >= 2:
+			self.service_count = 0
+			self.service_direction *= -1
 
-	def check_winning_condition(self) -> bool:
-		count = 0
-		for direction in range(0, self.player_num):
-			if self.players[direction].type == "player3D":
-				count += 1
-		return count == 1
 
 	def generate_JSON(self) -> Dict[str, Any]:
 		json = {
-			'type': 'send_game_state',
-			'number_of_players' : self.player_num,
-			'ball_x': self.ball['x'],
-			'ball_y': self.ball['y'],
-			'ball_r': self.ball['r'],
-			'ball_speed_x': self.ball["speed"]['x'],
-			'ball_speed_y': self.ball["speed"]['y'],
+			"type": "send_game_state",
+			"ball_x": self.ball["x"],
+			"ball_y": self.ball["y"],
+			"ball_r": self.ball["r"],
+			"ball_speed_x": self.ball["speed"]["x"],
+			"ball_speed_y": self.ball["speed"]["y"],
+			"ball_last_hit_x": self.ball["last_hit"]["x"],
+			"ball_last_hit_y": self.ball["last_hit"]["y"],
+			"is_service": self.is_service
 		}
 
-		for index in range(self.player_num):
-			json[f"player3D{index}_type"] = self.players[index].type
-			json[f"player3D{index}_lives"] = self.players[index].lives
-			json[f"player3D{index}_x"] = self.players[index].coordinates['x']
-			json[f"player3D{index}_y"] = self.players[index].coordinates['y']
-			json[f"player3D{index}_width"] = self.players[index].coordinates['width']
-			json[f"player3D{index}_height"] = self.players[index].coordinates['height']
+		for index in range(2):
+			json[f"Player3D{index}_id"] = self.players[index].player_id
+			json[f"Player3D{index}_points"] = self.players[index].points
+			json[f"Player3D{index}_x"] = self.players[index].coordinates["x"]
+			json[f"Player3D{index}_y"] = self.players[index].coordinates["y"]
+			json[f"Player3D{index}_angle"] = (self.players[index].coordinates["angle"])
+			json[f"Player3D{index}_width"] = self.players[index].coordinates["width"]
+			json[f"Player3D{index}_height"] = self.players[index].coordinates["height"]
+
 		return json
 
 	def get_winner(self) -> str:
 		for i in range(self.player_num):
-			if self.players[i].type == 'player3D':
-				print(f"{self.players[i].player_id} won the game")
-				return self.players[i].player_id
+			print(f"{self.players[i].player_id} won the game")
+			return self.players[i].player_id
 		return None
 
 	def post_result(self):
@@ -472,5 +479,122 @@ class PongLobby3D:
 		except Exception as e:
 			pass
 		self.stop_game_loop()
+
+
+
+
+##################################################### COLLISION
+
+def rotate_point(px, py, angle):
+	""" Rotate a point around the origin by the given angle. """
+	s = math.sin(angle)
+	c = math.cos(angle)
+	return px * c - py * s, px * s + py * c
+
+def rectangle_vertices(center, width, height, angle):
+	""" Get the vertices of the rectangle in its local coordinate system. """
+	half_width = width / 2
+	half_height = height / 2
+	
+	vertices = [
+		(-half_width, -half_height),
+		(half_width, -half_height),
+		(half_width, half_height),
+		(-half_width, half_height)
+	]
+	
+	rotated_vertices = [rotate_point(x, y, angle) for x, y in vertices]
+	return [(center[0] + x, center[1] + y) for x, y in rotated_vertices]
+
+def point_in_rectangle(px, py, rect_vertices):
+	""" Check if a point (px, py) is inside the given rectangle defined by its vertices. """
+	def sign(x1, y1, x2, y2, x3, y3):
+		return (x1 - x3) * (y2 - y3) - (x2 - x3) * (y1 - y3)
+
+	b1 = sign(px, py, rect_vertices[0][0], rect_vertices[0][1], rect_vertices[1][0], rect_vertices[1][1]) < 0.0
+	b2 = sign(px, py, rect_vertices[1][0], rect_vertices[1][1], rect_vertices[2][0], rect_vertices[2][1]) < 0.0
+	b3 = sign(px, py, rect_vertices[2][0], rect_vertices[2][1], rect_vertices[3][0], rect_vertices[3][1]) < 0.0
+	b4 = sign(px, py, rect_vertices[3][0], rect_vertices[3][1], rect_vertices[0][0], rect_vertices[0][1]) < 0.0
+	
+	return b1 == b2 == b3 == b4
+
+def point_circle_distance(px, py, cx, cy):
+	""" Calculate the distance between a point (px, py) and a circle's center (cx, cy). """
+	return math.sqrt((px - cx) ** 2 + (py - cy) ** 2)
+
+def check_collision(rect_center, width, height, angle, circle_center, radius):
+	rect_vertices = rectangle_vertices(rect_center, width, height, angle)
+	cx, cy = circle_center
+
+	# Check if circle's center is inside the rectangle
+	if point_in_rectangle(cx, cy, rect_vertices):
+		return True
+
+	# Check distance from circle's center to the rectangle's edges
+	for i in range(len(rect_vertices)):
+		x1, y1 = rect_vertices[i]
+		x2, y2 = rect_vertices[(i + 1) % len(rect_vertices)]
+		
+		# Compute the closest point on the edge from the circle's center
+		dx = x2 - x1
+		dy = y2 - y1
+		t = max(0, min(1, ((cx - x1) * dx + (cy - y1) * dy) / (dx * dx + dy * dy)))
+		closest_x = x1 + t * dx
+		closest_y = y1 + t * dy
+		
+		if point_circle_distance(closest_x, closest_y, cx, cy) <= radius:
+			return True
+
+	return False
+
+
+########### LINE INTERSECT
+
+def line_intersection(line1, line2):
+	xdiff = (line1[0][0] - line1[1][0], line2[0][0] - line2[1][0])
+	ydiff = (line1[0][1] - line1[1][1], line2[0][1] - line2[1][1])
+
+	def det(a, b):
+		return a[0] * b[1] - a[1] * b[0]
+
+	div = det(xdiff, ydiff)
+	if div == 0:
+		return False, 0, 0
+
+	d = (det(*line1), det(*line2))
+	x = det(d, xdiff) / div
+	y = det(d, ydiff) / div
+	return True, x, y
+
+
+def segments_intersect(p1, q1, p2, q2):
+	def cross_product(o, a, b):
+		return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+
+	def is_point_on_segment(p, seg_start, seg_end):
+		return min(seg_start[0], seg_end[0]) <= p[0] <= max(seg_start[0], seg_end[0]) and \
+			min(seg_start[1], seg_end[1]) <= p[1] <= max(seg_start[1], seg_end[1])
+
+	o1 = cross_product(p1, q1, p2)
+	o2 = cross_product(p1, q1, q2)
+	o3 = cross_product(p2, q2, p1)
+	o4 = cross_product(p2, q2, q1)
+
+	if o1 * o2 < 0 and o3 * o4 < 0:
+		return True
+	# p1, q1 and p2 are collinear and p2 lies on segment p1q1
+	if o1 == 0 and is_point_on_segment(p2, p1, q1):
+		return True
+	# p1, q1 and q2 are collinear and q2 lies on segment p1q1
+	if o2 == 0 and is_point_on_segment(q2, p1, q1):
+		return True
+	# p2, q2 and p1 are collinear and p1 lies on segment p2q2
+	if o3 == 0 and is_point_on_segment(p1, p2, q2):
+		return True
+	# p2, q2 and q1 are collinear and q1 lies on segment p2q2
+	if o4 == 0 and is_point_on_segment(q1, p2, q2):
+		return True
+	# If none of the cases
+	return False
 
 

@@ -3,7 +3,7 @@ import * as THREE from "https://cdn.skypack.dev/three@0.132.2";
 const wsRef = new WebSocket(
 	'wss://'
 	+ `${location.hostname}:8083`
-	+ `/ws/pong/10/`
+	+ `/ws/pong/11/`
 );
 
 
