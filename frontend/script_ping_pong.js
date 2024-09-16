@@ -1,9 +1,7 @@
 import * as THREE from "https://cdn.skypack.dev/three@0.132.2";
 
 const wsRef = new WebSocket(
-	'wss://'
-	+ 'localhost:8083'
-	+ `/ws/pong/10/`
+	`wss://${location.hostname}:8083/ws/pong/10/`
 );
 
 
@@ -13,9 +11,7 @@ const wsRef = new WebSocket(
 		// - ball fall to the floor when out
 		// - ping pong sound
 		// - lighting
-		// - camera
 	// Back-End
-		// - service (A REVOIR ?)
 		// - AI
 		// - ball speed
 		// - revoir le goal_check, notifier le front end quand la ball est out pour eviter le rebond dans le vide 
@@ -197,12 +193,12 @@ function create_net(group)
 scene.add(tableGroup)
 
 
-// const tableGroup2 = tableGroup.clone()
-// tableGroup2.position.y += 20
-// scene.add(tableGroup2)
-// const tableGroup3 = tableGroup.clone()
-// tableGroup3.position.y -= 20
-// scene.add(tableGroup3)
+const tableGroup2 = tableGroup.clone()
+tableGroup2.position.y += 20
+scene.add(tableGroup2)
+const tableGroup3 = tableGroup.clone()
+tableGroup3.position.y -= 20
+scene.add(tableGroup3)
 
 
 
