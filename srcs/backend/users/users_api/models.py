@@ -53,8 +53,8 @@ class	User(user_models.AbstractUser):
 		except: pass
 		return super(User, self).save(*args, **kwargs)
 	
-class	Turnament(models.Model):
-	turnament_id = models.BigIntegerField(verbose_name="turnament unique id", unique=True)
+class	Tournament(models.Model):
+	turnament_id = models.BigIntegerField(verbose_name="tournament unique id", unique=True)
 	game_name = models.CharField(max_length=50)
 	date = models.DateTimeField(auto_now_add=True, editable=False)
 	number_players = models.SmallIntegerField()
@@ -65,7 +65,7 @@ class	Turnament(models.Model):
 class	Lobby(models.Model):
 	""" 
 	Ex :
-	1598 => simple match, no turnament
+	1598 => simple match, no tournament
 	1598.0 => finale
 	1598.1.0 => 1st semi-finale
 	1598.1.1 => 2nde semi-finale
@@ -76,10 +76,10 @@ class	Lobby(models.Model):
 	lobby_id = models.CharField(max_length=64, verbose_name="lobby unique id", unique=True)
 	game_name = models.CharField(max_length=50)
 	date = models.DateTimeField(auto_now_add=True, editable=False)
-	turnament = models.ForeignKey(
-		Turnament,
+	tournament = models.ForeignKey(
+		Tournament,
 		null=True,
-		verbose_name="corresponding turnament",
+		verbose_name="corresponding tournament",
 		on_delete=models.CASCADE,
 		related_name="lobbys_set"
 	)

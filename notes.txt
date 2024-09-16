@@ -4,5 +4,4 @@ Failles possibles :
 TODO:
 	- api matchmaking to receive results
 	- turnaments
-	- spectator in pong backend
 

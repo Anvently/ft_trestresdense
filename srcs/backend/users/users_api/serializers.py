@@ -1,4 +1,4 @@
-from users_api.models import User, Score, Lobby, Turnament
+from users_api.models import User, Score, Lobby, Tournament
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
 
@@ -40,7 +40,7 @@ class ScoreSerializer(DynamicFieldsSerializer):
 	username = 	serializers.CharField(source='user.username', allow_blank=True)
 	display_name = serializers.CharField(source='user.display_name', allow_blank=True, required=False, read_only=True)
 	lobby = serializers.CharField(source='lobby.lobby_id', read_only=True)
-	turnament_id = serializers.CharField(source='lobby.turnament.turnament_id', read_only=True, allow_blank=True, required=False)
+	turnament_id = serializers.CharField(source='lobby.tournament.turnament_id', read_only=True, allow_blank=True, required=False)
 
 	class Meta:
 		model = Score
@@ -61,7 +61,7 @@ class ScoreSerializer(DynamicFieldsSerializer):
 
 class LobbySerializer(DynamicFieldsSerializer):
 	scores_set = ScoreSerializer(many=True, fields=['username', 'display_name', 'score', 'has_win',])
-	turnament_id = serializers.CharField(required=False, source='turnament.turnament_id', allow_blank=True)
+	turnament_id = serializers.CharField(required=False, source='tournament.turnament_id', allow_blank=True)
 
 	class Meta:
 		model = Lobby
@@ -73,16 +73,16 @@ class LobbySerializer(DynamicFieldsSerializer):
 			lobby_id = validated_data["lobby_id"],
 			game_name = validated_data["game_name"],
 		)
-		if 'turnament' in validated_data and 'turnament_id' in validated_data['turnament']:
+		if 'tournament' in validated_data and 'turnament_id' in validated_data['tournament']:
 				try:
-					lobby.turnament = Turnament.objects.get(turnament_id=validated_data['turnament']["turnament_id"])
+					lobby.tournament = Tournament.objects.get(turnament_id=validated_data['tournament']["turnament_id"])
 				except:
-					lobby.turnament = Turnament.objects.create(
-						turnament_id = validated_data['turnament']["turnament_id"],
+					lobby.tournament = Tournament.objects.create(
+						turnament_id = validated_data['tournament']["turnament_id"],
 						game_name = validated_data["game_name"],
 						number_players = 0,
 					)
-		else: lobby.turnament = None
+		else: lobby.tournament = None
 		lobby.save()
 		
 		scores_list = validated_data.pop('scores_set')
@@ -99,7 +99,7 @@ class TurnamentSerializer(serializers.HyperlinkedModelSerializer):
 	lobbys_set = LobbySerializer(many=True, read_only=True, fields=['lobby_id', 'scores_set',])
 
 	class Meta:
-		model = Turnament
+		model = Tournament
 		fields = ('turnament_id', 'game_name', 'date', 'number_players', 'lobbys_set',)
 
 class UserSerializer(serializers.HyperlinkedModelSerializer):
