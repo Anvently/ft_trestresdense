@@ -4,9 +4,11 @@ import asyncio
 from django.conf import settings
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 import jwt
-from typing import List, Dict, Set, Tuple
+from typing import List, Dict, Set, Tuple, Any
 import uuid
 import base64
+from matchmaking.lobby import Lobby
+from matchmaking.turnament import Turnament
 
 def verify_jwt(token, is_ttl_based=False, ttl_key="exp"):
 	data = jwt.decode(token, settings.RSA_PUBLIC_KEY, algorithms=["RS512"])
@@ -15,17 +17,7 @@ def verify_jwt(token, is_ttl_based=False, ttl_key="exp"):
 			raise ValueError("Token expired")
 	return data
 
-def generate_id(public: bool):
-	u = uuid.uuid4()
-	short_u = base64.urlsafe_b64encode(u.bytes).rstrip(b'=').decode('ascii')
-	if public:
-		short_u = 'O' + short_u
-	else:
-		short_u = 'C' + short_u
-	if short_u not in MatchMakingConsumer.public_lobbies and short_u not in MatchMakingConsumer.private_lobbies:
-		return short_u
-	else:
-		return generate_id()
+
 
 def is_in_game(username):
 	# check wether the client is already in a game/tournament
@@ -35,31 +27,22 @@ def is_in_game(username):
 	else:
 		return False
 
-class Tournament():
-	pass
 
-class Lobby():
-	def __init__(self, hostname, name, player_num=2, lifes=3, public=True ) -> None:
-		self.hostname = hostname
-		self.player_num = player_num
-		self.lifes = lifes
-		self.lobby_name = name
-		self.id = generate_id()
-		self.players: List[str]
-		self.players.append(hostname)
-		self.players[0] = hostname
-		self.public = public
-		self.started = False
 
-	def add_player(self, player_id):
-		if len(self.players) == self.player_num:
-			return False
-		self.players.append(player_id)
-		return True
+async def jsonize_lobby(lobby : Lobby):
+	lobby_data = {}
+	lobby_data['game_type'] = lobby.game_type
+	if not lobby.started:
+		lobby_data['name'] = lobby.lobby_name
+		lobby_data['host'] = lobby.hostname
+		lobby_data['slots'] = f"{len(lobby.players)}/{lobby.player_num}"
 
-	def remove_player(self, player_id):
-		if player_id in self.players:
-			self.players.remove(player_id)
+async def jsonize_player(player_id):
+	player_data = {}
+	if player_id in MatchMakingConsumer.in_game_players:
+		if MatchMakingConsumer.in_game_players[player_id]["lobby_id"][0] == 'C':
+			return None
+
 
 
 # QUESTION: est ce que on lance une boucle qui envoie une mise a jour du matchmking toutes les x secondes ou
@@ -85,9 +68,6 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 	lobbies: Dict[str, Lobby] = {}
 	# list all available tournaments
 	tournaments: dict[str, Tournament] = {}
-
-
-
 
 
 	def __init(self, *args, **kwargs):
@@ -238,6 +218,11 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 	####################################################3
 
 
+
 	async def generate_update(self):
+		data = {"games_to_join" : {}, "games_to_obs": {}, "tournaments_to-join": {},  "online_players": {}, }
 		async with MatchMakingConsumer.matchmaking_lock:
-			
+			for lobby in MatchMakingConsumer.lobbies:
+				if lobby[0] == 'O' and not MatchMakingConsumer.lobbies[lobby].started:
+					data["games_to_join"][lobby] = {}
+
