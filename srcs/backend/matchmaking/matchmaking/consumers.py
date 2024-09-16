@@ -35,6 +35,8 @@ def is_in_game(username):
 	else:
 		return False
 
+class Tournament():
+	pass
 
 class Lobby():
 	def __init__(self, hostname, name, player_num=2, lifes=3, public=True ) -> None:
@@ -65,7 +67,7 @@ class Lobby():
 # cas 1 => moins de messages, il faut mettre en place une boucle
 # cas 2 => bcp de messages, bcp de fonctions, plus simple
 
-""" 
+"""
 Status:
 	- waiting for a lobby
 	- in lobby => turnament or not
@@ -77,11 +79,13 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 	matchmaking_group = 'main_group'
 	matchmaking_lock = asyncio.Lock()
 	# list all the players online to handle invitations
-	online_players : dict[str, Tuple[int, str, str]] = {}
-	in_game_players : set[str] = set()
+	online_players : Dict[str, dict] = {}
+	in_game_players : Dict[str, dict] = {}
 	# list all available lobbies to send to front
-	lobbies: dict[str, Lobby] = {}
-	
+	lobbies: Dict[str, Lobby] = {}
+	# list all available tournaments
+	tournaments: dict[str, Tournament] = {}
+
 
 
 
@@ -92,6 +96,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		self._is_in_lobby = False
 		self._is_host = False
 		self._lobby_id = None
+		self._tournament_id = None
 		self._is_valid = False
 		self._is_in_game = False
 		super().__init__(*args, **kwargs)
@@ -119,11 +124,15 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 			return False
 		# if _is_already_connected(): => Does it make sense ?
 			# return False
-		if is_in_game(self.username):
-			self._is_in_game = True
-			return (False)
+		return True
 
-
+	def check_infos(self):
+		if self.username in MatchMakingConsumer.in_game_players:
+			MatchMakingConsumer.online_players[self.username]["in_game"] = True
+			self._lobby_id = MatchMakingConsumer.online_players[self.username]["lobby_id"] = MatchMakingConsumer.in_game_players[self.username]["lobby_id"]
+			if "tournament_id" in MatchMakingConsumer.in_game_players[self.username]:
+				MatchMakingConsumer.online_players[self.username]["tournament_id"]= MatchMakingConsumer.in_game_players[self.username]["tournament_id"]
+				self._tournament_id = MatchMakingConsumer.in_game_players[self.username]["tournament_id"]
 
 	async def connect(self):
 		await self.accept()
@@ -132,17 +141,18 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 			await self.channel_layer.group_add(MatchMakingConsumer.matchmaking_group, self.channel_name)
 			async with MatchMakingConsumer.matchmaking_lock:
 				if self.username in MatchMakingConsumer.online_players:
-					MatchMakingConsumer.online_players[self.username] += 1
+					MatchMakingConsumer.online_players[self.username]["connections"] += 1
 				else:
-					MatchMakingConsumer.online_players[self.username] = 1
+					MatchMakingConsumer.online_players[self.username] = {"connections": 1}
+					self.check_infos()
 		else:
 			await self._send_error(self.scope['error'], self.scope['error_code'], True)
 
 	async def disconnect(self, code):
 		async with MatchMakingConsumer.matchmaking_lock:
 			if self.username in MatchMakingConsumer.online_players:
-				MatchMakingConsumer.online_players[self.username] -= 1
-				if MatchMakingConsumer.online_players[self.username] >= 1:
+				MatchMakingConsumer.online_players[self.username]["connections"] -= 1
+				if MatchMakingConsumer.online_players[self.username]["connections"] >= 1:
 					return
 				else:
 					del MatchMakingConsumer.online_players[self.username]
@@ -192,7 +202,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 				await self.lobby_cancel(self._lobby_id)
 			else:
 				await self.leave_lobby(self._lobby_id)
-		
+
 
 
 	async def leave_lobby(self, content):
@@ -205,6 +215,14 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		pass
 
 
+	async def front_update(self, content):
+		if self.tournament_id:
+			await self.send_json({"type": "in_tournament"})
+			return
+		if self.is_in_game:
+			await self.send_json({"type": "in_game"})
+			return
+		await self.send_json(content)
 
 
 
@@ -218,3 +236,8 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 			del MatchMakingConsumer.lobbies[lobby_id]
 
 	####################################################3
+
+
+	async def generate_update(self):
+		async with MatchMakingConsumer.matchmaking_lock:
+			
