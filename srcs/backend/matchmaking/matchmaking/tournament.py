@@ -31,10 +31,11 @@ class Tournament:
 				'number_players': 2,
 				'settings': self.default_settings
 			}, id)
-			self.reassign_player(self.players[i], id, PlayerStatus.IN_GAME)
-			self.reassign_player(self.players[i + (self.number_players / 2)], id, PlayerStatus.IN_GAME)
+			self.reassign_player(self.players[i], id, PlayerStatus.IN_TURNAMENT_LOBBY)
+			self.reassign_player(self.players[i + (self.number_players / 2)], id, PlayerStatus.IN_TURNAMENT_LOBBY)
+			lobbies[id].init_game()
 
-	def reassign_player(self, player_id: str, lobby_id: str, new_status: int = PlayerStatus.IN_GAME):
+	def reassign_player(self, player_id: str, lobby_id: str, new_status: int = PlayerStatus.IN_TURNAMENT_LOBBY):
 		lobbies[online_players[player_id]['lobby_id']].remove_player(player_id)
 		lobbies[lobby_id].add_player(player_id)
 		online_players[player_id]['lobby_id'] = lobby_id
@@ -67,7 +68,7 @@ class Tournament:
 	def handle_result(self, results: Dict[str, Any]):
 		""" Instantiate the next lobby if any. Assign the winner
 		 to its and update loser's status. """
-		if results['state'] == 'cancelled':
+		if results['status'] == 'cancelled':
 			self.delete()
 			return
 		lobby_id:str = results['lobby_id']
@@ -84,6 +85,10 @@ class Tournament:
 				pass
 		if stage == 0: #If final match
 			self.delete() 
-			
+
+def tournament_creator(data: Dict[str, Any]):
+	tournaments[data['id']] = Tournament({
+		
+	})
 
 tournaments: Dict[str, Tournament] = []

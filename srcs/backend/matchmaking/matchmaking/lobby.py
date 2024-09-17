@@ -1,10 +1,12 @@
 import uuid
 import base64
-from matchmaking.consumers import MatchMakingConsumer
+from matchmaking.consumers import MatchMakingConsumer, online_players, PlayerStatus
 from typing import List, Dict, Set, Tuple, Any
 import json
+import requests
 from abc import abstractmethod
-
+from matchmaking.matchmaking import settings
+from tournament import tournament_creator
 
 def generate_id(public):
 	""" Soimplr => S
@@ -19,10 +21,10 @@ def generate_id(public):
 			prefix = 'O'
 	short_u = base64.urlsafe_b64encode(u.bytes).rstrip(b'=').decode('ascii')
 	short_u = prefix + short_u
-	if short_u not in MatchMakingConsumer.public_lobbies and short_u not in MatchMakingConsumer.private_lobbies:
+	if short_u not in lobbies:
 		return short_u
 	else:
-		return generate_id()
+		return generate_id(public)
 
 
 class Lobby():
@@ -58,25 +60,71 @@ class Lobby():
 			case _:
 				raise ValueError("Wrong rules")
 			
-	def init_game(self):
+	def init_game(self) -> bool:
 		""" Send HTTP request to pong backend and sent link to consumers. Update players status """
-		pass
-			
-	@abstractmethod
+		# This exception could be ignored and we could complete here missing player with bots
+		if len(self.players) != self.player_num:
+			raise Exception("Can't init game. Actual number of players does not match set number of players.")
+		# Send request
+		data = {
+			'game_id': self.id,
+			'settings': self.settings,
+			'player_list': self.players
+		}
+		try:
+			requests.post('http://pong:8002/init-game/?format=json',
+					data=json.dumps(data),
+					headers = {
+						'Host': 'localhost',
+						'Authorization': "Bearer {0}".format(settings.API_TOKEN.decode('ASCII'))
+						}
+					)
+		except Exception as e:
+			print("ERROR: Failed to post game initialization to pong api")
+			return False
+		# Update player status
+		for player in self.players:
+			online_players[player]['status'] = PlayerStatus.IN_GAME
+		# Send invitation ??
+		# !!!!!!!!!!!!!!!!!!!!!!!!!
+		# !NEED TO SEND INVITATION!
+		# !!!!!!!!!!!!!!!!!!!!!!!!!
+		return True
+	
+	def delete(self):
+		""" Delete players from online_players and remove lobby from list of lobbies """
+		for player in self.players:
+			del online_players[player]
+		del lobbies[self.id]
+
 	def handle_results(self, results: dict[str, Any]):
 		""" Simple Match: register in database
 			Turnament Match: register in database + refer to turnament instance"""
-		pass
+		if results['state'] != 'cancelled':
+			results.pop('status')
+			# results['scores_set'] = [el for el in results['scores_set'] if el['username'][0] != '!']
+			try:
+				requests.post('http://users_api:8001/post-result/?format=json',
+						data=json.dumps(results),
+						headers = {
+							'Host': 'localhost',
+							'Authorization': "Bearer {0}".format(settings.API_TOKEN.decode('ASCII'))
+							}
+						)
+			except Exception as e:
+				print("ERROR: Failed to post results to users_info")
 
-	def handle_full(self):
-		""" For turnament lobby, may be usefull to start game automatically """
-		pass
 
 class SimpleMatchLobby(Lobby):
 
 	def __init__(self, settings: Dict[str, Any]) -> None:
 		super().__init__(settings)
 		self.players.append(self.hostname)
+
+	def handle_results(self, results: Dict[str, Any]):
+		super().handle_results(results)
+		self.delete()
+	
 
 class LocalMatchLobby(SimpleMatchLobby):
 
@@ -85,7 +133,7 @@ class LocalMatchLobby(SimpleMatchLobby):
 		self.settings['public'] = False
 
 	def handle_results(self, results: Dict[str, Any]):
-		pass
+		self.delete()
 
 class TurnamentInitialLobby(Lobby):
 
@@ -99,18 +147,20 @@ class TurnamentInitialLobby(Lobby):
 
 	def handle_results(self, results: Dict[str, Any]):
 		pass
-
-	def handle_full(self):
-		pass
-
-	def start_tournament(self):
+	
+	def init_game(self) -> bool:
 		""" Create turnament instance. Turnament instance will then create lobby instances
 		 asnd assign players to them. """
-		pass
+		tournament_creator()
+		return True
+
 
 class TurnamentMatchLobby(Lobby):
 
 	def __init__(self, settings: Dict[str, Any], id:str) -> None:
 		super().__init__(settings, id)
+
+	def handle_results(self, results: Dict[str, Any]):
+		super().handle_results(results) 
 
 lobbies: Dict[str, Lobby] = {}
