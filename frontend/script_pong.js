@@ -34,14 +34,14 @@ const scene = new THREE.Scene();
 
 // CAMERA
 // FOV, ratio, near clipping, far clipping
-// const camera = new THREE.PerspectiveCamera( 75, 1, 0.1, 1000);
-// camera.position.z = 8;
-// camera.position.y = -5;
-// camera.lookAt(0, 0, 0);
-
-const camera = new THREE.PerspectiveCamera( 179, 1, 0.1, 100);
-camera.position.z = 0.1;
+const camera = new THREE.PerspectiveCamera( 75, 1, 0.1, 1000);
+camera.position.z = 8;
+camera.position.y = -5;
 camera.lookAt(0, 0, 0);
+
+// const camera = new THREE.PerspectiveCamera( 179, 1, 0.1, 100);
+// camera.position.z = 0.1;
+// camera.lookAt(0, 0, 0);
 
 // LIGHT
 
