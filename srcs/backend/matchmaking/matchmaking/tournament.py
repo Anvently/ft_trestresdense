@@ -3,16 +3,15 @@ from matchmaking.lobby import Lobby, lobbies, generate_id
 
 class Tournament:
 	def __init__(self, data: Dict[str, Any]) -> None:
-		self.game_name = data['game_name']
+		self.game_type = data['game_type']
 		self.hostname = data['hostname']
 		self.name = data.get('name', f"{self.hostname}'s tournament")
 		self.number_players = data['number_players']
 		self.default_settings = data.get('default_settings', {
 			'lives':10
 		})
-		self.public = data.get('public', True)
-		self.id = generate_id(self.public)
-		self.current_matches: List[str] = []
+		self.id = data['id']
+		# self.current_matches: List[str] = []
 
 	def validate(self):
 		if self.id in lobbies:

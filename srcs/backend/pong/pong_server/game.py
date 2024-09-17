@@ -10,6 +10,7 @@ from typing import List, Dict, Any, Tuple
 import json
 from django.conf import settings
 import traceback
+from abc import abstractmethod
 
 # Constants
 PADDLE_LENGTH = 0.16
@@ -49,15 +50,18 @@ class Player:
 		# AI specific variables
 		self.last_time = int(time.time())
 
+	@abstractmethod
 	######### AI ##############
 	def AI_behavior(self, ballX, ballY, ballSpeedX, ballSpeedY) -> str:
-		raise Exception("Please override AI_behavior().")
+		pass
 
+	@abstractmethod
 	def calculate_destination(self, ballX, ballY, ballSpeedX, ballSpeedY):
-		raise Exception("Please override calculate_destination().")
+		pass
 
+	@abstractmethod
 	def calculate_impact(self, ballX, ballY, ballSpeedX, ballSpeedY):
-		raise Exception("Please override calculate_impact().")
+		pass
 
 class PongLobby:
 
@@ -107,15 +111,17 @@ class PongLobby:
 		""" Template of player_list: ["user1", "user1_guest"] """
 		self.waiting_for += 1
 
+	@abstractmethod
 	def send_result(self):
-		raise Exception("Please override send_result()")
+		pass
 		# API call to send result to matchmaking
 			# -> gameState == 3 match was played -> get stats in self and send them
 			# -> gameState == 0 game was canceled
 		# should the matchmaking delete the PongLobby upon receiving the result ?
 
+	@abstractmethod
 	def player_input(self, player_id, input):
-		raise Exception("Please override player_input()")
+		pass
 
 	async def	game_loop(self):
 		try:
@@ -181,23 +187,29 @@ class PongLobby:
 				input = self.players[i].AI_behavior(self.ball["x"], self.ball["y"], self.ball["speed"]["x"], self.ball["speed"]["y"])
 				self.player_input(self.players[i].player_id, input)
 
+	@abstractmethod
 	def move_ball(self):
-		raise Exception("Please override player_input()")
+		pass
 
+	@abstractmethod
 	def	collision_logic(self):
-		raise Exception("Please override collision_logic()")
+		pass
 
+	@abstractmethod
 	def check_goals(self):
-		raise Exception("Please override check_goals()")
+		pass
 
+	@abstractmethod
 	def	reset_ball(self):
-		raise Exception("Please override reset_balls()")
+		pass
 
+	@abstractmethod
 	def check_winning_condition(self) -> bool:
-		raise Exception("Please override check_winning_condition()")
+		pass
 
+	@abstractmethod
 	def generate_JSON(self) -> Dict[str, Any]:
-		raise Exception("Please override generate_JSON()")
+		pass
 
 	def get_winner(self) -> str:
 		for i in range(self.player_num):

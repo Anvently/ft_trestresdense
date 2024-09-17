@@ -3,11 +3,14 @@ import base64
 from matchmaking.consumers import MatchMakingConsumer
 from typing import List, Dict, Set, Tuple, Any
 import json
-
-
+from abc import abstractmethod
 
 
 def generate_id(public):
+	""" Soimplr => S
+	 	TurnamentInit => I
+		 TournamentLobby T
+		   """
 	u = uuid.uuid4()
 	match public:
 		case False:
@@ -23,20 +26,17 @@ def generate_id(public):
 
 
 class Lobby():
-	def __init__(self, hostname, name, lives=3, player_num = 2 , type='classic', public: bool = True, **kwargs) -> None:
-		self.hostname = hostname
+	def __init__(self, settings: Dict[str, Any]) -> None:
+		self.hostname = settings.pop('hostname')
 		# self.check_rules(lives, player_num, type)
-		self.lobby_name = name
-		self.id = generate_id(public)
-		self.players: List[str]
-		self.players.append(hostname)
-		self.players[0] = hostname
-		self.public = public
+		self.name = settings.pop('name', f"{self.hostname}'s lobby")
+		self.id = generate_id(settings.get('public'))
+		self.players: List[str] = []
 		self.started = False
-		self.tournament = kwargs.get('tournament', None)
-		self.lives = lives
-		self.game_type = type
-		self.player_num = player_num
+		self.game_type = settings.pop('game_type')
+		self.player_num = settings.pop('number_players')
+		self.settings = settings
+		self.check_rules()
 
 	def add_player(self, player_id):
 		if len(self.players) == self.player_num:
@@ -48,16 +48,68 @@ class Lobby():
 		if player_id in self.players:
 			self.players.remove(player_id)
 
-	def check_rules(self, lives, player_num, type):
-		match (type, player_num, lives):
-			case("classic", x, y) if (x == 2 or x ==4) and y > 0 :
+	def check_rules(self):
+		match (self.type, self.player_num, self.settings['lives']):
+			case("classic", x, y) if (x == 2 or x == 4) and y > 0 :
 				pass
 			case("3d", 2, y) if y > 0:
 				pass
 			case _:
 				raise ValueError("Wrong rules")
-		self.game_type = type
-		self.player_num = player_num
-		self.lives = lives
+			
+	def init_game(self):
+		""" Send HTTP request to pong backend and sent link to consumers. Update players status """
+		pass
+			
+	@abstractmethod
+	def handle_results(self, results: dict[str, Any]):
+		""" Simple Match: register in database
+			Turnament Match: register in database + refer to turnament instance"""
+		pass
+
+	def handle_full(self):
+		""" For turnament lobby, may be usefull to start game automatically """
+		pass
+
+class SimpleMatchLobby(Lobby):
+
+	def __init__(self, settings: Dict[str, Any]) -> None:
+		super().__init__(settings)
+		self.players.append(self.hostname)
+
+class LocalMatchLobby(SimpleMatchLobby):
+
+	def __init__(self, settings: Dict[str, Any]) -> None:
+		super().__init__(settings)
+		self.settings['public'] = False
+
+	def handle_results(self, results: Dict[str, Any]):
+		pass
+
+class TurnamentInitialLobby(Lobby):
+
+	def __init__(self, settings: Dict[str, Any]) -> None:
+		super().__init__(settings)
+
+	def check_rules(self):
+		""" Need to override """
+		if self.number_players not in (2, 4, 8):
+			raise Exception('Invalid number of players.')
+
+	def handle_results(self, results: Dict[str, Any]):
+		pass
+
+	def handle_full(self):
+		pass
+
+	def start_tournament(self):
+		""" Create turnament instance. Turnament instance will then create lobby instances
+		 asnd assign players to them. """
+		pass
+
+class TurnamentMatchLobby(Lobby):
+
+	def __init__(self, settings: Dict[str, Any]) -> None:
+		super().__init__(settings)
 
 lobbies: Dict[str, Lobby] = {}
