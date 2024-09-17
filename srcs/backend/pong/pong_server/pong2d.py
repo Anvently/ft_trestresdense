@@ -45,18 +45,13 @@ class Player2D(Player):
 		if int(time.time()) != self.last_time:
 			self.calculate_destination(ballX, ballY, ballSpeedX, ballSpeedY)
 			self.last_time = int(time.time())
-		
-		if self.side == WEST or self.side == EAST:
-			position = self.coordinates["y"]
-		else:
-			position = self.coordinates["x"]
 
 		if self.side == WEST or self.side == EAST:
 			position = self.coordinates["y"]
 			if self.destination < position - PLAYER_SPEED:
-				return "up"
-			elif self.destination > position + PLAYER_SPEED:
 				return "down"
+			elif self.destination > position + PLAYER_SPEED:
+				return "up"
 		else:
 			position = self.coordinates["x"]
 			if self.destination < position - PLAYER_SPEED:
@@ -137,12 +132,12 @@ class PongLobby2D(PongLobby):
 
 		if input == "up":
 			if position == EAST or position == WEST:
-				self.players[position].coordinates['y'] = max(PADDLE_LENGTH / 2, self.players[position].coordinates['y'] - PLAYER_SPEED)
+				self.players[position].coordinates['y'] = min(1 - PADDLE_LENGTH / 2, self.players[position].coordinates['y'] + PLAYER_SPEED)
 			else:
 				self.players[position].coordinates['x'] = max(PADDLE_LENGTH / 2, self.players[position].coordinates['x'] - PLAYER_SPEED)
 		elif input == "down":
 			if position == EAST or position == WEST:
-				self.players[position].coordinates['y'] = min(1 - PADDLE_LENGTH / 2, self.players[position].coordinates['y'] + PLAYER_SPEED)
+				self.players[position].coordinates['y'] = max(PADDLE_LENGTH / 2, self.players[position].coordinates['y'] - PLAYER_SPEED)
 			else:
 				self.players[position].coordinates['x'] = min(1 - PADDLE_LENGTH / 2, self.players[position].coordinates['x'] + PLAYER_SPEED)
 
@@ -299,12 +294,12 @@ class PongLobby2D(PongLobby):
 		}
 
 		for index in range(self.player_num):
-			json[f"Player{index}_type"] = self.players[index].type
-			json[f"Player{index}_lives"] = self.players[index].lives
-			json[f"Player{index}_x"] = self.players[index].coordinates['x']
-			json[f"Player{index}_y"] = self.players[index].coordinates['y']
-			json[f"Player{index}_width"] = self.players[index].coordinates['width']
-			json[f"Player{index}_height"] = self.players[index].coordinates['height']
+			json[f"player{index}_type"] = self.players[index].type
+			json[f"player{index}_lives"] = self.players[index].lives
+			json[f"player{index}_x"] = self.players[index].coordinates['x']
+			json[f"player{index}_y"] = self.players[index].coordinates['y']
+			json[f"player{index}_width"] = self.players[index].coordinates['width']
+			json[f"player{index}_height"] = self.players[index].coordinates['height']
 		return json
 	
 	def send_result(self):
