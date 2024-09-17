@@ -8,17 +8,19 @@ from abc import abstractmethod
 from matchmaking.matchmaking import settings
 from tournament import tournament_creator
 
-def generate_id(public):
-	""" Soimplr => S
+
+def generate_id(public, prefix=''):
+	""" Simplr => S
 	 	TurnamentInit => I
 		 TournamentLobby T
+		 LocalLobby => L
 		   """
 	u = uuid.uuid4()
 	match public:
 		case False:
-			prefix = 'C'
+			prefix += 'C'
 		case True:
-			prefix = 'O'
+			prefix += 'O'
 	short_u = base64.urlsafe_b64encode(u.bytes).rstrip(b'=').decode('ascii')
 	short_u = prefix + short_u
 	if short_u not in lobbies:
@@ -28,7 +30,7 @@ def generate_id(public):
 
 
 class Lobby():
-	def __init__(self, settings: Dict[str, Any], id:str = None) -> None:
+	def __init__(self, settings: Dict[str, Any], id:str = None, prefix=None) -> None:
 		self.hostname = settings.pop('hostname', None)
 		# self.check_rules(lives, player_num, type)
 		self.name = settings.pop('name', f"{self.hostname}'s lobby")
@@ -38,6 +40,7 @@ class Lobby():
 		self.started = False
 		self.game_type = settings.pop('game_type')
 		self.player_num = settings.pop('number_players')
+		self.id = generate_id(settings.get('public'))
 		self.settings = settings
 		self.check_rules()
 
@@ -118,7 +121,7 @@ class Lobby():
 class SimpleMatchLobby(Lobby):
 
 	def __init__(self, settings: Dict[str, Any]) -> None:
-		super().__init__(settings)
+		super().__init__(settings, 'S')
 		self.players.append(self.hostname)
 
 	def handle_results(self, results: Dict[str, Any]):
@@ -129,7 +132,7 @@ class SimpleMatchLobby(Lobby):
 class LocalMatchLobby(SimpleMatchLobby):
 
 	def __init__(self, settings: Dict[str, Any]) -> None:
-		super().__init__(settings)
+		super().__init__(settings, 'L')
 		self.settings['public'] = False
 
 	def handle_results(self, results: Dict[str, Any]):
@@ -138,7 +141,7 @@ class LocalMatchLobby(SimpleMatchLobby):
 class TurnamentInitialLobby(Lobby):
 
 	def __init__(self, settings: Dict[str, Any]) -> None:
-		super().__init__(settings)
+		super().__init__(settings, 'I')
 
 	def check_rules(self):
 		""" Need to override """
@@ -158,9 +161,11 @@ class TurnamentInitialLobby(Lobby):
 class TurnamentMatchLobby(Lobby):
 
 	def __init__(self, settings: Dict[str, Any], id:str) -> None:
-		super().__init__(settings, id)
+		super().__init__(settings, id, 'T')
 
 	def handle_results(self, results: Dict[str, Any]):
 		super().handle_results(results) 
+
+
 
 lobbies: Dict[str, Lobby] = {}
