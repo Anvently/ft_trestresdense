@@ -108,7 +108,7 @@ class PongLobby2D(PongLobby):
 			self.match_id_pos[players_list[i]] = i
 		for i in range(self.player_num, 4):
 			self.players.append(Player2D('!wall', i))
-		
+		self.game_type = 'pong2d'
 			##### AI TEST
 		# self.last_time = int(time.time())
 		# self.destination = 0.5
@@ -302,22 +302,3 @@ class PongLobby2D(PongLobby):
 			json[f"player{index}_height"] = self.players[index].coordinates['height']
 		return json
 	
-	def send_result(self):
-		data = Dict()
-		data['game_id'] =  self.lobby_id
-		if self.gameState == 0:
-			data['status'] = 'canceled'
-			data['winner'] = self.get_winner()
-		else:
-			data['status'] = 'terminated'
-			data['winner'] = self.winner
-		try:
-			requests.post('http://matchmaking:8003/result/?format=json',
-					data=json.dumps(data),
-					headers = {
-						'Host': 'localhost',
-						'Authorization': "Bearer {0}".format(settings.API_TOKEN.decode('ASCII'))
-						}
-					)
-		except Exception as e:
-			pass
