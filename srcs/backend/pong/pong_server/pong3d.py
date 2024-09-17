@@ -14,8 +14,8 @@ from pong_server.game import PongLobby, Player
 # # Constants
 TABLE_LENGHT = 9 / 5
 
-PADDLE_MAX_X = [-0.8, 1.2]
-PADDLE_MIN_X = [-1.2, 0.8]
+PADDLE_MAX_X = [-0.8, 1.4]
+PADDLE_MIN_X = [-1.4, 0.8]
 PADDLE_MAX_Y = [1, 1,]
 PADDLE_MIN_Y = [-1, -1]
 PADDLE_LEFT_DIR = [-1, 1]
@@ -28,7 +28,7 @@ BALL_RADIUS = 0.013
 MIN_SPEED = 0.02
 MAX_SPEED = 0.04		#must be less than BALL_RADIUS + PADDLE_THICKNESS to avoid the ball passing through
 
-PADDLE_REBOUND_ANGLE = (math.pi / 180) * 35
+PADDLE_REBOUND_ANGLE = (math.pi / 180) * 40
 PLAYING_FIELD_RADIUS = 2.5 #centered on the middle of the table (0,0)
 REBOUND_LINE_X = 0.4
 
@@ -74,17 +74,29 @@ class Player3D(Player):
 				return "up"
 			else:
 				return "down"
+
 		return ""
 	
 	def calculate_destination(self, ballX, ballY, ballSpeedX, ballSpeedY, is_service, service_direction):
-		self.destination["x"] = PADDLE_LEFT_DIR[self.side] * 1.2
-		self.destination["y"] = 0
+		
+		
+		self.destination["x"] = PADDLE_LEFT_DIR[self.side] * 1.4
+		# rand = random.randint(0, 3)
+		# self.destination["x"] = PADDLE_LEFT_DIR[self.side] * (PADDLE_MIN_X[1] + ((PADDLE_MAX_X[1] - PADDLE_MIN_X[1]) * rand) / 3)
 
-		if is_service:
-			self.destination["x"] = 0
+
+		self.destination["y"] = -ballY
+
+		rand = random.randint(0, 1)
+
+		if is_service and ballX * PADDLE_LEFT_DIR[self.side] > 0: #AI serves
+				self.destination["x"] = 0
+				self.destination["y"] = 0.6 * (PADDLE_LENGTH / 2)
+				if rand:
+					self.destination["y"] *= -1
 		elif self.side == WEST and ballSpeedX < 0 or self.side == EAST and ballSpeedX > 0:
 			self.destination["y"] = self.calculate_impact(ballX, ballY, ballSpeedX, ballSpeedY)
-		print(f"player {self.side} new destination : {self.destination}")
+			self.destination["y"] *= 1.01
 		
 
 	def calculate_impact(self, ballX, ballY, ballSpeedX, ballSpeedY):
@@ -145,18 +157,6 @@ class PongLobby3D(PongLobby):
 			return
 		side = self.match_id_pos[player_id]
 
-		# SIDE VIEW CONTROLS
-		# if input == "up":
-		# 	self.players[side].coordinates['y'] = min(PADDLE_MAX_Y[side], self.players[side].coordinates['y'] + PLAYER_SPEED)
-		# elif input == "down":
-		# 	self.players[side].coordinates['y'] = max(PADDLE_MIN_Y[side], self.players[side].coordinates['y'] - PLAYER_SPEED)
-		# elif input == "left":
-		# 	self.players[side].coordinates['x'] = max(PADDLE_MIN_X[side], self.players[side].coordinates['x'] - PLAYER_SPEED)
-		# elif input == "right":
-		# 	self.players[side].coordinates['x'] = min(PADDLE_MAX_X[side], self.players[side].coordinates['x'] + PLAYER_SPEED)
-		# self.set_paddle_angle()
-
-		# POV VIEW CONTROLS
 		if (input == "left" and side == WEST) or (input == "right" and side == EAST):
 			self.players[side].coordinates['y'] = min(PADDLE_MAX_Y[side], self.players[side].coordinates['y'] + PLAYER_SPEED)
 		elif (input == "right" and side == WEST) or (input == "left" and side == EAST):

@@ -31,11 +31,16 @@
 </header>
 <main> 
   <div id="container-canva" >
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.168.0/build/three.module.js",
+          "three/examples/jsm/geometries/TextGeometry.js": "https://cdn.jsdelivr.net/npm/three@0.168.0/examples/jsm/geometries/TextGeometry.js",
+          "three/examples/jsm/loaders/FontLoader.js": "https://cdn.jsdelivr.net/npm/three@0.168.0/examples/jsm/loaders/FontLoader.js"
+        }
+      }
+    </script>
     <script src="script_ping_pong.js" type="module"> </script>
-    <p>
-		P1 score: <span id="player0_score"></span><br>
-		P2 score: <span id="player1_score"></span>
-	</p>
 </div>
 </main>
   <form>
