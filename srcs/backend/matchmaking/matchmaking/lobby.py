@@ -6,7 +6,7 @@ import json
 import requests
 from abc import abstractmethod
 from matchmaking.matchmaking import settings
-from tournament import tournament_creator
+from tournament import tournament_creator, tournaments
 
 
 def generate_id(public, prefix=''):
@@ -53,6 +53,8 @@ class Lobby():
 	def remove_player(self, player_id):
 		if player_id in self.players:
 			self.players.remove(player_id)
+		if len(self.players) == 0:
+			self.delete()
 
 	def check_rules(self):
 		match (self.type, self.player_num, self.settings['lives']):
@@ -97,12 +99,12 @@ class Lobby():
 	def delete(self):
 		""" Delete players from online_players and remove lobby from list of lobbies """
 		for player in self.players:
-			del online_players[player]
+			if online_players[player]['lobby_id'] == self.id:
+				del online_players[player]
 		del lobbies[self.id]
 
 	def handle_results(self, results: dict[str, Any]):
-		""" Simple Match: register in database
-			Turnament Match: register in database + refer to turnament instance"""
+		""" register in database"""
 		if results['state'] != 'cancelled':
 			results.pop('status')
 			# results['scores_set'] = [el for el in results['scores_set'] if el['username'][0] != '!']
@@ -154,7 +156,16 @@ class TurnamentInitialLobby(Lobby):
 	def init_game(self) -> bool:
 		""" Create turnament instance. Turnament instance will then create lobby instances
 		 asnd assign players to them. """
-		tournament_creator()
+		if not tournament_creator({
+			'game_type': self.game_type,
+			'hostname': self.hostname,
+			'name': self.name,
+			'number_players': self.player_num,
+			'default_settings': self.settings,
+			'id': self.id,
+			'players': self.players
+		}):
+			return False
 		return True
 
 
@@ -162,10 +173,13 @@ class TurnamentMatchLobby(Lobby):
 
 	def __init__(self, settings: Dict[str, Any], id:str) -> None:
 		super().__init__(settings, id, 'T')
+		self.tournament_id = self.id[:self.id.find('.')]
 
 	def handle_results(self, results: Dict[str, Any]):
-		super().handle_results(results) 
-
+		super().handle_results(results)
+		if self.tournament_id in tournaments:
+			tournaments[self.tournament_id].handle_result(results)
+		self.delete()
 
 
 lobbies: Dict[str, Lobby] = {}
