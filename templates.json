@@ -4,6 +4,7 @@ POST localhost:8001/post-result/
     "lobby_id": "1888.1.0",
     "game_name": "pong",
 	"tournament_id": "1897", //optionnal
+    "state": "canceled"/"terminated",
     "scores_set": [
         {
             "username": "admin",
@@ -36,13 +37,14 @@ POST pong:8002/init-game/
 	]
 }
 
-//Posting a result from PongLobby to Matchmaking
-POST matchmaking:8003/result/
-{
-    "game_id" : 41489.0,
-    "status": "terminated/canceled",
-    "winner": "user1",
-}
+// //Posting a result from PongLobby to Matchmaking
+// SEE ABOVE
+// POST matchmaking:8003/result/
+// {
+//     "game_id" : 41489.0,
+//     "status": "terminated/canceled",
+//     "winner": "user1",
+// }
 
 Websocket
 join

@@ -27,10 +27,12 @@ def generate_id(public, prefix=''):
 
 
 class Lobby():
-	def __init__(self, settings: Dict[str, Any], prefix=None) -> None:
-		self.hostname = settings.pop('hostname')
+	def __init__(self, settings: Dict[str, Any], id:str = None, prefix=None) -> None:
+		self.hostname = settings.pop('hostname', None)
 		# self.check_rules(lives, player_num, type)
 		self.name = settings.pop('name', f"{self.hostname}'s lobby")
+		if not id:
+			self.id = generate_id(settings.get('public'))
 		self.players: List[str] = []
 		self.started = False
 		self.game_type = settings.pop('game_type')
@@ -110,7 +112,7 @@ class TurnamentInitialLobby(Lobby):
 
 class TurnamentMatchLobby(Lobby):
 
-	def __init__(self, settings: Dict[str, Any]) -> None:
-		super().__init__(settings, 'T')
+	def __init__(self, settings: Dict[str, Any], id:str) -> None:
+		super().__init__(settings, id, 'T')
 
 lobbies: Dict[str, Lobby] = {}

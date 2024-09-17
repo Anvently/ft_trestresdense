@@ -1,5 +1,15 @@
-from typing import Dict, Any, List
-from matchmaking.lobby import Lobby, lobbies, generate_id
+from typing import Dict, Any, List, Tuple
+from matchmaking.lobby import Lobby, TurnamentMatchLobby, lobbies
+from matchmaking.consumers import online_players, PlayerStatus
+import re
+
+SUFFIXES = {
+	2: f".0",
+	4: f".1.{0}",
+	8: f".2.{0}",
+	16: f".3.{0}",
+	32: f".4.{0}"
+}
 
 class Tournament:
 	def __init__(self, data: Dict[str, Any]) -> None:
@@ -11,26 +21,69 @@ class Tournament:
 			'lives':10
 		})
 		self.id = data['id']
-		# self.current_matches: List[str] = []
+		self.players = data['players']
+		self.cancelled = False
+		for i in range(self.number_players / 2):
+			id=f"{self.id}{SUFFIXES[self.number_players].format(i)}"
+			lobbies[id] = TurnamentMatchLobby({
+				'name': self.name,
+				'game_type': self.game_type,
+				'number_players': 2,
+				'settings': self.default_settings
+			}, id)
+			self.reassign_player(self.players[i], id, PlayerStatus.IN_GAME)
+			self.reassign_player(self.players[i + (self.number_players / 2)], id, PlayerStatus.IN_GAME)
 
-	def validate(self):
-		if self.id in lobbies:
-			raise Exception('Tournament with this id already exists.')
-		if self.number_players != 0 or self.number_players % 2 or self.number_players == 6 or self.number_players > 8:
-			raise Exception('Invalid number of players.')
-		
-	def init_waiting_lobby(self):
-		""" Add the initial lobby to the list of lobbies """
-		lobbies[self.id] = Lobby(
-			hostname=self.hostname,
-			name=self.name,
-			lives=self.default_settings['lives'],
-			player_num=self.number_players,
-			public=self.public,
-			tournament=self.id
-		)
+	def reassign_player(self, player_id: str, lobby_id: str, new_status: int = PlayerStatus.IN_GAME):
+		lobbies[online_players[player_id]['lobby_id']].remove_player(player_id)
+		lobbies[lobby_id].add_player(player_id)
+		online_players[player_id]['lobby_id'] = lobby_id
+		online_players[player_id]['tournament_id'] = self.id
+		online_players[player_id]['status'] = new_status
 
-	def register_match(self):
-		"""  """
+	@staticmethod
+	def extract_id_info(string: str) -> Tuple[int, int]:
+		match = re.search(r'\.(\d+)(?:\.(\d+))?', string)
+		if match:
+			return (int(match.group(1)), int(match.group(2)))
+		return (None, None)
+
+	def delete(self):
+		""" May want to post special results ?? """
+		del tournaments[self.id]
+
+	def setup_next_match(self, previous_stage: int, previous_idx: int) -> str:
+		id = f"{self.id}.{previous_stage - 1}.{previous_idx / 2}"
+		if id in lobbies:
+			return id
+		lobbies[id] = TurnamentMatchLobby({
+			'name': self.name,
+			'game_type': self.game_type,
+			'number_players': 2,
+			'settings': self.default_settings
+		}, id=id)
+		return id
+
+	def handle_result(self, results: Dict[str, Any]):
+		""" Instantiate the next lobby if any. Assign the winner
+		 to its and update loser's status. """
+		if results['state'] == 'cancelled':
+			self.delete()
+			return
+		lobby_id:str = results['lobby_id']
+		stage, match_idx = Tournament.extract_id_info(lobby_id)
+		for score in results['scores_set']:
+			if score['has_win'] == True and stage != 0:
+				""" We need to instantiate the new lobby if it doesn't exist yet,
+				 and assign player to it. """
+				next_match_id = self.setup_next_match(stage, match_idx)
+				self.reassign_player(score['username'], next_match_id, PlayerStatus.IN_TURNAMENT_LOBBY)
+			else:
+				""" If someone lose or it was a final, it's up to the
+				 lobby result handler to update status of associated players. """
+				pass
+		if stage == 0: #If final match
+			self.delete() 
+			
 
 tournaments: Dict[str, Tournament] = []

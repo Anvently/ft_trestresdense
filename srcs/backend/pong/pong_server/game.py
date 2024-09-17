@@ -80,6 +80,7 @@ class PongLobby:
 		self.loop = None
 		self.waiting_for = self.player_num
 		self.winner = None
+		self.game_type = None
 
 	def check_user(self, username:str):
 		"""Check that the user belong to the lobby"""
@@ -111,9 +112,32 @@ class PongLobby:
 		""" Template of player_list: ["user1", "user1_guest"] """
 		self.waiting_for += 1
 
-	@abstractmethod
 	def send_result(self):
-		pass
+		data = Dict()
+		data['lobby_id'] =  self.lobby_id
+		data['game_name'] = self.game_type
+		if self.tournId:
+			data['tournament_id'] = self.tournId
+		if self.gameState == 0:
+			data['status'] = 'canceled'
+		else:
+			data['status'] = 'terminated'
+			data['scores_set'] = []
+			for player in self.players:
+				data['scores_set'].append({
+					'username': player.player_id,
+					'has_win': self.winner == player.player_id
+				})
+		try:
+			requests.post('http://matchmaking:8003/result/?format=json',
+					data=json.dumps(data),
+					headers = {
+						'Host': 'localhost',
+						'Authorization': "Bearer {0}".format(settings.API_TOKEN.decode('ASCII'))
+						}
+					)
+		except Exception as e:
+			pass
 		# API call to send result to matchmaking
 			# -> gameState == 3 match was played -> get stats in self and send them
 			# -> gameState == 0 game was canceled
@@ -215,7 +239,8 @@ class PongLobby:
 		for i in range(self.player_num):
 			if self.players[i].type == 'Player':
 				print(f"{self.players[i].player_id} won the game")
-				return self.players[i].player_id
+				self.winner = self.players[i].player_id
+				return self.winner
 		return None
 
 

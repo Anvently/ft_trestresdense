@@ -118,27 +118,7 @@ class PongLobby3D(PongLobby):
 		self.loop = None
 		self.waiting_for = self.player_num
 		self.winner = None
-
-	def send_result(self):
-		data = Dict()
-		data['game_id'] =  self.lobby_id
-		if self.gameState == 0:
-			data['status'] = 'canceled'
-			data['winner'] = self.get_winner()
-		else:
-			data['status'] = 'terminated'
-			data['winner'] = self.winner
-		try:
-			requests.post('http://matchmaking:8003/result/?format=json',
-					data=json.dumps(data),
-					headers = {
-						'Host': 'localhost',
-						'Authorization': "Bearer {0}".format(settings.API_TOKEN.decode('ASCII'))
-						}
-					)
-		except Exception as e:
-			pass
-		self.stop_game_loop()
+		self.game_type = 'pong3d'
 
 	def player_input(self, player_id, input):
 		if player_id not in self.match_id_pos:
