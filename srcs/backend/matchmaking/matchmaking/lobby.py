@@ -6,35 +6,36 @@ import json
 from abc import abstractmethod
 
 
-def generate_id(public):
-	""" Soimplr => S
+def generate_id(public, prefix=''):
+	""" Simplr => S
 	 	TurnamentInit => I
 		 TournamentLobby T
+		 LocalLobby => L
 		   """
 	u = uuid.uuid4()
 	match public:
 		case False:
-			prefix = 'C'
+			prefix += 'C'
 		case True:
-			prefix = 'O'
+			prefix += 'O'
 	short_u = base64.urlsafe_b64encode(u.bytes).rstrip(b'=').decode('ascii')
 	short_u = prefix + short_u
-	if short_u not in MatchMakingConsumer.public_lobbies and short_u not in MatchMakingConsumer.private_lobbies:
+	if short_u not in lobbies:
 		return short_u
 	else:
 		return generate_id()
 
 
 class Lobby():
-	def __init__(self, settings: Dict[str, Any]) -> None:
+	def __init__(self, settings: Dict[str, Any], prefix=None) -> None:
 		self.hostname = settings.pop('hostname')
 		# self.check_rules(lives, player_num, type)
 		self.name = settings.pop('name', f"{self.hostname}'s lobby")
-		self.id = generate_id(settings.get('public'))
 		self.players: List[str] = []
 		self.started = False
 		self.game_type = settings.pop('game_type')
 		self.player_num = settings.pop('number_players')
+		self.id = generate_id(settings.get('public'))
 		self.settings = settings
 		self.check_rules()
 
@@ -56,11 +57,11 @@ class Lobby():
 				pass
 			case _:
 				raise ValueError("Wrong rules")
-			
+
 	def init_game(self):
 		""" Send HTTP request to pong backend and sent link to consumers. Update players status """
 		pass
-			
+
 	@abstractmethod
 	def handle_results(self, results: dict[str, Any]):
 		""" Simple Match: register in database
@@ -74,13 +75,13 @@ class Lobby():
 class SimpleMatchLobby(Lobby):
 
 	def __init__(self, settings: Dict[str, Any]) -> None:
-		super().__init__(settings)
+		super().__init__(settings, 'S')
 		self.players.append(self.hostname)
 
 class LocalMatchLobby(SimpleMatchLobby):
 
 	def __init__(self, settings: Dict[str, Any]) -> None:
-		super().__init__(settings)
+		super().__init__(settings, 'L')
 		self.settings['public'] = False
 
 	def handle_results(self, results: Dict[str, Any]):
@@ -89,7 +90,7 @@ class LocalMatchLobby(SimpleMatchLobby):
 class TurnamentInitialLobby(Lobby):
 
 	def __init__(self, settings: Dict[str, Any]) -> None:
-		super().__init__(settings)
+		super().__init__(settings, 'I')
 
 	def check_rules(self):
 		""" Need to override """
@@ -110,6 +111,6 @@ class TurnamentInitialLobby(Lobby):
 class TurnamentMatchLobby(Lobby):
 
 	def __init__(self, settings: Dict[str, Any]) -> None:
-		super().__init__(settings)
+		super().__init__(settings, 'T')
 
 lobbies: Dict[str, Lobby] = {}
