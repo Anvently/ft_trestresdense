@@ -7,7 +7,7 @@ import requests
 from abc import abstractmethod
 from matchmaking.matchmaking import settings
 from tournament import tournament_creator, tournaments
-
+import time
 
 def generate_id(public, prefix=''):
 	""" Simplr => S
@@ -119,6 +119,9 @@ class Lobby():
 			except Exception as e:
 				print("ERROR: Failed to post results to users_info")
 
+	def check_time_out(self):
+		pass
+
 
 class SimpleMatchLobby(Lobby):
 
@@ -174,6 +177,7 @@ class TurnamentMatchLobby(Lobby):
 	def __init__(self, settings: Dict[str, Any], id:str) -> None:
 		super().__init__(settings, id, 'T')
 		self.tournament_id = self.id[:self.id.find('.')]
+		self.created_at = time.time()
 
 	def handle_results(self, results: Dict[str, Any]):
 		super().handle_results(results)
@@ -181,5 +185,7 @@ class TurnamentMatchLobby(Lobby):
 			tournaments[self.tournament_id].handle_result(results)
 		self.delete()
 
+	def check_time_out(self):
+		if time.time() - self.created_at > 
 
 lobbies: Dict[str, Lobby] = {}
