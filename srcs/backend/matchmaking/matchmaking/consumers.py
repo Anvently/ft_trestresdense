@@ -8,6 +8,7 @@ from typing import List, Dict, Set, Tuple, Any
 import uuid
 import base64
 from matchmaking.lobby import Lobby
+import enum
 from matchmaking.tournament import Tournament
 
 def verify_jwt(token, is_ttl_based=False, ttl_key="exp"):
@@ -56,23 +57,36 @@ async def jsonize_player(player_id):
 """
 Status:
 	- waiting for a lobby
-	- in lobby => tournament or not
+	- in lobby
 	- in game
-	- waiting for next tourny game
+	- waiting for next tournt game
  """
+
+""" 
+	online players = {
+		"payer_1": {
+			'status': int,
+			'lobby_id': str,
+			'turnament_id': str
+		}
+	}
+ """
+
+online_players : Dict[str, Dict[str, Any]] = {}
+
+class PlayerStatus(enum):
+	NO_LOBBY = 0
+	IN_LOBBY = 1
+	IN_GAME = 2
+	IN_TURNAMENT_LOBBY = 3
 
 class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 
 	matchmaking_group = 'main_group'
 	matchmaking_lock = asyncio.Lock()
 	# list all the players online to handle invitations
-	online_players : Dict[str, Dict[str, Any]] = {}
 	# list all available lobbies to send to front
-	lobbies: Dict[str, Lobby] = {}
 	
-
-
-
 
 	def __init(self, *args, **kwargs):
 
@@ -106,17 +120,17 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		if not self._auth_client():
 			return False
 		async with MatchMakingConsumer.matchmaking_lock:
-			if self.username in MatchMakingConsumer.online_players and MatchMakingConsumer.online_players[self.username]["status"] < 2:
+			if self.username in online_players and online_players[self.username]["status"] < 2:
 				return False
 		return True
 
 	def check_infos(self):
-		if self.username in MatchMakingConsumer.online_players:
-			self.status = MatchMakingConsumer.online_players[self.username]['status']
-			self._lobby_id = self.status = MatchMakingConsumer.online_players[self.username]['lobby_id']
-			self._tournament_id = self.status = MatchMakingConsumer.online_players[self.username]['tournament_id']
+		if self.username in online_players:
+			self.status = online_players[self.username]['status']
+			self._lobby_id = self.status = online_players[self.username]['lobby_id']
+			self._tournament_id = self.status = online_players[self.username]['tournament_id']
 		else:
-			MatchMakingConsumer.online_players[self.username] = {'status': 0, 'lobby_id': None, 'tournament_id': None}
+			online_players[self.username] = {'status': 0, 'lobby_id': None, 'tournament_id': None}
 
 
 	async def connect(self):
@@ -132,7 +146,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 	async def disconnect(self, code):
 		async with MatchMakingConsumer.matchmaking_lock:
 			if self.status == 0:
-				del MatchMakingConsumer.online_players[self.username]
+				del online_players[self.username]
 			elif self.status == 1:
 				if self._is_host == 1:
 					await self.lobby_cancel(self._lobby_id)
