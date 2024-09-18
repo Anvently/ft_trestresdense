@@ -2,6 +2,5 @@ Failles possibles :
 	- si on obtient un token valide pour un user "xyz", on supprime le compte, et quelqu'un recreait le compte "xyz", notre token est toujours valide.
 	
 TODO:
-	- transform player list in Lobby in Dict to store info such as is_ready ?
 	- do not add bot in online_players
 

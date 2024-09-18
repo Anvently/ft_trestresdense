@@ -1,6 +1,6 @@
 import json
 import time
-import jwt
+import jwt, logging
 import math
 import asyncio
 from django.conf import settings
@@ -168,6 +168,7 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 		await self.send_json(content)
 
 lobbys_list : Dict[str, Any] = dict()
+
 lobbys_list["10"] = PongLobby2D(
 	lobby_id="10",
 	# players_list=["P1", "P2", "P3", "P4"],

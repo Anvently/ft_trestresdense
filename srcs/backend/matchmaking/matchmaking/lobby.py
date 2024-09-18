@@ -7,7 +7,7 @@ import requests
 from abc import abstractmethod
 from matchmaking.matchmaking import settings
 from tournament import tournament_creator, tournaments
-import time
+import time, logging, random, string
 
 def generate_id(public, prefix=''):
 	""" Simplr => S
@@ -28,6 +28,8 @@ def generate_id(public, prefix=''):
 	else:
 		return generate_id(public)
 
+def generate_bot_id():
+	return '!' + ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(31))
 
 class Lobby():
 	def __init__(self, settings: Dict[str, Any], id:str = None, prefix=None) -> None:
@@ -45,15 +47,64 @@ class Lobby():
 		self.settings = settings
 		self.check_rules()
 
-	def add_player(self, player_id):
+	def iterate_human_player(self):
+		return ((player_id, player) for player_id, player in self.players.items() if not player['is_bot'])
+
+	def add_bot(self, player_id) -> bool:
+		return self.add_player(generate_bot_id())
+
+	def remove_bot(self):
+		""" Delete the first bot in the list players if any. """
+		for player_id, player in self.players:
+			if player['is_bot'] == True:
+				del self.players[player_id]
+				return
+
+	def add_player(self, player_id) -> bool:
+		""" Add a player  to a lobby. Return True is success.
+		 If player was bot it will mark himself has ready and possibly trigger
+		  game initialization. """
 		if len(self.players) == self.player_num:
+			logging.warning(f"Trying to add a player ({player_id}) to a full lobby")
 			return False
 		self.players[player_id] = {
 			'has_joined': False,
 			'is_ready': False,
 			'is_bot': False
 		}
+		if player_id[0] == '!':
+			self.players[player_id] = {
+				'has_joined': True,
+				'is_ready': True,
+				'is_bot': True
+			}
+			self.player_ready(player_id) 
+			""" NOTE
+			 If a player mark himself has ready and before a bot joins the game,
+			  we'll have no way to inform back the player the game needs to be started.
+			   Can only happen with modif during lobby phase if we allow that. """
 		return True
+	
+	def player_ready(self, player_id) -> bool:
+		""" Mark a player as ready and return True if it was the last player
+		 and the game was initiated with success. """
+		if self.started == True:
+			logging.warning(f"{player_id} marked as ready but game has already started.")
+			return False
+		self.players[player_id]['is_ready'] = True
+		if len(self.players) != self.player_num or any(not player['is_ready'] for player in self.players):
+			return False
+		if not self.init_game():
+			return False
+		return True
+
+	def player_not_ready(self, player_id):
+		self.players[player_id]['is_ready'] = False
+
+	def player_joined(self, player_id):
+		if player_id not in self.players:
+			raise Exception(f"{player_id} try to join lobby {self.id} but does not belong to it.")
+		self.players[player_id]['has_joined'] = True
 
 	def remove_player(self, player_id):
 		if player_id in self.players:
@@ -93,19 +144,16 @@ class Lobby():
 			print("ERROR: Failed to post game initialization to pong api")
 			return False
 		# Update player status
-		for player in self.players.keys():
-			online_players[player]['status'] = PlayerStatus.IN_GAME
-		# Send invitation ??
-		# !!!!!!!!!!!!!!!!!!!!!!!!!
-		# !NEED TO SEND INVITATION!
-		# !!!!!!!!!!!!!!!!!!!!!!!!!
+		for player_id, player in self.iterate_human_player():
+			online_players[player_id]['status'] = PlayerStatus.IN_GAME
+		self.started = True
 		return True
 	
 	def delete(self):
 		""" Delete players from online_players and remove lobby from list of lobbies """
-		for player in self.players.keys():
-			if online_players[player]['lobby_id'] == self.id:
-				del online_players[player]
+		for player_id, player in self.iterate_human_player():
+			if online_players[player_id]['lobby_id'] == self.id:
+				del online_players[player_id]
 		del lobbies[self.id]
 
 	def handle_results(self, results: dict[str, Any]):
@@ -154,7 +202,7 @@ class TurnamentInitialLobby(Lobby):
 
 	def check_rules(self):
 		""" Need to override """
-		if self.number_players not in (2, 4, 8):
+		if self.player_num not in (2, 4, 8):
 			raise Exception('Invalid number of players.')
 
 	def handle_results(self, results: Dict[str, Any]):
@@ -189,7 +237,7 @@ class TurnamentMatchLobby(Lobby):
 			tournaments[self.tournament_id].handle_result(results)
 		self.delete()
 
-	def check_time_out(self):
-		if time.time() - self.created_at > 
+	# def check_time_out(self):
+	# 	if time.time() - self.created_at > 
 
 lobbies: Dict[str, Lobby] = {}

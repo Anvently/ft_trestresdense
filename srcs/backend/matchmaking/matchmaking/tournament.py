@@ -36,11 +36,12 @@ class Tournament:
 				raise Exception("Failed to init tournament")
 
 	def reassign_player(self, player_id: str, lobby_id: str, new_status: int = PlayerStatus.IN_TURNAMENT_LOBBY):
-		lobbies[online_players[player_id]['lobby_id']].remove_player(player_id)
 		lobbies[lobby_id].add_player(player_id)
-		online_players[player_id]['lobby_id'] = lobby_id
-		online_players[player_id]['tournament_id'] = self.id
-		online_players[player_id]['status'] = new_status
+		if not player_id[0] == '!':
+			lobbies[online_players[player_id]['lobby_id']].remove_player(player_id)
+			online_players[player_id]['lobby_id'] = lobby_id
+			online_players[player_id]['tournament_id'] = self.id
+			online_players[player_id]['status'] = new_status
 
 	@staticmethod
 	def extract_id_info(string: str) -> Tuple[int, int]:

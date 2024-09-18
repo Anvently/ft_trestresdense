@@ -11,6 +11,7 @@ import json
 from django.conf import settings
 import traceback
 from abc import abstractmethod
+import logging, threading
 
 # Constants
 PADDLE_LENGTH = 0.16
@@ -78,9 +79,13 @@ class PongLobby:
 		self.gameState = 0
 		self.mut_lock = asyncio.Lock()
 		self.loop = None
-		self.waiting_for = self.player_num
+		self.waiting_for = sum(1 for player in self.players if player.player_id[0] != '!')
 		self.winner = None
 		self.game_type = None
+	
+	async def check_game_start(self):
+		if self.waiting_for == 0:
+			await self.start_game_loop()
 
 	def check_user(self, username:str):
 		"""Check that the user belong to the lobby"""
@@ -89,8 +94,7 @@ class PongLobby:
 		return False
 	
 	async def start_game_loop(self):
-		print("loop started")
-		self.loop = asyncio.create_task(self.game_loop())
+		self.loop = await asyncio.create_task(self.game_loop())
 
 	async def stop_game_loop(self):
 		if self.loop:
@@ -149,6 +153,7 @@ class PongLobby:
 
 	async def	game_loop(self):
 		try:
+			print("Game loop has started")
 			loop_start = time.time()
 			player_channel = get_channel_layer()
 			# pregame : check that all players are present
@@ -192,7 +197,7 @@ class PongLobby:
 			self.send_result()
 			# remove from list
 		except Exception as e:
-			print(e)
+			logging.error(e)
 			await player_channel.group_send(self.lobby_id, {'type':'error', 'detail':'error in game loop'})
 			traceback.print_exc()
 
