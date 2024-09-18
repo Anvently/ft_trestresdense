@@ -48,6 +48,7 @@ class Lobby():
 	def add_player(self, player_id):
 		if len(self.players) == self.player_num:
 			return False
+
 		self.players[player_id] = {
 			'has_joined': False,
 			'is_ready': False,
@@ -191,3 +192,15 @@ class TurnamentMatchLobby(Lobby):
 		if time.time() - self.created_at >
 
 lobbies: Dict[str, Lobby] = {}
+
+
+
+
+
+
+
+"""
+
+
+
+"""
