@@ -36,7 +36,8 @@ class Lobby():
 		self.name = settings.pop('name', f"{self.hostname}'s lobby")
 		if not id:
 			self.id = generate_id(settings.get('public'))
-		self.players: List[str] = []
+		""" {has_joined: bool, is_ready: bool, is_bot: bool} """
+		self.players: Dict[str] = {}
 		self.started = False
 		self.game_type = settings.pop('game_type')
 		self.player_num = settings.pop('number_players')
@@ -47,12 +48,16 @@ class Lobby():
 	def add_player(self, player_id):
 		if len(self.players) == self.player_num:
 			return False
-		self.players.append(player_id)
+		self.players[player_id] = {
+			'has_joined': False,
+			'is_ready': False,
+			'is_bot': False
+		}
 		return True
 
 	def remove_player(self, player_id):
 		if player_id in self.players:
-			self.players.remove(player_id)
+			del self.players[player_id]
 		if len(self.players) == 0:
 			self.delete()
 
@@ -74,7 +79,7 @@ class Lobby():
 		data = {
 			'game_id': self.id,
 			'settings': self.settings,
-			'player_list': self.players
+			'player_list': list(self.players.keys())
 		}
 		try:
 			requests.post('http://pong:8002/init-game/?format=json',
@@ -88,7 +93,7 @@ class Lobby():
 			print("ERROR: Failed to post game initialization to pong api")
 			return False
 		# Update player status
-		for player in self.players:
+		for player in self.players.keys():
 			online_players[player]['status'] = PlayerStatus.IN_GAME
 		# Send invitation ??
 		# !!!!!!!!!!!!!!!!!!!!!!!!!
@@ -98,7 +103,7 @@ class Lobby():
 	
 	def delete(self):
 		""" Delete players from online_players and remove lobby from list of lobbies """
-		for player in self.players:
+		for player in self.players.keys():
 			if online_players[player]['lobby_id'] == self.id:
 				del online_players[player]
 		del lobbies[self.id]
@@ -127,12 +132,11 @@ class SimpleMatchLobby(Lobby):
 
 	def __init__(self, settings: Dict[str, Any]) -> None:
 		super().__init__(settings, 'S')
-		self.players.append(self.hostname)
+		self.add_player(self.hostname)
 
 	def handle_results(self, results: Dict[str, Any]):
 		super().handle_results(results)
 		self.delete()
-	
 
 class LocalMatchLobby(SimpleMatchLobby):
 
@@ -166,7 +170,7 @@ class TurnamentInitialLobby(Lobby):
 			'number_players': self.player_num,
 			'default_settings': self.settings,
 			'id': self.id,
-			'players': self.players
+			'players': list(self.players.keys())
 		}):
 			return False
 		return True
