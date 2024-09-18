@@ -171,9 +171,9 @@ lobbys_list : Dict[str, Any] = dict()
 lobbys_list["10"] = PongLobby2D(
 	lobby_id="10",
 	# players_list=["P1", "P2", "P3", "P4"],
-	players_list=["!AI1", "!AI2", "!AI3", "!AI4"],
+	players_list=["P1", "!AI2", "!AI3", "!AI4"],
 	# players_list=["P1", "P2"],
-	settings={'lives':100},
+	settings={'lives':1},
 	# players_list=["P1", "!AI1"],
 	tournId=None
 )
