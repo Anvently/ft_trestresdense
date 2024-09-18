@@ -274,3 +274,23 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		data["tournaments_to_join"] = [{lobby_id, jsonize_lobby(lobbies_copy[lobby_id])} for lobby_id in lobbies_copy if (lobby_id[1] == 'O' and lobby_id[0] == 'I' and not lobbies_copy[lobby_id].started)]
 		data["private"] = [{lobby_id, jsonize_lobby(lobbies_copy[lobby_id])} for lobby_id in lobbies_copy if (lobby_id[1] == 'C')]
 		return data
+
+
+
+"""
+actions from the front:
+-> join a lobby => should trigger a general update
+-> create a lobby -> different types => should trigger a general update
+-> leave a lobby => should trigger a GU
+-> invite someone => goes throught private channel layer
+-> accept/refuse and invite => should trigger a join lobby or ? => should trigger a join lobby if accepted
+-> concede defeat on an ongoing game/tournament => trigger an early update of the game => change status of players in the game
+-> leave matchmaking => disconnect several effects depending on the status
+-> add a bot in a lobby => need to be in a lobby and the host of the lobby => GU
+-> remove a bot in a lobby => same as above => GU
+-> launch a game / tournament => GU if public ?
+
+
+
+
+ """

@@ -30,7 +30,7 @@ def generate_id(public, prefix=''):
 
 
 class Lobby():
-	def __init__(self, settings: Dict[str, Any], id:str = None, prefix=None) -> None:
+	def __init__(self, settings: Dict[str, Any], id:str = None, prefix='') -> None:
 		self.hostname = settings.pop('hostname', None)
 		# self.check_rules(lives, player_num, type)
 		self.name = settings.pop('name', f"{self.hostname}'s lobby")
@@ -62,7 +62,7 @@ class Lobby():
 				pass
 			case _:
 				raise ValueError("Wrong rules")
-			
+
 	def init_game(self) -> bool:
 		""" Send HTTP request to pong backend and sent link to consumers. Update players status """
 		# This exception could be ignored and we could complete here missing player with bots
@@ -93,7 +93,7 @@ class Lobby():
 		# !NEED TO SEND INVITATION!
 		# !!!!!!!!!!!!!!!!!!!!!!!!!
 		return True
-	
+
 	def delete(self):
 		""" Delete players from online_players and remove lobby from list of lobbies """
 		for player in self.players:
@@ -127,7 +127,7 @@ class SimpleMatchLobby(Lobby):
 	def handle_results(self, results: Dict[str, Any]):
 		super().handle_results(results)
 		self.delete()
-	
+
 
 class LocalMatchLobby(SimpleMatchLobby):
 
@@ -150,7 +150,7 @@ class TurnamentInitialLobby(Lobby):
 
 	def handle_results(self, results: Dict[str, Any]):
 		pass
-	
+
 	def init_game(self) -> bool:
 		""" Create turnament instance. Turnament instance will then create lobby instances
 		 asnd assign players to them. """
@@ -164,7 +164,7 @@ class TurnamentMatchLobby(Lobby):
 		super().__init__(settings, id, 'T')
 
 	def handle_results(self, results: Dict[str, Any]):
-		super().handle_results(results) 
+		super().handle_results(results)
 
 
 
