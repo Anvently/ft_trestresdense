@@ -24,6 +24,13 @@ const FOOT_POS = {
 	Y: [-4.5, 4.5, -4.5, 4.5, -4.5, 4.5]
 };
 
+const WALL_POSITION = {
+	X: [-50, 0, 50, 0],
+	Y: [0, -50, 0, 50],
+	rotX: [Math.PI/2, Math.PI/2, Math.PI/2, Math.PI/2],
+	rotY: [Math.PI/2, 0, Math.PI/2, 0]
+}
+
 // Globals
 var players = [
 		{points: 0, x: 0, y: 0, angle: 0, width: 0, height: 0}
@@ -54,70 +61,65 @@ const textureLoader = new THREE.TextureLoader();
 	// Font Loader
 const fontLoader = new FontLoader();
 
+function createScene() {
+	scene.add(createSpotLight({x: -5, y: 2, z: 15}));
+	scene.add(createSpotLight({x: 7, y: -10, z: 5}));
 
-// LIGHT //////////////////////////////////////////////////////
-// SpotLight( color : Integer, intensity : Float, distance : Float, angle : Radians, penumbra : Float, decay : Float )
-// {
-// 	const spotlight = new THREE.SpotLight(0xffffff, 10, 0, Math.PI / 4, 0.5, 0.5);
-// 	// spotlight.position.set(-10, -2, 1);
-// 	spotlight.position.set(-8, -5, 15);
-// 	spotlight.lookAt(0,0,0)
-// 	spotlight.castShadow = true;
-// 	spotlight.shadow.mapSize.width = 1024;
-// 	spotlight.shadow.mapSize.height = 1024;
-// 	spotlight.shadow.camera.near = 1;
-// 	spotlight.shadow.camera.far = 500;
-// 	spotlight.shadow.camera.fov = 60;
-// 	scene.add(spotlight);
-// }
-
-{
-	const spotlight = new THREE.SpotLight(0xffffff, 10, 0, Math.PI / 4, 0.5, 0.5);
-	spotlight.position.set(-5, 2, 15);
-	spotlight.lookAt(0,0,0)
-	spotlight.castShadow = true;
-	spotlight.shadow.mapSize.width = 1024;
-	spotlight.shadow.mapSize.height = 1024;
-	spotlight.shadow.camera.near = 1;
-	spotlight.shadow.camera.far = 500;
-	spotlight.shadow.camera.fov = 60;
-	scene.add(spotlight);
-}
-{
-	const spotlight = new THREE.SpotLight(0xffffff, 10, 0, Math.PI / 4, 0.5, 0.5);
-	spotlight.position.set(7, -10, 5);
-	spotlight.lookAt(0,0,0)
-	spotlight.castShadow = true;
-	spotlight.shadow.mapSize.width = 1024;
-	spotlight.shadow.mapSize.height = 1024;
-	spotlight.shadow.camera.near = 1;
-	spotlight.shadow.camera.far = 500;
-	spotlight.shadow.camera.fov = 60;
-	scene.add(spotlight);
-}
-
-
-// ambient Light
-{
-	const ambientLight = new THREE.AmbientLight( 0x404040 , 6); // soft white light
+	// ambient Light
+	const ambientLight = new THREE.AmbientLight( 0x404040 , 6);
 	scene.add( ambientLight );
+
+	scene.add(createRoom());
+	
+	objects.ball = createBall();
+	scene.add(objects.ball);
+	
+	objects.paddle.push(createPaddle(0xf00000)); // West paddle
+	objects.paddle.push(createPaddle(0x0000f0)); // East paddle
+	objects.paddle.forEach(paddle => scene.add(paddle))
+	
+	scene.add(createTable());
+
+	// add more tables
+	const tableGroup2 = createTable()
+	tableGroup2.position.y += 20
+	scene.add(tableGroup2)
+	const tableGroup3 = createTable()
+	tableGroup3.position.y -= 20
+	scene.add(tableGroup3)
+}
+
+function createSpotLight(position)
+{
+	const light = new THREE.SpotLight(0xffffff, 10, 0, Math.PI / 4, 0.5, 0.5);
+	light.position.set(position.x, position.y, position.z);
+	light.lookAt(0,0,0)
+	light.castShadow = true;
+	light.shadow.mapSize.width = 1024;
+	light.shadow.mapSize.height = 1024;
+	light.shadow.camera.near = 1;
+	light.shadow.camera.far = 500;
+	light.shadow.camera.fov = 60;
+	return light
 }
 
 
 // OBJECTS ///////////////////////////////////////////////////
 	// BALL
+function createBall()
 {
-	const sphereGeometry = new THREE.SphereGeometry(BALL_RADIUS * 10, 32, 32);
-	const sphereMaterial = new THREE.MeshStandardMaterial({ color: 0xf0f0f0, roughness: 0.7, metalness: 0.5 });
-	objects.ball = new THREE.Mesh(sphereGeometry, sphereMaterial);
-	objects.ball.castShadow = true;
-	objects.ball.receiveShadow = true;
-	scene.add(objects.ball);
+	const geometry = new THREE.SphereGeometry(BALL_RADIUS * 10, 32, 32);
+	const material = new THREE.MeshStandardMaterial({ color: 0xf0f0f0, roughness: 0.7, metalness: 0.5 });
+	const mesh = new THREE.Mesh(geometry, material);
+	mesh.castShadow = true;
+	mesh.receiveShadow = true;
+	return mesh
 }
 
-	// TABLE
-const tableGroup = new THREE.Group();
+function createTable()
 {
+	const tableGroup = new THREE.Group();
+
 		// tablemesh
 	const tableTexture = textureLoader.load('image/table_512.jpg');
 	tableTexture.colorSpace = THREE.SRGBColorSpace;
@@ -128,8 +130,7 @@ const tableGroup = new THREE.Group();
 	tableMesh.receiveShadow = true;
 	tableMesh.position.z -= 0.2;
 	tableGroup.add(tableMesh);
-
-	// feet
+		// feet
 	for (var i = 0; i < 6; i++) {
 		const footGeometry = new THREE.BoxGeometry(0.2, 0.2, 4.8);
 		const footMaterial = new THREE.MeshStandardMaterial({ color: 0x050505});
@@ -144,94 +145,74 @@ const tableGroup = new THREE.Group();
 
 	// net
 	create_net(tableGroup)
-}
-
-function create_net(group)
-{
-	var num_verticals = 100
-	var num_horizontals = 10
-
-	var width = 10;
-	var height = 0.7;
-
-	// top
-	{
-		const geometry = new THREE.BoxGeometry(width / (4 * num_verticals), 10, 0.2);
-		const material = new THREE.MeshStandardMaterial({ color: 0xffffff });
-		const mesh = new THREE.Mesh(geometry, material);
-		mesh.castShadow = true;
-		mesh.receiveShadow = true;
-		mesh.position.z = 0.9;
-		group.add(mesh);
-	}
-	// left side
-	{
-		const geometry = new THREE.BoxGeometry(0.15, 0.15, 1.4);
-		const material = new THREE.MeshPhongMaterial({ color: 0x000000 });
-		const mesh = new THREE.Mesh(geometry, material);
-		mesh.castShadow = true;
-		mesh.receiveShadow = true;
-		mesh.position.y = -5.075;
-		mesh.position.z = 0.35;
-		group.add(mesh);
-	}
-	// right side
-	{
-		const geometry = new THREE.BoxGeometry(0.15, 0.15, 1.4);
-		const material = new THREE.MeshPhongMaterial({ color: 0x000000 });
-		const mesh = new THREE.Mesh(geometry, material);
-		mesh.castShadow = true;
-		mesh.receiveShadow = true;
-		mesh.position.y = 5.075;
-		mesh.position.z = 0.35;
-		group.add(mesh);
-	}
-	// vertical threads
-	for (var i = 0; i < num_verticals; i++) {
-		const geometry = new THREE.BoxGeometry(width / (5 * num_verticals), width / (5 * num_verticals), 0.7);
-		const material = new THREE.MeshStandardMaterial({ color: 0x000000 });
-		const mesh = new THREE.Mesh(geometry, material);
-		mesh.castShadow = true;
-		mesh.position.z = 0.45;
-		mesh.position.y = (i * width / (num_verticals)) - 5;
-		group.add(mesh);
-	}
-	//horizontal threads
-	for (var i = 0; i < num_horizontals; i++) {
-		const geometry = new THREE.BoxGeometry(height / (5 * num_horizontals), width, height / (5 * num_horizontals));
-		const material = new THREE.MeshStandardMaterial({ color: 0x000000 });
-		const mesh = new THREE.Mesh(geometry, material);
-		mesh.castShadow = true;
-		mesh.position.z = (i * height / (num_horizontals) + 0.1);
-		mesh.position.y = 0;
-		group.add(mesh);
-	}
-}
-
-scene.add(tableGroup)
-
-
-const tableGroup2 = tableGroup.clone()
-tableGroup2.position.y += 20
-scene.add(tableGroup2)
-const tableGroup3 = tableGroup.clone()
-tableGroup3.position.y -= 20
-scene.add(tableGroup3)
-
-
-
-// ROOM
-const WALL_POSITION = {
-	X: [-50, 0, 50, 0],
-	Y: [0, -50, 0, 50],
-	rotX: [Math.PI/2, Math.PI/2, Math.PI/2, Math.PI/2],
-	rotY: [Math.PI/2, 0, Math.PI/2, 0]
 	
+	function create_net(group)
+	{
+		var num_verticals = 100
+		var num_horizontals = 10
+		var width = 10;
+		var height = 0.7;
+		
+		// top
+		{
+			const geometry = new THREE.BoxGeometry(width / (4 * num_verticals), 10, 0.2);
+			const material = new THREE.MeshStandardMaterial({ color: 0xffffff });
+			const mesh = new THREE.Mesh(geometry, material);
+			mesh.castShadow = true;
+			mesh.receiveShadow = true;
+			mesh.position.z = 0.9;
+			group.add(mesh);
+		}
+		// left side
+		{
+			const geometry = new THREE.BoxGeometry(0.15, 0.15, 1.4);
+			const material = new THREE.MeshPhongMaterial({ color: 0x000000 });
+			const mesh = new THREE.Mesh(geometry, material);
+			mesh.castShadow = true;
+			mesh.receiveShadow = true;
+			mesh.position.y = -5.075;
+			mesh.position.z = 0.35;
+			group.add(mesh);
+		}
+		// right side
+		{
+			const geometry = new THREE.BoxGeometry(0.15, 0.15, 1.4);
+			const material = new THREE.MeshPhongMaterial({ color: 0x000000 });
+			const mesh = new THREE.Mesh(geometry, material);
+			mesh.castShadow = true;
+			mesh.receiveShadow = true;
+			mesh.position.y = 5.075;
+			mesh.position.z = 0.35;
+			group.add(mesh);
+		}
+		// vertical threads
+		for (var i = 0; i < num_verticals; i++) {
+			const geometry = new THREE.BoxGeometry(width / (5 * num_verticals), width / (5 * num_verticals), 0.7);
+			const material = new THREE.MeshStandardMaterial({ color: 0x000000 });
+			const mesh = new THREE.Mesh(geometry, material);
+			mesh.castShadow = true;
+			mesh.position.z = 0.45;
+			mesh.position.y = (i * width / (num_verticals)) - 5;
+			group.add(mesh);
+		}
+		//horizontal threads
+		for (var i = 0; i < num_horizontals; i++) {
+			const geometry = new THREE.BoxGeometry(height / (5 * num_horizontals), width, height / (5 * num_horizontals));
+			const material = new THREE.MeshStandardMaterial({ color: 0x000000 });
+			const mesh = new THREE.Mesh(geometry, material);
+			mesh.castShadow = true;
+			mesh.position.z = (i * height / (num_horizontals) + 0.1);
+			mesh.position.y = 0;
+			group.add(mesh);
+		}
+	}
+	
+	return tableGroup
 }
 
+function createRoom()
 {
 	const roomGroup = new THREE.Group();
-
 	// Floor
 	{
 		const floorTexture = textureLoader.load('image/floorboard_512.jpg');
@@ -247,16 +228,13 @@ const WALL_POSITION = {
 		mesh.receiveShadow = true;
 		roomGroup.add(mesh);
 	}
-
 	// Walls
 	{
-		// const wallTexture = textureLoader.load('image/brick_wall_512.jpg');
 		const wallTexture = textureLoader.load('image/metal_wall.jpg');
 		wallTexture.colorSpace = THREE.SRGBColorSpace;
 		wallTexture.wrapS = THREE.RepeatWrapping;
 		wallTexture.wrapT = THREE.RepeatWrapping;
-		wallTexture.repeat.set(4, 2); // number of repetitions
-		// wallTexture.repeat.set(8, 4); // number of repetitions
+		wallTexture.repeat.set(4, 2);
 		
 		for(var i = 0; i < 4; i++){
 			const geometry = new THREE.PlaneGeometry(100, 50);
@@ -272,29 +250,21 @@ const WALL_POSITION = {
 		}
 	}
 
-
-	scene.add(roomGroup);
+	return roomGroup;
 }
 
-
-
-
-	// PADDLES
-const createPaddle = (color) => {
+function createPaddle(color) {
 	const group = new THREE.Group();
-
 	// HANDLE
 	const handleGeometry = new THREE.BoxGeometry(0.12, 0.095, 0.5);
 	const handleMaterial = new THREE.MeshStandardMaterial({ color: 0xc5a785, side: THREE.DoubleSide});
 	const handleMesh = new THREE.Mesh(handleGeometry, handleMaterial);
 	handleMesh.castShadow = true;
 	handleMesh.receiveShadow = true;
-	// handleMesh.rotation.y = Math.PI/2
 	handleMesh.position.z = -0.6; 
 	handleMesh.position.x = -0.35; 
 	handleMesh.rotation.y = Math.PI/6;
 	group.add(handleMesh);
-
 	// CYLINDER
 	const cylinderGeometry = new THREE.CylinderGeometry((PADDLE_LENGTH / 2) * 10, (PADDLE_LENGTH / 2) * 10, PADDLE_THICKNESS * 10, 24);
 	const cylinderMaterial = new THREE.MeshStandardMaterial({ color: color });
@@ -309,8 +279,6 @@ const createPaddle = (color) => {
 	return group;
 }
 
-// SCORE BOARD
-
 var font;
 fontLoader.load('https://cdn.jsdelivr.net/npm/three@0.136.0/examples/fonts/droid/droid_sans_regular.typeface.json', (loadedFont) => {
 	font = loadedFont;
@@ -324,7 +292,7 @@ function createScoreBoard(color, side)
 		const geometry = new TextGeometry('0', {
 			font: font,
 			size: 1.5,
-			depth: 0.1,
+			depth: 0.05,
 			curveSegments: 12,
 		});
 		const material = new THREE.MeshStandardMaterial({ color: color });
@@ -344,10 +312,11 @@ function createScoreBoard(color, side)
 		return(textMesh)
 }
 
+
+
 // SOUND
 var ping_sound = new Audio("sound/ping_sound.mp3");
 var pong_sound = new Audio("sound/pong_sound.mp3");
-
 
 start_button.addEventListener('click', () => {
 	// ping_sound.play();;
@@ -357,19 +326,11 @@ start_button.addEventListener('click', () => {
 
 
 
-
-
-
-
 window.onload = function() {
 	// TEMPORARY Afficher une fenêtre popup pour demander à l'utilisateur d'entrer une valeur 
 	user_id = prompt("Veuillez entrer une valeur :");
 
-	objects.paddle.push(createPaddle(0xf00000)); // West paddle
-	objects.paddle.push(createPaddle(0x0000f0)); // East paddle
-	objects.paddle.forEach(paddle => scene.add(paddle))
-
-
+	createScene();
 
 	const wsRef = new WebSocket(
 		'wss://'
@@ -455,7 +416,7 @@ function updateScoreBoard(side, score) {
 		const geometry = new TextGeometry(score.toString(), {
 			font: font,
 			size: 1.5,
-			depth: 0.1,
+			depth: 0.05,
 			curveSegments: 12,
 		});
 		objects.score_board[side].geometry.dispose(); // Clean up old geometry

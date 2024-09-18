@@ -32,7 +32,7 @@ def generate_bot_id():
 	return '!' + ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(31))
 
 class Lobby():
-	def __init__(self, settings: Dict[str, Any], id:str = None, prefix=None) -> None:
+	def __init__(self, settings: Dict[str, Any], id:str = None, prefix='') -> None:
 		self.hostname = settings.pop('hostname', None)
 		# self.check_rules(lives, player_num, type)
 		self.name = settings.pop('name', f"{self.hostname}'s lobby")
@@ -67,6 +67,7 @@ class Lobby():
 		if len(self.players) == self.player_num:
 			logging.warning(f"Trying to add a player ({player_id}) to a full lobby")
 			return False
+
 		self.players[player_id] = {
 			'has_joined': False,
 			'is_ready': False,
@@ -120,7 +121,7 @@ class Lobby():
 				pass
 			case _:
 				raise ValueError("Wrong rules")
-			
+
 	def init_game(self) -> bool:
 		""" Send HTTP request to pong backend and sent link to consumers. Update players status """
 		# This exception could be ignored and we could complete here missing player with bots
@@ -148,7 +149,7 @@ class Lobby():
 			online_players[player_id]['status'] = PlayerStatus.IN_GAME
 		self.started = True
 		return True
-	
+
 	def delete(self):
 		""" Delete players from online_players and remove lobby from list of lobbies """
 		for player_id, player in self.iterate_human_player():
@@ -186,6 +187,7 @@ class SimpleMatchLobby(Lobby):
 		super().handle_results(results)
 		self.delete()
 
+
 class LocalMatchLobby(SimpleMatchLobby):
 
 	def __init__(self, settings: Dict[str, Any]) -> None:
@@ -207,7 +209,7 @@ class TurnamentInitialLobby(Lobby):
 
 	def handle_results(self, results: Dict[str, Any]):
 		pass
-	
+
 	def init_game(self) -> bool:
 		""" Create turnament instance. Turnament instance will then create lobby instances
 		 asnd assign players to them. """
@@ -233,11 +235,20 @@ class TurnamentMatchLobby(Lobby):
 
 	def handle_results(self, results: Dict[str, Any]):
 		super().handle_results(results)
-		if self.tournament_id in tournaments:
-			tournaments[self.tournament_id].handle_result(results)
-		self.delete()
 
 	# def check_time_out(self):
 	# 	if time.time() - self.created_at > 
 
 lobbies: Dict[str, Lobby] = {}
+
+
+
+
+
+
+
+"""
+
+
+
+"""

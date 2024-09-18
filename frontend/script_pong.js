@@ -18,13 +18,21 @@ const EAST = 1;
 const NORTH = 2;
 const SOUTH = 3;
 
+const PADDLE_LENGTH = 0.16
+const PADDLE_THICKNESS = 0.05;
+const BALL_RADIUS = 0.015
 
 var players = [
+		{type: "wall", lives: 0, x: 0, y: 0, width: 0, height: 0},
+		{type: "wall", lives: 0, x: 0, y: 0, width: 0, height: 0},
+		{type: "wall", lives: 0, x: 0, y: 0, width: 0, height: 0},
 		{type: "wall", lives: 0, x: 0, y: 0, width: 0, height: 0}
 	];
-var ball = {x: 0.5, y: 0.5, r: 0, speedX: 0, speedY: 0};
+var ball = {x: 0, y: 0, r: 0, speedX: 0, speedY: 0};
 var number_of_players;
 var user_id;
+
+var walls = [];
 
 
 /////////////////// 3D WIP ///////////////////
@@ -35,29 +43,18 @@ const scene = new THREE.Scene();
 // CAMERA
 // FOV, ratio, near clipping, far clipping
 const camera = new THREE.PerspectiveCamera( 75, 1, 0.1, 1000);
-camera.position.z = 8;
-camera.position.y = -5;
+camera.position.z = 10;
 camera.lookAt(0, 0, 0);
 
-// const camera = new THREE.PerspectiveCamera( 179, 1, 0.1, 100);
-// camera.position.z = 0.1;
-// camera.lookAt(0, 0, 0);
-
 // LIGHT
-
 const spotLight = new THREE.SpotLight( 0xffffff );
-spotLight.position.set( 0, 5, 10 );
-// spotLight.map = new THREE.TextureLoader().load( url );
+spotLight.position.set( 0, 0, 10 );
 spotLight.castShadow = true;
 spotLight.shadow.mapSize.width = 1024;
 spotLight.shadow.mapSize.height = 1024;
 spotLight.shadow.camera.near = 5;
 spotLight.shadow.camera.far = 40;
 spotLight.shadow.camera.fov = 30;
-
-// const spotLightHelper = new THREE.SpotLightHelper( spotLight );
-// scene.add( spotLightHelper );
-
 
 scene.add( spotLight );
 
@@ -72,10 +69,10 @@ document.body.appendChild(renderer.domElement);
 
 // Define different geometries
 const paddleGeometry = [
-	new THREE.BoxGeometry(0.2, 1.6, 0.2),
-	new THREE.BoxGeometry(0.2, 1.6, 0.2),
-	new THREE.BoxGeometry(1.6,0.2, 0.2),
-	new THREE.BoxGeometry(1.6,0.2, 0.2)
+	new THREE.BoxGeometry(PADDLE_THICKNESS * 10, PADDLE_LENGTH * 10, 0.5),
+	new THREE.BoxGeometry(PADDLE_THICKNESS * 10, PADDLE_LENGTH * 10, 0.5),
+	new THREE.BoxGeometry(PADDLE_LENGTH * 10,PADDLE_THICKNESS * 10, 0.5),
+	new THREE.BoxGeometry(PADDLE_LENGTH * 10,PADDLE_THICKNESS * 10, 0.5)
 ];
 
 // Define different materials
@@ -89,7 +86,7 @@ const paddleMaterial = [
 
 // OBJECTS
 	// create ball
-const sphereGeometry = new THREE.SphereGeometry( 0.15, 32, 32 );
+const sphereGeometry = new THREE.SphereGeometry( BALL_RADIUS * 10, 32, 32 );
 const sphereMaterial = new THREE.MeshStandardMaterial( { color: 0xf0f0f0 } );
 const sphere = new THREE.Mesh( sphereGeometry, sphereMaterial );
 
@@ -99,15 +96,54 @@ sphere.receiveShadow = true;
 scene.add( sphere );
 
 	// create field plane
-const planeGeometry = new THREE.PlaneGeometry( 10, 10 );
-const planeMaterial = new THREE.MeshStandardMaterial( {color: 0x00ffff} );
-const plane = new THREE.Mesh(planeGeometry, planeMaterial);
 
-plane.castShadow = true;
-plane.receiveShadow = true;
-plane.position.z -= 0.15; // minus ball radius
+const CORNER_POSITION = {
+	X: [-10, -10, 10, 10],
+	Y: [-10, 10, -10, 10]
+}
 
-scene.add(plane);
+const WALL_POSITION = {
+	X: [-10, 10, 0, 0],
+	Y: [0, 0, -10, 10]
+}
+
+{
+	const group = new THREE.Group();
+	{
+		const planeGeometry = new THREE.PlaneGeometry( 30, 30 );
+		const planeMaterial = new THREE.MeshStandardMaterial( {color: 0x00ffff} );
+		const plane = new THREE.Mesh(planeGeometry, planeMaterial);
+		
+		plane.castShadow = true;
+		plane.receiveShadow = true;
+		plane.position.z -= 0.15; // minus ball radius
+		
+		group.add(plane);
+	}
+	for (var i = 0; i < 4; i++)
+	{
+		//corners
+		{
+			const geometry = new THREE.BoxGeometry( 10, 10, 0.5 );
+			const material = new THREE.MeshStandardMaterial ( {color: 0xf0f0f0});
+			const mesh = new THREE.Mesh(geometry, material);
+			mesh.position.set(CORNER_POSITION.X[i], CORNER_POSITION.Y[i], 0)
+			group.add(mesh);
+		}
+
+		//walls
+		{
+			const geometry = new THREE.BoxGeometry( 10, 10, 0.5 );
+			const material = new THREE.MeshStandardMaterial ( {color: 0xf0f0f0});
+			const mesh = new THREE.Mesh(geometry, material);
+			mesh.position.set(WALL_POSITION.X[i], WALL_POSITION.Y[i], -1)
+			walls.push(mesh);
+			group.add(mesh);
+		}
+	}
+
+	scene.add(group);
+}
 
 
 
@@ -121,7 +157,8 @@ function create_paddles(number_of_players)
 		const geometry = paddleGeometry[i % paddleGeometry.length];
 		const material = paddleMaterial[i % paddleMaterial.length];
 		const paddle = new THREE.Mesh(geometry, material);
-
+		paddle.position.z = -1
+		
 		paddle.castShadow = true;
 		paddle.receiveShadow = true;
 
@@ -152,6 +189,8 @@ window.onload = function() {
 	
 
 	wsRef.onmessage = function (e) {
+
+
 		const msg = JSON.parse(e.data);
 		if (msg.hasOwnProperty("type") === false)
 			return
@@ -165,7 +204,7 @@ window.onload = function() {
 			ball.speedX = parseFloat(msg.ball_speed_x);
 			ball.speedY = parseFloat(msg.ball_speed_y);
 
-			for (var i = 0; i < number_of_players; i++)
+			for (var i = 0; i < 4; i++)
 			{
 				players[i] = {
 							type: msg[`player${i}_type`],
@@ -192,15 +231,26 @@ window.onload = function() {
 };
 
 
+function init_3d_map()
+{
+
+}
+
 function draw_3d()
 {
 	// console.log(number_of_players)
-	sphere.position.x = ball.x * 10 - 5;
-	sphere.position.y = ball.y * 10 - 5;
-	for (var dir = 0; dir < number_of_players; dir++)
+	sphere.position.x = ball.x * 10;
+	sphere.position.y = ball.y * 10;
+	for (var dir = 0; dir < 4; dir++)
 	{
-		paddles[dir].position.x = players[dir].x * 10 - 5;
-		paddles[dir].position.y = players[dir].y * 10 - 5;
+		if (players[dir].type == "Player")
+		{
+			paddles[dir].position.x = players[dir].x * 10;
+			paddles[dir].position.y = players[dir].y * 10;
+			paddles[dir].position.z = 0;
+		}
+		else
+			walls[dir].position.z = 0
 	}
 
 	renderer.render(scene, camera);
