@@ -6,8 +6,8 @@ import json
 import requests
 from abc import abstractmethod
 from matchmaking.matchmaking import settings
-from tournament import tournament_creator
-
+from tournament import tournament_creator, tournaments
+import time
 
 def generate_id(public, prefix=''):
 	""" Simplr => S
@@ -36,7 +36,8 @@ class Lobby():
 		self.name = settings.pop('name', f"{self.hostname}'s lobby")
 		if not id:
 			self.id = generate_id(settings.get('public'))
-		self.players: List[str] = []
+		""" {has_joined: bool, is_ready: bool, is_bot: bool} """
+		self.players: Dict[str] = {}
 		self.started = False
 		self.game_type = settings.pop('game_type')
 		self.player_num = settings.pop('number_players')
@@ -47,12 +48,18 @@ class Lobby():
 	def add_player(self, player_id):
 		if len(self.players) == self.player_num:
 			return False
-		self.players.append(player_id)
+		self.players[player_id] = {
+			'has_joined': False,
+			'is_ready': False,
+			'is_bot': False
+		}
 		return True
 
 	def remove_player(self, player_id):
 		if player_id in self.players:
-			self.players.remove(player_id)
+			del self.players[player_id]
+		if len(self.players) == 0:
+			self.delete()
 
 	def check_rules(self):
 		match (self.type, self.player_num, self.settings['lives']):
@@ -72,7 +79,7 @@ class Lobby():
 		data = {
 			'game_id': self.id,
 			'settings': self.settings,
-			'player_list': self.players
+			'player_list': list(self.players.keys())
 		}
 		try:
 			requests.post('http://pong:8002/init-game/?format=json',
@@ -86,7 +93,7 @@ class Lobby():
 			print("ERROR: Failed to post game initialization to pong api")
 			return False
 		# Update player status
-		for player in self.players:
+		for player in self.players.keys():
 			online_players[player]['status'] = PlayerStatus.IN_GAME
 		# Send invitation ??
 		# !!!!!!!!!!!!!!!!!!!!!!!!!
@@ -96,13 +103,13 @@ class Lobby():
 
 	def delete(self):
 		""" Delete players from online_players and remove lobby from list of lobbies """
-		for player in self.players:
-			del online_players[player]
+		for player in self.players.keys():
+			if online_players[player]['lobby_id'] == self.id:
+				del online_players[player]
 		del lobbies[self.id]
 
 	def handle_results(self, results: dict[str, Any]):
-		""" Simple Match: register in database
-			Turnament Match: register in database + refer to turnament instance"""
+		""" register in database"""
 		if results['state'] != 'cancelled':
 			results.pop('status')
 			# results['scores_set'] = [el for el in results['scores_set'] if el['username'][0] != '!']
@@ -117,12 +124,15 @@ class Lobby():
 			except Exception as e:
 				print("ERROR: Failed to post results to users_info")
 
+	def check_time_out(self):
+		pass
+
 
 class SimpleMatchLobby(Lobby):
 
 	def __init__(self, settings: Dict[str, Any]) -> None:
 		super().__init__(settings, 'S')
-		self.players.append(self.hostname)
+		self.add_player(self.hostname)
 
 	def handle_results(self, results: Dict[str, Any]):
 		super().handle_results(results)
@@ -154,7 +164,16 @@ class TurnamentInitialLobby(Lobby):
 	def init_game(self) -> bool:
 		""" Create turnament instance. Turnament instance will then create lobby instances
 		 asnd assign players to them. """
-		tournament_creator()
+		if not tournament_creator({
+			'game_type': self.game_type,
+			'hostname': self.hostname,
+			'name': self.name,
+			'number_players': self.player_num,
+			'default_settings': self.settings,
+			'id': self.id,
+			'players': list(self.players.keys())
+		}):
+			return False
 		return True
 
 
@@ -162,10 +181,13 @@ class TurnamentMatchLobby(Lobby):
 
 	def __init__(self, settings: Dict[str, Any], id:str) -> None:
 		super().__init__(settings, id, 'T')
+		self.tournament_id = self.id[:self.id.find('.')]
+		self.created_at = time.time()
 
 	def handle_results(self, results: Dict[str, Any]):
 		super().handle_results(results)
 
-
+	def check_time_out(self):
+		if time.time() - self.created_at >
 
 lobbies: Dict[str, Lobby] = {}

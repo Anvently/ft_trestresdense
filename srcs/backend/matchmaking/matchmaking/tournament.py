@@ -22,7 +22,6 @@ class Tournament:
 		})
 		self.id = data['id']
 		self.players = data['players']
-		self.cancelled = False
 		for i in range(self.number_players / 2):
 			id=f"{self.id}{SUFFIXES[self.number_players].format(i)}"
 			lobbies[id] = TurnamentMatchLobby({
@@ -33,7 +32,8 @@ class Tournament:
 			}, id)
 			self.reassign_player(self.players[i], id, PlayerStatus.IN_TURNAMENT_LOBBY)
 			self.reassign_player(self.players[i + (self.number_players / 2)], id, PlayerStatus.IN_TURNAMENT_LOBBY)
-			lobbies[id].init_game()
+			if not lobbies[id].init_game():
+				raise Exception("Failed to init tournament")
 
 	def reassign_player(self, player_id: str, lobby_id: str, new_status: int = PlayerStatus.IN_TURNAMENT_LOBBY):
 		lobbies[online_players[player_id]['lobby_id']].remove_player(player_id)
@@ -86,9 +86,11 @@ class Tournament:
 		if stage == 0: #If final match
 			self.delete() 
 
-def tournament_creator(data: Dict[str, Any]):
-	tournaments[data['id']] = Tournament({
-		
-	})
+def tournament_creator(data: Dict[str, Any]) -> bool:
+	try:
+		tournaments[data['id']] = Tournament(data)
+	except:
+		return False
+	return True
 
 tournaments: Dict[str, Tournament] = []

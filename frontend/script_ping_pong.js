@@ -1,17 +1,9 @@
-import * as THREE from "https://cdn.skypack.dev/three@0.132.2";
+import * as THREE from 'three';
+import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js';
+import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js';
 
 
-const 	start_button = document.getElementById("start_button");
-const player0_score = document.getElementById('player0_score');
-const player1_score = document.getElementById('player1_score');
-// TODO
-	// Front-End
-		// - ping pong sound
-		// - lighting
-	// Back-End
-		// - AI
-
-
+const start_button = document.getElementById("start_button");
 
 // Constants
 const TABLE_LENGTH = 9/5;
@@ -37,10 +29,11 @@ var players = [
 		{points: 0, x: 0, y: 0, angle: 0, width: 0, height: 0}
 	];
 var ball = {x: 0.5, y: 0.5, r: 0, speed: {x: 0, y: 0}, last_hit: {x: 0, y: 0}};
-var objects = {ball: null, paddle:[]}
+var objects = {ball: null, paddle:[], score_board:[]}
 var user_id;
 var my_direction = -1;
 var is_service = false
+
 
 const scene = new THREE.Scene();
 
@@ -58,12 +51,41 @@ document.body.appendChild(renderer.domElement);
 	// Texture Loader 
 const textureLoader = new THREE.TextureLoader();
 
+	// Font Loader
+const fontLoader = new FontLoader();
+
 
 // LIGHT //////////////////////////////////////////////////////
 // SpotLight( color : Integer, intensity : Float, distance : Float, angle : Radians, penumbra : Float, decay : Float )
+// {
+// 	const spotlight = new THREE.SpotLight(0xffffff, 10, 0, Math.PI / 4, 0.5, 0.5);
+// 	// spotlight.position.set(-10, -2, 1);
+// 	spotlight.position.set(-8, -5, 15);
+// 	spotlight.lookAt(0,0,0)
+// 	spotlight.castShadow = true;
+// 	spotlight.shadow.mapSize.width = 1024;
+// 	spotlight.shadow.mapSize.height = 1024;
+// 	spotlight.shadow.camera.near = 1;
+// 	spotlight.shadow.camera.far = 500;
+// 	spotlight.shadow.camera.fov = 60;
+// 	scene.add(spotlight);
+// }
+
 {
-	const spotlight = new THREE.SpotLight(0xffffff, 0.8, 0, Math.PI / 4, 0.5, 0.5);
-	spotlight.position.set(-8, -5, 25);
+	const spotlight = new THREE.SpotLight(0xffffff, 10, 0, Math.PI / 4, 0.5, 0.5);
+	spotlight.position.set(-5, 2, 15);
+	spotlight.lookAt(0,0,0)
+	spotlight.castShadow = true;
+	spotlight.shadow.mapSize.width = 1024;
+	spotlight.shadow.mapSize.height = 1024;
+	spotlight.shadow.camera.near = 1;
+	spotlight.shadow.camera.far = 500;
+	spotlight.shadow.camera.fov = 60;
+	scene.add(spotlight);
+}
+{
+	const spotlight = new THREE.SpotLight(0xffffff, 10, 0, Math.PI / 4, 0.5, 0.5);
+	spotlight.position.set(7, -10, 5);
 	spotlight.lookAt(0,0,0)
 	spotlight.castShadow = true;
 	spotlight.shadow.mapSize.width = 1024;
@@ -74,9 +96,10 @@ const textureLoader = new THREE.TextureLoader();
 	scene.add(spotlight);
 }
 
+
 // ambient Light
 {
-	const ambientLight = new THREE.AmbientLight( 0x404040 ); // soft white light
+	const ambientLight = new THREE.AmbientLight( 0x404040 , 6); // soft white light
 	scene.add( ambientLight );
 }
 
@@ -85,7 +108,7 @@ const textureLoader = new THREE.TextureLoader();
 	// BALL
 {
 	const sphereGeometry = new THREE.SphereGeometry(BALL_RADIUS * 10, 32, 32);
-	const sphereMaterial = new THREE.MeshStandardMaterial({ color: 0xf0f0f0 });
+	const sphereMaterial = new THREE.MeshStandardMaterial({ color: 0xf0f0f0, roughness: 0.7, metalness: 0.5 });
 	objects.ball = new THREE.Mesh(sphereGeometry, sphereMaterial);
 	objects.ball.castShadow = true;
 	objects.ball.receiveShadow = true;
@@ -99,7 +122,7 @@ const tableGroup = new THREE.Group();
 	const tableTexture = textureLoader.load('image/table_512.jpg');
 	tableTexture.colorSpace = THREE.SRGBColorSpace;
 	const tableGeometry = new THREE.BoxGeometry(TABLE_LENGTH * 10, 10, 0.2);
-	const tableMaterial = new THREE.MeshStandardMaterial({ map: tableTexture});
+	const tableMaterial = new THREE.MeshStandardMaterial({ map: tableTexture, roughness: 0.7, metalness: 0.5});
 	const tableMesh = new THREE.Mesh(tableGeometry, tableMaterial);
 	tableMesh.castShadow = true;
 	tableMesh.receiveShadow = true;
@@ -227,11 +250,13 @@ const WALL_POSITION = {
 
 	// Walls
 	{
-		const wallTexture = textureLoader.load('image/brick_wall_512.jpg');
+		// const wallTexture = textureLoader.load('image/brick_wall_512.jpg');
+		const wallTexture = textureLoader.load('image/metal_wall.jpg');
 		wallTexture.colorSpace = THREE.SRGBColorSpace;
 		wallTexture.wrapS = THREE.RepeatWrapping;
 		wallTexture.wrapT = THREE.RepeatWrapping;
-		wallTexture.repeat.set(8, 4); // number of repetitions
+		wallTexture.repeat.set(4, 2); // number of repetitions
+		// wallTexture.repeat.set(8, 4); // number of repetitions
 		
 		for(var i = 0; i < 4; i++){
 			const geometry = new THREE.PlaneGeometry(100, 50);
@@ -250,6 +275,8 @@ const WALL_POSITION = {
 
 	scene.add(roomGroup);
 }
+
+
 
 
 	// PADDLES
@@ -282,6 +309,41 @@ const createPaddle = (color) => {
 	return group;
 }
 
+// SCORE BOARD
+
+var font;
+fontLoader.load('https://cdn.jsdelivr.net/npm/three@0.136.0/examples/fonts/droid/droid_sans_regular.typeface.json', (loadedFont) => {
+	font = loadedFont;
+	objects.score_board.push(createScoreBoard(0xf00000, WEST));
+	objects.score_board.push(createScoreBoard(0x0000f0, EAST));
+	objects.score_board.forEach(score_board => scene.add(score_board))
+})
+
+function createScoreBoard(color, side)
+{
+		const geometry = new TextGeometry('0', {
+			font: font,
+			size: 1.5,
+			depth: 0.1,
+			curveSegments: 12,
+		});
+		const material = new THREE.MeshStandardMaterial({ color: color });
+		const textMesh = new THREE.Mesh(geometry, material);
+		
+		if (side == WEST)
+		{
+			textMesh.position.set(-3, 5, 0.2);  // Adjust position
+		}
+		else
+		{
+			textMesh.position.set(3, -5, 0.2);  // Adjust position
+			textMesh.rotation.y = Math.PI
+		}
+		
+		textMesh.rotation.x = Math.PI/2
+		return(textMesh)
+}
+
 // SOUND
 var ping_sound = new Audio("sound/ping_sound.mp3");
 var pong_sound = new Audio("sound/pong_sound.mp3");
@@ -294,6 +356,11 @@ start_button.addEventListener('click', () => {
 });
 
 
+
+
+
+
+
 window.onload = function() {
 	// TEMPORARY Afficher une fenêtre popup pour demander à l'utilisateur d'entrer une valeur 
 	user_id = prompt("Veuillez entrer une valeur :");
@@ -301,6 +368,8 @@ window.onload = function() {
 	objects.paddle.push(createPaddle(0xf00000)); // West paddle
 	objects.paddle.push(createPaddle(0x0000f0)); // East paddle
 	objects.paddle.forEach(paddle => scene.add(paddle))
+
+
 
 	const wsRef = new WebSocket(
 		'wss://'
@@ -340,8 +409,6 @@ window.onload = function() {
 		}
 	}
 
-	
-
 	setInterval(() => {
 		if (pressKey.key_up === true)
 			wsRef.send(JSON.stringify({type: 'key_input', username:user_id,  input: "up" }));
@@ -353,8 +420,6 @@ window.onload = function() {
 			wsRef.send(JSON.stringify({type: 'key_input', username:user_id,  input: "right" }));
 	}, 15);
 	
-	
-
 };
 
 
@@ -366,25 +431,36 @@ function draw_3d() {
 	objects.ball.position.y = ball.y * 10;
 	objects.ball.position.z = set_ball_height()
 
-	// DRAW PADDLES
 	for (var i = 0; i < 2; i++) {
+		// DRAW PADDLES
 		objects.paddle[i].position.x = players[i].x * 10;
 		objects.paddle[i].position.y = players[i].y * 10;
-
-
 		set_paddle_height(i)
 		objects.paddle[i].rotation.z = players[i].angle + Math.PI / 2;
 	}
 
+	// SCORE BOARD
+	updateScoreBoard(WEST, players[WEST].points);
+	updateScoreBoard(EAST, players[EAST].points);
+
 	// SOUND
 	ball_sound()
 
-	// SHOW SCORE
-
-	player0_score.textContent = players[0].points;
-	player1_score.textContent = players[1].points;
-
 	renderer.render(scene, camera);
+}
+
+
+function updateScoreBoard(side, score) {
+	if (objects.score_board[side]) {
+		const geometry = new TextGeometry(score.toString(), {
+			font: font,
+			size: 1.5,
+			depth: 0.1,
+			curveSegments: 12,
+		});
+		objects.score_board[side].geometry.dispose(); // Clean up old geometry
+		objects.score_board[side].geometry = geometry; // Set new geometry
+	}
 }
 
 var previous_hit_x = 0;
@@ -410,10 +486,8 @@ function ball_sound() {
 function play_sound(sound_type) {
 	if (sound_type == 0){
 		ping_sound.play()
-		console.log("PING!")
 	} else if (sound_type == 1){
 		pong_sound.play()
-		console.log("PONG!")
 	}
 }
 
