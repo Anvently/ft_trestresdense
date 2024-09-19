@@ -113,6 +113,22 @@ services:
       - ALLOWED_APIS=${USERS_API_ALLOWED_APIS}
     restart: always
 
+  matchmaking:
+    container_name: matchmaking_c
+    build:
+      context: ./srcs/django_builds
+      target: django_websocketapi
+    ports:
+      - "8003:8003"
+    command: python3 manage.py runserver 0.0.0.0:8003
+    depends_on:
+        - redis
+    volumes:
+      - ./srcs/backend/matchmaking/:/code
+      - ${DATA_DIR}keys/rsa/pub.pem:/etc/certificate/pub.pem
+      - ${DATA_DIR}keys/api-tokens/matchmaking:/etc/certificate/api-token
+    restart: always
+
   # web2:
   #   container_name: web2_c
   #   build:

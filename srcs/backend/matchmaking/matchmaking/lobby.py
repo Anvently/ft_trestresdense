@@ -1,14 +1,14 @@
 import uuid
 import base64
-from matchmaking.consumers import MatchMakingConsumer, online_players, PlayerStatus
 from typing import List, Dict, Set, Tuple, Any
 import json
 import requests
 from abc import abstractmethod
-from matchmaking.matchmaking import settings
-from tournament import tournament_creator, tournaments
+from django.conf import settings
+# from matchmaking.common import tournament_creator
 import time, logging, random, string
-
+from matchmaking.common import online_players, PlayerStatus, lobbies, tournaments, tournament_creator
+	
 def generate_id(public, prefix=''):
 	""" Simplr => S
 	 	TurnamentInit => I
@@ -42,15 +42,16 @@ class Lobby():
 		self.players: Dict[str] = {}
 		self.started = False
 		self.game_type = settings.pop('game_type')
-		self.player_num = settings.pop('number_players')
+		self.player_num = settings.pop('nbr_players')
 		self.id = generate_id(settings.get('public'))
 		self.settings = settings
+		self.settings['nbr_players'] = self.player_num
 		self.check_rules()
 
 	def iterate_human_player(self):
 		return ((player_id, player) for player_id, player in self.players.items() if not player['is_bot'])
 
-	def add_bot(self, player_id) -> bool:
+	def add_bot(self) -> bool:
 		return self.add_player(generate_bot_id())
 
 	def remove_bot(self):
@@ -66,6 +67,7 @@ class Lobby():
 		  game initialization. """
 		if len(self.players) == self.player_num:
 			logging.warning(f"Trying to add a player ({player_id}) to a full lobby")
+			print(f"players = {self.players}")
 			return False
 
 		self.players[player_id] = {
@@ -93,7 +95,7 @@ class Lobby():
 			logging.warning(f"{player_id} marked as ready but game has already started.")
 			return False
 		self.players[player_id]['is_ready'] = True
-		if len(self.players) != self.player_num or any(not player['is_ready'] for player in self.players):
+		if len(self.players) != self.player_num or any(not player['is_ready'] for (player_id, player) in self.players.items()):
 			return False
 		if not self.init_game():
 			return False
@@ -114,10 +116,10 @@ class Lobby():
 			self.delete()
 
 	def check_rules(self):
-		match (self.type, self.player_num, self.settings['lives']):
-			case("classic", x, y) if (x == 2 or x == 4) and y > 0 :
+		match (self.game_type, self.player_num, self.settings['lives']):
+			case("pong2d", x, y) if (x == 2 or x == 4) and y > 0 :
 				pass
-			case("3d", 2, y) if y > 0:
+			case("pong3d", 2, y) if y > 0:
 				pass
 			case _:
 				raise ValueError("Wrong rules")
@@ -129,20 +131,24 @@ class Lobby():
 			raise Exception("Can't init game. Actual number of players does not match set number of players.")
 		# Send request
 		data = {
+			'game_name': self.game_type,
 			'game_id': self.id,
 			'settings': self.settings,
 			'player_list': list(self.players.keys())
 		}
 		try:
-			requests.post('http://pong:8002/init-game/?format=json',
+			response = requests.post('http://pong:8002/init-game/?format=json',
 					data=json.dumps(data),
 					headers = {
 						'Host': 'localhost',
+						'Content-type': 'application/json',
 						'Authorization': "Bearer {0}".format(settings.API_TOKEN.decode('ASCII'))
 						}
 					)
+			if response.status_code != 201:
+				raise Exception(f"expected status 201 got {response.status_code} ({response.content})")
 		except Exception as e:
-			print("ERROR: Failed to post game initialization to pong api")
+			print(f"ERROR: Failed to post game initialization to pong api: {e}")
 			return False
 		# Update player status
 		for player_id, player in self.iterate_human_player():
@@ -159,19 +165,22 @@ class Lobby():
 
 	def handle_results(self, results: dict[str, Any]):
 		""" register in database"""
-		if results['state'] != 'cancelled':
+		if results['status'] != 'cancelled':
 			results.pop('status')
 			# results['scores_set'] = [el for el in results['scores_set'] if el['username'][0] != '!']
 			try:
-				requests.post('http://users_api:8001/post-result/?format=json',
+				response = requests.post('http://users_api:8001/post-result/?format=json',
 						data=json.dumps(results),
 						headers = {
 							'Host': 'localhost',
+							'Content-type': 'application/json',
 							'Authorization': "Bearer {0}".format(settings.API_TOKEN.decode('ASCII'))
 							}
 						)
+				if response.status_code != 201:
+					raise Exception(f"expected status 201 got {response.status_code} ({response.content})")
 			except Exception as e:
-				print("ERROR: Failed to post results to users_info")
+				logging.error(f"Failed to post results to users_info: {e}")
 
 	def check_time_out(self):
 		pass
@@ -217,7 +226,7 @@ class TurnamentInitialLobby(Lobby):
 			'game_type': self.game_type,
 			'hostname': self.hostname,
 			'name': self.name,
-			'number_players': self.player_num,
+			'nbr_players': self.player_num,
 			'default_settings': self.settings,
 			'id': self.id,
 			'players': list(self.players.keys())
@@ -235,12 +244,29 @@ class TurnamentMatchLobby(Lobby):
 
 	def handle_results(self, results: Dict[str, Any]):
 		super().handle_results(results)
+		tournament_id = results.get('tournament_id', None)
+		if tournament_id and tournament_id in tournaments:
+			tournaments[tournament_id].handle_result(results)
+		self.delete()
 
 	# def check_time_out(self):
 	# 	if time.time() - self.created_at > 
 
-lobbies: Dict[str, Lobby] = {}
 
+lobby = SimpleMatchLobby({
+	'hostname': '!AI1',
+	'name': 'pouet_pouet',
+	'game_type': 'pong3d',
+	'nbr_players': 2,
+	'lives':2,
+	'allow_spectators':True,
+	'public': True
+})
+
+lobbies[lobby.id] = lobby
+
+lobbies[lobby.id].add_bot()
+# lobbies["9"].add_bot()
 
 
 

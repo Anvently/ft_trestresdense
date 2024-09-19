@@ -1,6 +1,6 @@
 from typing import Dict, Any, List, Tuple
-from matchmaking.lobby import Lobby, TurnamentMatchLobby, lobbies
-from matchmaking.consumers import online_players, PlayerStatus
+from matchmaking.common import online_players, tournaments, PlayerStatus, lobbies
+# from matchmaking.lobby import TurnamentMatchLobby
 import re
 
 SUFFIXES = {
@@ -87,11 +87,3 @@ class Tournament:
 		if stage == 0: #If final match
 			self.delete() 
 
-def tournament_creator(data: Dict[str, Any]) -> bool:
-	try:
-		tournaments[data['id']] = Tournament(data)
-	except:
-		return False
-	return True
-
-tournaments: Dict[str, Tournament] = []

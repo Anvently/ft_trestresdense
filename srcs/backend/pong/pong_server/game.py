@@ -141,11 +141,12 @@ class PongLobby:
 					data=json.dumps(data),
 					headers = {
 						'Host': 'localhost',
+						'Content-type': 'application/json',
 						'Authorization': "Bearer {0}".format(settings.API_TOKEN.decode('ASCII'))
 						}
 					)
 			if response.status_code != 200:
-				raise Exception(f"expected status 201 but got {response.status_code}")
+				raise Exception(f"expected status 201 but got {response.status_code} ({response.content})")
 		except Exception as e:
 			logging.error(f"Failed to send results of lobby {self.lobby_id}: {e}")
 		# API call to send result to matchmaking
@@ -159,7 +160,7 @@ class PongLobby:
 
 	async def	game_loop(self):
 		try:
-			print("Game loop has started")
+			print(f"Lobby {self.lobby_id}: Game loop has started")
 			loop_start = time.time()
 			player_channel = get_channel_layer()
 			# pregame : check that all players are present
@@ -206,7 +207,7 @@ class PongLobby:
 					"type": "leave_lobby"
 				}
 			)
-			logging.info("Terminating game loop.")
+			logging.info(f"Lobby {self.lobby_id}: Terminating game loop.")
 		except Exception as e:
 			logging.error(e)
 			await player_channel.group_send(self.lobby_id, {'type':'error', 'detail':'error in game loop'})
