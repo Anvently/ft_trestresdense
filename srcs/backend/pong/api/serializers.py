@@ -3,13 +3,17 @@ from pong_server.game import PongLobby
 from pong_server.pong2d import PongLobby2D
 from pong_server.pong3d import PongLobby3D
 from pong_server.consumers import lobbys_list
+from asgiref.sync import async_to_sync
 from typing import Dict, List, Any
+from channels.layers import get_channel_layer
+from pong_server.consumers import check_lobby_id
+
 
 class GameSettingsSerializer(serializers.Serializer):
 
-	number_life = serializers.IntegerField(min_value = 1)
-	number_players = serializers.IntegerField(max_value = 4)
-	allow_spectators = serializers.BooleanField(default=  True, required = False)
+	lives = serializers.IntegerField(min_value = 1)
+	nbr_players = serializers.IntegerField(max_value = 4)
+	allow_spectators = serializers.BooleanField(default=True, required = False)
 
 	def create(self, validated_data):
 		""" Return game_settings object """
@@ -41,10 +45,10 @@ class GameSerializer(serializers.Serializer):
 			)
 
 	def validate(self, data):
-		number_players = data['settings']['number_players']
+		number_players = data['settings']['nbr_players']
 		player_list = data['player_list']
 		
-		if PongLobby.check_lobby_id(data['game_id']):
+		if check_lobby_id(data['game_id']):
 			raise serializers.ValidationError(
 				f"The given lobby_id {data['game_id']} already exists."
 			)
@@ -72,12 +76,14 @@ class GameSerializer(serializers.Serializer):
 			'turnament_id': None,
 			'player_list': [{
 				'id': player.player_id,
-				'position': player.position,
-				'type': player.type,
+				'position': player.coordinates,
+				'is_bot': player.is_bot,
 				'lifes':player.lives
 				} for player in obj.players],
 			'settings': {
-				'lifes': 'unknown'
+				'lives': obj.settings['lives'],
+				'nbr_players': obj.settings['nbr_players'],
+				'allow_spectator': obj.settings['allow_spectators']
 			}
 		}
 		if hasattr(obj, 'tournId'):

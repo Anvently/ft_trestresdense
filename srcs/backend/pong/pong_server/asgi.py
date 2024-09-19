@@ -1,8 +1,9 @@
 import os
 from django.core.asgi import get_asgi_application
-from channels.routing import ProtocolTypeRouter, URLRouter
+from channels.routing import ProtocolTypeRouter, URLRouter, ChannelNameRouter
 from channels.auth import CookieMiddleware
 from pong_server import routing
+
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'pong_server.settings')
 
@@ -15,20 +16,18 @@ application = ProtocolTypeRouter({
     ),
 })
 
+# from pong_server.consumers import lobbys_list
+# from typing import List
+# import asyncio
 
-# async def startup():
-#     # Démarrer les tâches d'initialisation
-#     await PongLobby2D.lobbys_list["10"].game_loop()
-#     # Ajoutez d'autres tâches si nécessaire
+# game_queue: List[str] = []
 
-# # Assurez-vous que la fonction startup est exécutée dans la boucle d'événements ASGI
-# loop = asyncio.get_event_loop()
-# loop.create_task(startup())
-
-# async def start_tasks():
-# 	await asyncio.create_task(lobbys_list["10"].check_game_start())
-# # # 
-# loop = asyncio.get_event_loop()
-# lobbys_list["10"].loop = loop.create_task(lobbys_list["10"].game_loop())
-# asyncio.run(start_tasks())
+# async def game_loop_monitor():
+# 	while True:
+# 		print("pouet")
+# 		if game_queue:
+# 			game_id = game_queue.pop()
+# 			if game_id in lobbys_list:
+# 				await lobbys_list[game_id].start_game_loop()
+# 		await asyncio.sleep(0.5)
 

@@ -4,11 +4,14 @@ import jwt, logging
 import math
 import asyncio
 from django.conf import settings
-from channels.generic.websocket import AsyncWebsocketConsumer, AsyncJsonWebsocketConsumer
+from channels.generic.websocket import AsyncJsonWebsocketConsumer
+from channels.consumer import AsyncConsumer
 from pong_server.authentication import verify_jwt
 from pong_server.pong2d import PongLobby2D
 from pong_server.pong3d import PongLobby3D
 from pong_server.game import PongLobby
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 from typing import Dict, Any, List
 
 def verify_jwt(token, is_ttl_based=False, ttl_key="exp"):
@@ -88,6 +91,8 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 			return False
 		if self.username and lobbys_list[self.lobby_id].check_user(self.username):
 			self.is_spectator = False
+		elif self.DISABLE_AUTH:
+			pass
 		elif not lobbys_list[self.lobby_id].settings.get('allow_spectators', True):
 				self.scope['error'] = "forbidden lobby"
 				self.scope['error_code'] = 4004
@@ -104,6 +109,7 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 		else:
 			await self._send_error(self.scope['error'], self.scope['error_code'], True)
 			print("Connection rejected because: {0}".format(self.scope['error']))
+			return
 		await self.send_json({'type':'ping'})
 
 	async def disconnect(self, close_code):
@@ -148,6 +154,7 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 	async def key_input(self, content):
 		if content['username'] not in self.users:
 			await self._send_error('Invalid username')
+			return
 		lobbys_list[self.lobby_id].player_input(content['username'], content['input'])
 
 	async def cancel(self, content):
@@ -159,6 +166,9 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 
 	async def game_finish(self, content):
 		await self.send_json(content)
+
+	async def leave_lobby(self, content):
+		await self.send_json(content)
 		await self.close(4000, "game finished")
 
 	async def send_game_state(self, content):
@@ -167,21 +177,28 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 	async def info_message(self, content):
 		await self.send_json(content)
 
-lobbys_list : Dict[str, Any] = dict()
+lobbys_list : Dict[str, PongLobby] = dict()
 
 lobbys_list["10"] = PongLobby2D(
 	lobby_id="10",
 	# players_list=["P1", "P2", "P3", "P4"],
 	players_list=["P1", "!AI2", "!AI3", "!AI4"],
 	# players_list=["P1", "P2"],
-	settings={'lives':1},
+	settings={'lives':1, 'nbr_players':4, 'allow_spectators':False},
 	# players_list=["P1", "!AI1"],
 	tournId=None
 )
 lobbys_list["11"] = PongLobby3D(
 	lobby_id="11",
 	# players_list=["P1", "P2"],
-	players_list=["P1", "!AI1"],
+	players_list=["!AI1", "!AI2"],
 	# players_list=["!AI2", "!AI1"],
-	tournId=None,settings={'lives':100}
+	tournId=None,settings={'lives':1, 'nbr_players':2, 'allow_spectators':True},
 )
+
+from daphne.server import twisted_loop
+
+for lobby_id in lobbys_list:
+	if lobbys_list[lobby_id].check_game_start():
+		print(f"Auto-starting {lobby_id}")
+		twisted_loop.create_task(lobbys_list[lobby_id].start_game_loop())

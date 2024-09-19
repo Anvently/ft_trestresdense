@@ -109,6 +109,7 @@ class PongLobby2D(PongLobby):
 		for i in range(len(players_list)):
 			self.players.append(Player2D(players_list[i], i, self.settings['lives'], 'Player'))
 			self.match_id_pos[players_list[i]] = i
+		self.waiting_for = sum(1 for player in self.players if not player.is_bot)
 		for i in range(self.player_num, 4):
 			self.players.append(Player2D('!wall', i))
 		self.game_type = 'pong2d'
@@ -163,20 +164,20 @@ class PongLobby2D(PongLobby):
 		# elif self.players[EAST].type != "Player" and self.ball['x'] + BALL_RADIUS >= 0.5 and self.ball["speed"]['x'] > 0:
 		# 	self.ball["speed"]['x'] *= -1
 
-		print(f"ball x = {self.ball["x"]}, ball y = {self.ball["y"]}")
+		# print(f"ball x = {self.ball["x"]}, ball y = {self.ball["y"]}")
 
 		if self.ball["y"] <= 0 and abs(self.ball["y"]) >= abs(self.ball["x"]):
 			ball_position = SOUTH
-			print("SOUTH")
+			# print("SOUTH")
 		elif self.ball["y"] > 0 and abs(self.ball["y"]) > abs(self.ball["x"]):
 			ball_position = NORTH
-			print("NORTH")
+			# print("NORTH")
 		elif self.ball["x"] < 0 and abs(self.ball["y"]) < abs(self.ball["x"]):
 			ball_position = EAST
-			print("EAST")
+			# print("EAST")
 		elif self.ball["x"] > 0 and abs(self.ball["y"]) < abs(self.ball["x"]):
 			ball_position = WEST
-			print("WEST")
+			# print("WEST")
 
 
 		if ball_position == NORTH or ball_position == SOUTH:

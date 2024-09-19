@@ -77,7 +77,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'pong_server.wsgi.application'
+# WSGI_APPLICATION = 'pong_server.wsgi.application'
 
 
 # Database
