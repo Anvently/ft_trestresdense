@@ -1,115 +1,91 @@
-class Route {
-	constructor() {
-		this.route = {};
-		this.current_view = null;
-	}
+const routes = [
+	{ path: '/', url: '/home.html' },
+	{ path: '/cheval_canard', url: '/cheval_canard.html' },
+	{ path: '/contact', url: '/contact.html' },
+];
 
-	async register(view, path) {
-		this.route[path] = view;
-	}
+const mainContainer = document.getElementById('mainContainer');
+let loadedScripts = [];
 
-	async handleLocation() {
+// Function to clean up loaded scripts NE FONCTIONNE PAS
+function cleanScripts() {
+	console.log("loadedScripts = ", loadedScripts);
+	clean();
 
-		const path = window.location.pathname;
-
-		if (this.current_view != "") {
-			console.log("test");
+	loadedScripts.forEach(script => {
+		console.log("script : ", script)
+		if (script.clean) {
+			console.log("calling clean...");
+			script.clean(); // Ensure each script has a clean method
 		}
+	});
+	loadedScripts = [];
+}
 
-		this.current_view = this.route[path] || this.route[404];
-		const html = await fetch(this.current_view.file_html).then((data) => data.text());
+// Function to add a script to the loaded scripts array
+function addScript(script) {
+	const scriptElement = document.createElement('script');
+	scriptElement.src = script.src || '';
+	scriptElement.text = script.text || '';
+	scriptElement.onload = () => {
+		loadedScripts.push(scriptElement);
+	};
+	document.body.appendChild(scriptElement);
+	document.body.removeChild(scriptElement); // Clean up immediately after loading
+}
 
-		document.getElementById("app").innerHTML = html;
-	}
+async function router(event) {
+	event.preventDefault();
+	const url = new URL(event.target.href).pathname;
+	history.pushState({}, 'newUrl', url);
+	await renderPage(url);
+}
 
-	async handleHistory(event) {
-		event = event || window.event;
-		event.preventDefault();
-		window.history.pushState({}, "", event.target.href);
-		this.handleLocation();
-	}
-};
+async function renderPage(path = window.location.pathname) {
+	const route = routes.find(route => route.path === path);
+	if (route) {
+		try {
+			const response = await fetch(route.url);
 
+			if (!response.ok) {
+				// throw new Error('Network response was not ok.');
+				console.log("network response was not ok");
+			}
+			const html = await response.text();
+			
+			// Create a temporary element to hold the HTML
+			const tempDiv = document.createElement('div');
+			tempDiv.innerHTML = html;
 
-class AView {
+			// Clean up old scripts
+			cleanScripts();
 
-	constructor(script, file_html, ext) {
-		this.script = script;
-		this.file_html = file_html;
-		this.ext = ext;
-	}
+			// Load new scripts
+			const scripts = tempDiv.querySelectorAll('script');
+			scripts.forEach(script => {
+				addScript({
+					src: script.src,
+					text: script.text
+				});
+			});
 
-	async getLoadScript() {
-		for (var e of this.script)
-			await import(e);
-	}
-	async init() { }
-
-	async enter() {
-		this.getLoadScript();
-		this.init();
-	}
-
-	async leave() { }
-};
-
-class Home extends AView {
-	constructor() {
-		super(["/script.js"], "/spa/auth.html", true);
-	}
-
-	async init() { }
-
-};
-
-class Error extends AView {
-	constructor() {
-		super([], "/spa/404.html", true);
-	}
-};
-
-
-function getCookie(name) {
-	var dc = document.cookie;
-	var prefix = name + "=";
-	var begin = dc.indexOf("; " + prefix);
-	if (begin == -1) {
-		begin = dc.indexOf(prefix);
-		if (begin != 0) return null;
-	}
-	else {
-		begin += 2;
-		var end = document.cookie.indexOf(";", begin);
-		if (end == -1) {
-			end = dc.length;
+			// Replace the content of mainContainer
+			mainContainer.innerHTML = tempDiv.innerHTML;
+		} catch (error) {
+			mainContainer.innerHTML = `<h1>Error: ${error.message}</h1>`;
 		}
-	}
-	return decodeURI(dc.substring(begin + prefix.length, end));
-}
-
-function doSomething() {
-	var myCookie = getCookie("authtoken");
-
-	if (myCookie == null) {
-		console.log("no cookie ! :[");
-		foo();
-	}
-	else {
-		console.log("cookie ! :]");
+	} else {
+		mainContainer.innerHTML = `<h1>Page not found</h1>`;
 	}
 }
 
+// Manage the previous tab (popstate event)
+window.addEventListener('popstate', () => renderPage(window.location.pathname));
 
-function onpopstate_loc(route) {
-	route.handleLocation();
-}
+// Manage page reload
+window.addEventListener('DOMContentLoaded', () => renderPage(window.location.pathname));
 
-var router = new Route();
-
-router.register(new Home(), "/");
-router.register(new Error(), 404);
-
-
-window.onpopstate = onpopstate_loc(router);
-window.route = router.handleHistory();
-router.handleLocation();
+// Attach the router function to your navigation links
+document.querySelectorAll('a').forEach(link => {
+	link.addEventListener('click', router);
+});
