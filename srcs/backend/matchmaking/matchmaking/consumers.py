@@ -36,10 +36,9 @@ def jsonize_lobby(lobby : Lobby):
 	lobby_data = {}
 	lobby_data['game_type'] = lobby.game_type
 	lobby_data['match_type'] = str(lobby)
-	if not lobby.started:
-		lobby_data['name'] = lobby.name
-		lobby_data['host'] = lobby.hostname
-		lobby_data['slots'] = f"{len(lobby.players)}/{lobby.player_num}"
+	lobby_data['name'] = lobby.name
+	lobby_data['host'] = lobby.hostname
+	lobby_data['slots'] = f"{len(lobby.players)}/{lobby.player_num}"
 	return lobby_data
 
 def jsonize_player(player_id):
