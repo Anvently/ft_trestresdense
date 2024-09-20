@@ -221,6 +221,7 @@ class TurnamentInitialLobby(Lobby):
 
 	def __init__(self, settings: Dict[str, Any]) -> None:
 		super().__init__(settings, prefix='I')
+		self.add_player(self.hostname)
 
 	def check_rules(self):
 		""" Need to override """
@@ -282,7 +283,7 @@ lobby = SimpleMatchLobby({
 })
 
 lobby2 = SimpleMatchLobby({
-	'hostname': 'herve',
+	'hostname': 'anonymous',
 	'name': "Herve's room",
 	'game_type': 'pong2d',
 	'nbr_players': 4,
