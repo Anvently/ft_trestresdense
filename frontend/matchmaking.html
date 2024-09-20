@@ -34,17 +34,25 @@
 		.side-buttons {
 			display: flex;
 			flex-direction: row;
-			/* right: 20px; */
+			justify-content: space-between;
 			margin-top: 20px;
-			justify-content: center;
-			/* top: 50%; */
-			/* width: 1 */
-			/* transform: translateY(-50%); */
+			align-items: flex-end;
+		}
+		#hostOptions {
+			/* margin-right: 50px; */
+			display: flex;
+			margin-right: auto;
+			flex-direction: row;
+		}
+		.mainOptions {
+			display: flex;
+			margin-left: auto;
+			flex-direction: row;
 		}
 		.side-buttons .btn {
 			margin-bottom: 10px;
-			margin-left: 15px;
-			margin-right: 15px;
+			margin-left: 5px;
+			margin-right:5px;
 		}
 		.btn, .form-control {
 			border-radius: 2px;
@@ -56,6 +64,11 @@
 	</style>
 </head>
 <body>
+	<!-- Pop-up d'erreur -->
+	<div id="errorPopup" class="alert alert-danger alert-dismissible fade show" role="alert" style="position: fixed; top: 20px; left: 50%; transform: translateX(-50%); display: none; z-index: 1050;">
+		<span id="errorMessage"></span>
+		<button type="button" class="btn-close" aria-label="Close" onclick="closeErrorPopup()"></button>
+	</div>
 	<div class="container mt-4" id="mainView">
 		<h1 class="mb-4">Système de Matchmaking</h1>
 
@@ -96,9 +109,8 @@
 			</div>
 		</div>
 
-		<div class="side-buttons">
-			<button class="btn btn-primary mainView" onclick="createLobby()">Créer un lobby</button>
-			<button class="btn btn-success mainView" onclick="createTournament()">Créer un tournoi</button>
+		<div class="side-buttons mainOptions">
+			<button class="btn btn-primary mainView" data-bs-toggle="modal" data-bs-target="#createLobbyModal">Créer un lobby</button>
 			<button class="btn btn-info mainView" data-bs-toggle="modal" data-bs-target="#joinLobbyModal">Rejoindre un lobby</button>
 			<button class="btn btn-secondary mainView" onclick="showOnlinePlayers()">Joueurs en ligne</button>
 		</div>
@@ -126,13 +138,15 @@
 		<div class="side-buttons">
 			<!-- Boutons globaux -->
 			 <!-- Si l'utilisateur est l'hôte, afficher les options supplémentaires -->
-			<div id="hostOptions" style="display:none;">
+			<div id="hostOptions" class="lobbyView" style="display:none;">
 				<button class="btn btn-warning" onclick="openLobbyOptions()">Modifier les options du lobby</button>
-				<button class="btn btn-sucess" onclick="startGame()">Démarrer le jeu</button>
+				<button class="btn btn-success" onclick="startGame()">Démarrer le jeu</button>
 			</div>
-			<button class="btn btn-secondary lobbyView" style="display:none;" onclick="inviteFriends()">Inviter des amis</button>
-			<button class="btn btn-warning lobbyView" style="display:none;" onclick="beReady()">Pret</button>
-			<button class="btn btn-danger lobbyView" style="display:none;" onclick="leaveLobby()">Quitter le lobby</button>
+			<div class="mainOptions">
+				<button class="btn btn-secondary lobbyView" style="display:none;" onclick="inviteFriends()">Inviter des amis</button>
+				<button class="btn btn-warning lobbyView" style="display:none;" onclick="beReady()">Pret</button>
+				<button class="btn btn-danger lobbyView" style="display:none;" onclick="leaveLobby()">Quitter le lobby</button>
+			</div>
 		</div>
 
 	</div>
@@ -151,6 +165,82 @@
 				<div class="modal-footer">
 					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
 					<button type="button" class="btn btn-primary" onclick="joinLobbyById()">Rejoindre</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Modal pour créer un lobby -->
+	<div class="modal fade" id="createLobbyModal" tabindex="-1" aria-labelledby="createLobbyModalLabel" aria-hidden="true">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title" id="createLobbyModalLabel">Créer un Lobby</h5>
+					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+				</div>
+				<div class="modal-body" style="max-height: 400px; overflow-y: auto;">
+					<form id="createLobbyForm">
+						
+						<div class="mb-3">
+							<label for="gameType" class="form-label">Choisir le type de jeu</label>
+							<select id="gameType" class="form-select">
+								<option value="pong2d">Pong 2D</option>
+								<option value="pong3d">Pong 3D</option>
+							</select>
+						</div>
+						
+						<div class="mb-3">
+							<label for="matchType" class="form-label">Type de partie</label>
+							<select id="matchType" class="form-select">
+								<option value="local_match">Match Local</option>
+								<option value="simple_match">Match Simple</option>
+								<option value="tournament_lobby">Tournoi</option>
+							</select>
+						</div>
+
+						<div class="mb-3">
+							<label for="lobbyName" class="form-label">Nom du Lobby</label>
+							<input type="text" id="lobbyName" class="form-control" required>
+						</div>
+						<div id="error-message-lobby-name" class="form-errors alert alert-danger" style="display: none;"></div>
+
+						<div class="mb-3">
+							<label for="maxPlayers" class="form-label">Nombre maximum de joueurs</label>
+							<input type="number" id="maxPlayers" class="form-control" min="2" max="8" required>
+						</div>
+						<div id="error-message-max-players" class="form-errors alert alert-danger" style="display: none;"></div>
+
+						<div class="mb-3">
+							<label for="botsCount" class="form-label">Nombre de bots</label>
+							<input type="number" id="botsCount" class="form-control" min="0" max="4" required>
+						</div>
+						<div id="error-message-nbr-bots" class="form-errors alert alert-danger" style="display: none;"></div>
+
+						<div class="mb-3">
+							<label class="form-label">Type de lobby</label>
+							<select id="lobbyPrivacy" class="form-select">
+								<option value="public">Public</option>
+								<option value="private">Privé</option>
+							</select>
+						</div>
+
+						<div class="mb-3">
+							<label class="form-label">Autoriser les spectateurs</label>
+							<select id="spectators" class="form-select">
+								<option value="allowed">Autorisés</option>
+								<option value="notAllowed">Interdits</option>
+							</select>
+						</div>
+
+						<div class="mb-3">
+							<label for="nbrLives" class="form-label">Nombre de vie/points par défaut</label>
+							<input type="number" id="nbrLives" class="form-control" min="1" max="100" required>
+						</div>
+					</form>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+					<button type="button" class="btn btn-primary" onclick="createLobby()">Créer Lobby</button>
 				</div>
 			</div>
 		</div>
@@ -225,7 +315,7 @@
 	<script>
 
 		let socket;
-		let isHost= false;
+		let isHost= true;
 		let lobbyId;
 
 		class WebSocketHandler {
@@ -337,13 +427,93 @@
 		}
 
 		function createLobby() {
-			// Logique pour créer un lobby
-			console.log('Création d\'un nouveau lobby');
-		}
+			const form = document.getElementById('createLobbyForm');
+			console.log(document.querySelectorAll('.form-errors'));
+			document.querySelectorAll('.form-errors').forEach(function(el) {
+				el.style.display = 'none';
+			});
+			// Récupérer les valeurs
+			const gameType = form.gameType.value;
+			const matchType = form.matchType.value;
+			const lobbyName = form.lobbyName.value.trim();
+			const maxPlayers = parseInt(form.maxPlayers.value, 10);
+			const botsCount = parseInt(form.botsCount.value, 10);
+			const lobbyPrivacy = form.lobbyPrivacy.value;
+			const spectators = form.spectators.value;
+			const nbrLives = form.nbrLives.value;
 
-		function createTournament() {
-			// Logique pour créer un tournoi
-			console.log('Création d\'un nouveau tournoi');
+			let errorMessage, error = false;
+
+			if (!lobbyName) {
+				errorMessage = document.getElementById('error-message-lobby-name')
+				errorMessage.style.display = 'block';
+				errorMessage.innerHTML = "Le nom du lobby ne peut pas être vide.";
+				error = true;
+			}
+			errorMessage = document.getElementById('error-message-max-players')
+			if (maxPlayers && maxPlayers >= 2 && maxPlayers <= 8) {
+				if (matchType === 'tournament_lobby') {
+					if (![2, 4, 8].includes(maxPlayers)) {
+						errorMessage.innerHTML = "Le nombre de joueurs doit être pair et compris entre 2 et 8.";
+						errorMessage.style.display = 'block';
+						error = true;
+					}
+				} else {
+					if (maxPlayers > 4) {
+						errorMessage.innerHTML = "Le nombre de joueurs doit être inferieur a 4.";
+						errorMessage.style.display = 'block';
+						error = true;
+					}
+					if (gameType === 'pong3d' && maxPlayers > 2) {
+						errorMessage.innerHTML = "Le nombre de joueurs doit être inferieur a 2 pour le jeu que vous avez choisi.";
+						errorMessage.style.display = 'block';
+						error = true;
+					}
+				}
+			}
+			else {
+				errorMessage.innerHTML = "Le nombre maximum de joueurs doit être compris entre 2 et 8.";
+				errorMessage.style.display = 'block';
+				error = true;
+			}
+			if (!botsCount || botsCount < 0 || botsCount > maxPlayers - 1) {
+				errorMessage = document.getElementById('error-message-nbr-bots')
+				errorMessage.style.display = 'block';
+				errorMessage.innerHTML = "Le nombre de bots doit être compris entre 0 et le nombre maximum de joueurs.";
+				error = true;
+			}
+
+			if (error) {
+				return;
+			}
+
+			// Logique de création de lobby (API, stockage, etc.)
+			console.log({
+				gameType,
+				matchType,
+				lobbyName,
+				maxPlayers,
+				botsCount,
+				lobbyPrivacy,
+				spectators,
+				nbrLives
+			});
+
+			socket.sendMessage({
+				type: 'create_lobby',
+				lobby_type: matchType,
+				name: lobbyName,
+				nbr_players: maxPlayers,
+				nbr_bots: botsCount,
+				game_type: gameType,
+				public: (lobbyPrivacy === 'public' ? true : false),
+				allow_spectators: (spectators === 'allowed' ? true: false),
+				lives: nbrLives
+			});
+
+			// Fermer la modale
+			const modal = bootstrap.Modal.getInstance(document.getElementById('createLobbyModal'));
+			modal.hide();
 		}
 
 		function joinLobbyById() {
@@ -361,11 +531,12 @@
 			document.querySelectorAll('.mainView').forEach(function(element) {
 				element.style.display = (lobbyId === undefined ? 'none' : 'block');
 			});
-
 			// Pour tous les éléments avec la classe 'lobbyView'
 			document.querySelectorAll('.lobbyView').forEach(function(element) {
 				element.style.display = (lobbyId === undefined ? 'block' : 'none');
 			});
+			console.log(lobbyId === undefined && isHost === true)
+			document.getElementById('hostOptions').style.display = (lobbyId === undefined && isHost === true ? 'flex' : 'none');
 
 			// Recevoir les détails du lobby via WebSocket
 			// socket.sendMessage({ type: 'getLobbyDetails', lobbyId: lobbyId });
@@ -494,6 +665,23 @@
 
 			// Afficher le modal
 			new bootstrap.Modal(document.getElementById('onlinePlayersModal')).show();
+		}
+
+		// Fonction pour afficher le pop-up d'erreur
+		function error(message) {
+			document.getElementById('errorMessage').textContent = message.data;
+			const errorPopup = document.getElementById('errorPopup');
+			errorPopup.style.display = 'block';
+
+			// Masquer le pop-up après quelques secondes (optionnel)
+			setTimeout(() => {
+				errorPopup.style.display = 'none';
+			}, 5000); // Masquer après 5 secondes
+		}
+
+		// Fonction pour fermer le pop-up
+		function closeErrorPopup() {
+			document.getElementById('errorPopup').style.display = 'none';
 		}
 
 		// Connecter le WebSocket au chargement de la page
