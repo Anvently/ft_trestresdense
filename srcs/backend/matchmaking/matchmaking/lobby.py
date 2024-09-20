@@ -33,17 +33,19 @@ def generate_bot_id():
 
 class Lobby():
 	def __init__(self, settings: Dict[str, Any], id:str = None, prefix='') -> None:
+		print(f"prefix={prefix}")
 		self.hostname = settings.pop('hostname', None)
 		# self.check_rules(lives, player_num, type)
 		self.name = settings.pop('name', f"{self.hostname}'s lobby")
-		if not id:
-			self.id = generate_id(settings.get('public'))
+		if id == None:
+			self.id = generate_id(settings.get('public'), prefix)
+		else:
+			self.id = id
 		""" {has_joined: bool, is_ready: bool, is_bot: bool} """
 		self.players: Dict[str] = {}
 		self.started = False
 		self.game_type = settings.pop('game_type')
 		self.player_num = settings.pop('nbr_players')
-		self.id = generate_id(settings.get('public'))
 		self.settings = settings
 		self.settings['nbr_players'] = self.player_num
 		self.check_rules()
@@ -185,31 +187,40 @@ class Lobby():
 	def check_time_out(self):
 		pass
 
+	def __str__(self) -> str:
+		return "lobby"
+
 
 class SimpleMatchLobby(Lobby):
 
 	def __init__(self, settings: Dict[str, Any]) -> None:
-		super().__init__(settings, 'S')
+		super().__init__(settings, prefix='S')
 		self.add_player(self.hostname)
 
 	def handle_results(self, results: Dict[str, Any]):
 		super().handle_results(results)
 		self.delete()
 
+	def __str__(self) -> str:
+		return "simple_match"
+
 
 class LocalMatchLobby(SimpleMatchLobby):
 
 	def __init__(self, settings: Dict[str, Any]) -> None:
-		super().__init__(settings, 'L')
+		super().__init__(settings, prefix='L')
 		self.settings['public'] = False
 
 	def handle_results(self, results: Dict[str, Any]):
 		self.delete()
 
+	def __str__(self) -> str:
+		return "local_match"
+
 class TurnamentInitialLobby(Lobby):
 
 	def __init__(self, settings: Dict[str, Any]) -> None:
-		super().__init__(settings, 'I')
+		super().__init__(settings, prefix='I')
 
 	def check_rules(self):
 		""" Need to override """
@@ -232,7 +243,11 @@ class TurnamentInitialLobby(Lobby):
 			'players': list(self.players.keys())
 		}):
 			return False
+		self.delete()
 		return True
+	
+	def __str__(self) -> str:
+		return "tournament_lobby"
 
 
 class TurnamentMatchLobby(Lobby):
@@ -249,6 +264,9 @@ class TurnamentMatchLobby(Lobby):
 			tournaments[tournament_id].handle_result(results)
 		self.delete()
 
+	def __str__(self) -> str:
+		return "tournament_match"
+
 	# def check_time_out(self):
 	# 	if time.time() - self.created_at > 
 
@@ -258,12 +276,34 @@ lobby = SimpleMatchLobby({
 	'name': 'pouet_pouet',
 	'game_type': 'pong3d',
 	'nbr_players': 2,
-	'lives':2,
+	'lives':20,
 	'allow_spectators':True,
 	'public': True
 })
 
+lobby2 = SimpleMatchLobby({
+	'hostname': 'herve',
+	'name': "Herve's room",
+	'game_type': 'pong2d',
+	'nbr_players': 4,
+	'lives':20,
+	'allow_spectators':False,
+	'public': True
+})
+
+lobby3 = TurnamentInitialLobby({
+	'hostname': 'john',
+	'name': "Tornois",
+	'game_type': 'pong2d',
+	'nbr_players': 8,
+	'lives':20,
+	'allow_spectators':False,
+	'public': True
+})
+
 lobbies[lobby.id] = lobby
+lobbies[lobby2.id] = lobby2
+lobbies[lobby3.id] = lobby3
 
 lobbies[lobby.id].add_bot()
 # lobbies["9"].add_bot()
