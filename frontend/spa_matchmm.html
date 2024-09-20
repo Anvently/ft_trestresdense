@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Système de Matchmaking</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        /* Styles précédents */
+        #matchView {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: black;
+            z-index: 1000;
+        }
+        #matchCanvas {
+            width: 100%;
+            height: 100%;
+        }
+        #matchControls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1001;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4" id="mainView">
+        <!-- Contenu précédent inchangé -->
+    </div>
+
+    <div id="matchView">
+        <canvas id="matchCanvas"></canvas>
+        <div id="matchControls">
+            <button class="btn btn-primary" onclick="closeMatchView()">Retour au lobby</button>
+        </div>
+    </div>
+
+    <!-- Modals précédents inchangés -->
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let lobbySocket;
+        let matchSocket;
+        let matchRenderer, matchScene, matchCamera, matchAnimationId;
+
+        // Classe WebSocketHandler et autres fonctions précédentes inchangées
+
+        function observeMatch(matchId) {
+            console.log('Observer le match:', matchId);
+
+            if (lobbySocket) {
+                lobbySocket.disconnect();
+            }
+
+            matchSocket = new WebSocketHandler(`wss://${location.hostname}:8083/ws/match/${matchId}/observer/`, handleMatchMessage);
+            matchSocket.connect();
+
+            document.getElementById('mainView').style.display = 'none';
+            document.getElementById('matchView').style.display = 'block';
+
+            initializeThreeJS();
+            loadMatchAssets(matchId);
+        }
+
+        function initializeThreeJS() {
+            const canvas = document.getElementById('matchCanvas');
+            matchRenderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+            matchRenderer.setSize(window.innerWidth, window.innerHeight);
+
+            matchScene = new THREE.Scene();
+            matchCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            matchCamera.position.z = 5;
+
+            // Ajoutez une lumière de base
+            const light = new THREE.PointLight(0xffffff, 1, 100);
+            light.position.set(0, 0, 10);
+            matchScene.add(light);
+
+            // Gérez le redimensionnement de la fenêtre
+            window.addEventListener('resize', onWindowResize, false);
+
+            // Démarrez la boucle de rendu
+            animate();
+        }
+
+        function onWindowResize() {
+            matchCamera.aspect = window.innerWidth / window.innerHeight;
+            matchCamera.updateProjectionMatrix();
+            matchRenderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            matchAnimationId = requestAnimationFrame(animate);
+            matchRenderer.render(matchScene, matchCamera);
+        }
+
+        function loadMatchAssets(matchId) {
+            // Chargez ici les assets spécifiques au match
+            // Par exemple, utilisez THREE.GLTFLoader pour charger des modèles 3D
+
+            // Exemple simplifié :
+            const geometry = new THREE.BoxGeometry();
+            const material = new THREE.MeshPhongMaterial({ color: 0x00ff00 });
+            const cube = new THREE.Mesh(geometry, material);
+            matchScene.add(cube);
+
+            // Dans un cas réel, vous chargeriez probablement des assets plus complexes
+            // en fonction du matchId
+        }
+
+        function handleMatchMessage(message) {
+            // Traitez ici les messages du match pour mettre à jour la scène 3D
+            console.log('Message du match reçu:', message);
+
+            // Exemple : mise à jour de la position d'un objet
+            // const parsedMessage = JSON.parse(message);
+            // if (parsedMessage.type === 'updatePosition') {
+            //     const object = matchScene.getObjectByName(parsedMessage.objectId);
+            //     if (object) {
+            //         object.position.set(parsedMessage.x, parsedMessage.y, parsedMessage.z);
+            //     }
+            // }
+        }
+
+        function closeMatchView() {
+            if (matchSocket) {
+                matchSocket.disconnect();
+            }
+
+            // Arrêtez la boucle d'animation
+            if (matchAnimationId) {
+                cancelAnimationFrame(matchAnimationId);
+            }
+
+            // Nettoyez la scène Three.js
+            while(matchScene.children.length > 0){
+                matchScene.remove(matchScene.children[0]);
+            }
+
+            // Disposez des ressources Three.js
+            matchRenderer.dispose();
+            matchScene = null;
+            matchCamera = null;
+            matchRenderer = null;
+
+            document.getElementById('matchView').style.display = 'none';
+            document.getElementById('mainView').style.display = 'block';
+
+            connectWebSocket();
+        }
+
+        // Autres fonctions inchangées
+
+        window.onload = connectWebSocket;
+    </script>
+</body>
+</html>

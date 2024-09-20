@@ -5,6 +5,7 @@ from django.conf import settings
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 import jwt
 from typing import List, Dict, Set, Tuple, Any
+from enum import Enum
 import uuid
 import base64
 import enum
@@ -80,7 +81,7 @@ Status:
 """
 reset_status = {'status': 0, 'lobby_id' : None, 'turnament_id' : None}
 
-class Errors(enum):
+class Errors(Enum):
 	INVALID_TYPE = 4001
 	USERNAME_MISSING = 4002
 	AUTH_ERROR = 4003
@@ -272,7 +273,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 
 
 	async def create_lobby(self, content):
-
+		pass
 
 	async def be_invited(self, content):
 		pass

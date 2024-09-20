@@ -22,16 +22,13 @@
             overflow-y: auto;
             margin-bottom: 20px;
         }
-        .lobby-item {
+        .table {
             background-color: #fff;
-            border: 1px solid #dee2e6;
-            padding: 10px;
-            margin-bottom: 5px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
         }
-        .lobby-item.tournament {
+        .table-hover tbody tr:hover {
+            background-color: #f5f5f5;
+        }
+        .tournament {
             border-left: 5px solid #ffc107;
         }
         .side-buttons {
@@ -49,21 +46,77 @@
         .modal-content {
             border-radius: 2px;
         }
-    </style>    
+
+        #matchView {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: black;
+            z-index: 1000;
+        }
+        #matchCanvas {
+            width: 100%;
+            height: 100%;
+        }
+        #matchControls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1001;
+        }
+
+    </style>
 </head>
 <body>
-    <div class="container mt-4">
+    <div class="container mt-4" id="mainView">
         <h1 class="mb-4">Système de Matchmaking</h1>
-        
+
         <div class="row">
             <div class="col-md-6">
                 <h2>Lobbies disponibles</h2>
-                <div id="availableLobbies" class="lobby-list"></div>
+                <div id="availableLobbies" class="lobby-list">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Nom</th>
+                                <th>Type</th>
+                                <th>Host</th>
+                                <th>Places</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
             </div>
             <div class="col-md-6">
                 <h2>Matchs en cours</h2>
-                <div id="ongoingMatches" class="lobby-list"></div>
+                <div id="ongoingMatches" class="lobby-list">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Nom</th>
+                                <th>Type</th>
+                                <th>Host</th>
+                                <th>Places</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
             </div>
+        </div>
+    </div>
+
+    <div id="matchView">
+        <canvas id="matchCanvas"></canvas>
+        <div id="matchControls">
+            <button class="btn btn-primary" onclick="closeMatchView()">Retour au lobby</button>
         </div>
     </div>
 
@@ -108,6 +161,10 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+
+        let socket;
+        let matchSocket;
+        let matchRenderer, matchScene, matchCamera, matchAnimationId;
 
 		class WebSocketHandler {
 			constructor(url, dispatcher) {
@@ -173,23 +230,20 @@
 			}
 		}
 
-        let socket;
 
-        
+
         function connectWebSocket() {
             socket = new WebSocketHandler(`wss://${location.hostname}:8083/ws/matchmaking/anonymous/`, dispatchMessage)
 			socket.connect();
         }
 
+
         function general_update(message) {
-            const availableLobbiesEl = document.getElementById('availableLobbies');
-            const ongoingMatchesEl = document.getElementById('ongoingMatches');
+            const availableLobbiesEl = document.querySelector('#availableLobbies tbody');
+            const ongoingMatchesEl = document.querySelector('#ongoingMatches tbody');
 
             availableLobbiesEl.innerHTML = '';
             ongoingMatchesEl.innerHTML = '';
-
-            console.log(message.availableLobbies)
-            console.log(message.ongoingMatches)
 
             message.availableLobbies.forEach(lobby => {
                 const [id, obj] = Object.entries(lobby)[0];
@@ -203,20 +257,19 @@
         }
 
         function createLobbyHTML(id, lobby, isAvailable) {
-            
-            console.log(lobby)
             const tournamentClass = lobby.match_type == 'tournament_lobby' ? 'tournament' : '';
             const actionButton = isAvailable
                 ? `<button class="btn btn-sm btn-primary" onclick="joinLobby('${lobby.id}')">Rejoindre</button>`
                 : `<button class="btn btn-sm btn-secondary" onclick="observeMatch('${lobby.id}')">Observer</button>`;
 
             return `
-                <div class="lobby-item ${tournamentClass}" id=${id}>
-                    <h5>${lobby.name} (${lobby.game_type})</h5>
-                    <p>Host: ${lobby.host}</p>
-                    <p>Places: ${lobby.slots}</p>
-                    ${actionButton}
-                </div>
+                <tr class="${tournamentClass}" id="${id}">
+                    <td>${lobby.name}</td>
+                    <td>${lobby.game_type}</td>
+                    <td>${lobby.host}</td>
+                    <td>${lobby.slots}</td>
+                    <td>${actionButton}</td>
+                </tr>
             `;
         }
 
@@ -240,7 +293,7 @@
             console.log('Rejoindre le lobby:', lobbyId);
             // Implémentez la logique pour rejoindre le lobby ici
         }
-        
+
         function observeMatch(matchId) {
             console.log('Observer le match:', matchId);
             // Implémentez la logique pour observer le match ici
