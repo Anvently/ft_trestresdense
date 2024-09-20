@@ -184,9 +184,9 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 					await self.cancel_lobby(self._lobby_id)
 				else:
 					lobbies[self._lobby_id].remove_player(self.username)
-				del MatchMakingConsumer.online_players[self.username]
+				del online_players[self.username]
 				await self.channel_layer.group_discard(self._lobby_id, self.channel_name)
-				await self.send_general_update()
+		await self.send_general_update()
 		await self.channel_layer.group_discard(self.username, self.channel_name)
 		await self.channel_layer.group_discard(MatchMakingConsumer.matchmaking_group, self.channel_name)
 
@@ -223,8 +223,10 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		target_lobby = content['lobby_id']
 		if target_lobby not in lobbies or lobbies[target_lobby].started:
 			self._send_error(msg='Can\'t join this lobby', code=Errors.JOIN_ERROR, close=False)
-		if self._is_in_lobby:
+		if self.status == PlayerStatus.IN_LOBBY:
 			await self.switch_lobby(target_lobby)
+		elif self.status == PlayerStatus.IN_TURNAMENT_LOBBY:
+			self._send_error(msg='Already in tournament lobby.', code=Errors.JOIN_ERROR, close=False)
 		else:
 			if lobbies[target_lobby].add_player(self.username):
 				await self.channel_layer.group_add(target_lobby, self.channel_name)
