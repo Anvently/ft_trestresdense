@@ -40,13 +40,17 @@ def jsonize_lobby(lobby : Lobby):
 	lobby_data['name'] = lobby.name
 	lobby_data['host'] = lobby.hostname
 	lobby_data['slots'] = f"{len(lobby.players)}/{lobby.player_num}"
+	lobby_data['players'] = lobby.players
 	lobby_data['settings'] = lobby.settings
 	return lobby_data
 
 def jsonize_player(player_id):
 	player_data = {}
-	pass
-
+	player_data['player_id'] = player_id
+	player_data['status'] = online_players[player_id].status
+	if online_players[player_id].status != 0 and online_players[player_id]._lobby_id[1] == 'O':
+		player_data['lobby_id'] = online_players[player_id]._lobby_id
+	return player_data
 
 	def start(self):
 		""" Send a request to backend to instantiate the lobby """
