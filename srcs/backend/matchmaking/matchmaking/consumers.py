@@ -39,6 +39,8 @@ async def jsonize_lobby(lobby : Lobby):
 		lobby_data['name'] = lobby.lobby_name
 		lobby_data['host'] = lobby.hostname
 		lobby_data['slots'] = f"{len(lobby.players)}/{lobby.player_num}"
+		lobby_data['settings'] = lobby.settings
+	return lobby_data
 
 async def jsonize_player(player_id):
 	player_data = {}
@@ -77,6 +79,15 @@ online_players : Dict[str, Dict[str, Any]] = {}
 {2, 125.0, 125} -> {3, 125.1 , 125}
 """
 reset_status = {'status': 0, 'lobby_id' : None, 'turnament_id' : None}
+
+class Errors(enum):
+	INVALID_TYPE = 4001
+	USERNAME_MISSING = 4002
+	AUTH_ERROR = 4003
+	JOIN_ERROR = 4004
+	HOST_ERROR = 4005
+	LEAVE_ERROR = 4006
+
 
 
 class PlayerStatus(enum):
@@ -120,7 +131,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 			return True
 		else:
 			self.scope['error'] = "auth token not provided"
-			self.scope['error_code'] = 4001
+			self.scope['error_code'] = Errors.AUTH_ERROR
 		return False
 
 	async def _is_valid_client(self):
@@ -176,7 +187,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		try:
 			await self.dispatch(content)
 		except ValueError as e:
-			await self.send_json({'type': 'error', 'data':f'Invalid type: {e}'})
+			await self._send_error(msg="Incorrect type", code=Errors.INVALID_TYPE, close=False)
 
 
 
@@ -204,10 +215,37 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 
 
 	async def join_lobby(self, content):
-		
-		if self._is_in_lobby:
-			await self.leave_lobby()
 
+		target_lobby = content['lobby_id']
+		if target_lobby not in lobbies or lobbies[target_lobby].started:
+			self._send_error(msg='Can\'t join this lobby', code=Errors.JOIN_ERROR, close=False)
+		if self._is_in_lobby:
+			await self.switch_lobby(target_lobby)
+		else:
+			if lobbies[target_lobby].add_player(self.username):
+				await self.channel_layer.group_add(target_lobby, self.channel_name)
+				await self.channel_layer.group_discard(MatchMakingConsumer.matchmaking_group, self.channel_name)
+				self.status = 1
+				self._lobby_id = target_lobby
+				await self.send_lobby_update(target_lobby)
+				await self.send_general_update()
+			else:
+				await self._send_error(msg='Could not join the requested lobby', code=Errors.JOIN_ERROR, close=False)
+
+
+	async def switch_lobby(self, target_lobby):
+
+		actual_lobby = self._lobby_id
+		if lobbies[target_lobby].add_player(self.username):
+			lobbies[self._lobby_id].remove_player(self.username)
+			await self.channel_layer.group_discard(self._lobby_id, self.channel_name)
+			self._lobby_id = target_lobby
+			await self.channel_layer.group_add(target_lobby, self.channel_name)
+			await self.send_lobby_update(actual_lobby)
+			await self.send_lobby_update(target_lobby)
+			await self.send_general_update()
+		else:
+			self._send_error(msg="Could not switch to the requested lobby", code=Errors.JOIN_ERROR, close=False)
 
 
 
@@ -232,7 +270,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 
 
 	async def create_lobby(self, content):
-		pass
+		
 
 	async def be_invited(self, content):
 		pass
@@ -251,6 +289,12 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		state["ongoing_games"] = data["ongoing_games"]
 		state["tournament_to_join"] = data["tournaments_to_join"]
 		await self.send_json(json.dumps(state))
+
+	async def lobby_update(self,content):
+		if self.status not in (1,3):
+			return
+		await self.send_json(json.dumps(content))
+
 
 	async def player_ready(self, content):
 		if self.status not in (1, 3):
@@ -282,6 +326,12 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		data = json.dumps(self.generate_update_data())
 		await self.channel_layer.group_send(MatchMakingConsumer.matchmaking_group, data)
 
+	async def send_lobby_update(self, lobby_id):
+		if lobby_id not in lobbies:
+			return
+		data = jsonize_lobby(lobbies[lobby_id])
+		data['type'] = 'lobby_update'
+		await self.channel_layer.group_send(lobby_id, data)
 
 
 	####################################################3
