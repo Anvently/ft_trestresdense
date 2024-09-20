@@ -2,5 +2,6 @@ Failles possibles :
 	- si on obtient un token valide pour un user "xyz", on supprime le compte, et quelqu'un recreait le compte "xyz", notre token est toujours valide.
 	
 TODO:
-	- do not add bot in online_players
-
+	- implement 2FA authentification
+	- implement correct order for docker compose
+	- friends in users_api

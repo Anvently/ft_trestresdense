@@ -81,8 +81,6 @@ WSGI_APPLICATION = 'users_server.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-ALLOWED_APIS = os.getenv('ALLOWED_APIS').split(',')
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
