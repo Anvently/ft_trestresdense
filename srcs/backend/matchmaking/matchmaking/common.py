@@ -1,5 +1,6 @@
 from typing import Any, Dict
 from enum import Enum
+from lobby import Lobby
 
 class PlayerStatus(Enum):
 	NO_LOBBY = 0

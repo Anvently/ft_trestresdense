@@ -8,19 +8,25 @@ from django.conf import settings
 # from matchmaking.common import tournament_creator
 import time, logging, random, string
 from matchmaking.common import online_players, PlayerStatus, lobbies, tournaments, tournament_creator
-	
-def generate_id(public, prefix=''):
+
+
+
+def generate_id(public, spectate ,prefix=''):
 	""" Simplr => S
 	 	TurnamentInit => I
 		 TournamentLobby T
 		 LocalLobby => L
 		   """
 	u = uuid.uuid4()
-	match public:
-		case False:
-			prefix += 'C'
-		case True:
-			prefix += 'O'
+	match (public, spectate):
+		case (True, True):
+			prefix += 'OA'
+		case (True, False):
+			prefix += 'OD'
+		case (False, True):
+			prefix += 'CA'
+		case (False, False):
+			prefix += 'CD'
 	short_u = base64.urlsafe_b64encode(u.bytes).rstrip(b'=').decode('ascii')
 	short_u = prefix + short_u
 	if short_u not in lobbies:
@@ -38,7 +44,7 @@ class Lobby():
 		# self.check_rules(lives, player_num, type)
 		self.name = settings.pop('name', f"{self.hostname}'s lobby")
 		if id == None:
-			self.id = generate_id(settings.get('public'), prefix)
+			self.id = generate_id(settings['public'], settings.get['allow_spectators'], prefix)
 		else:
 			self.id = id
 		""" {has_joined: bool, is_ready: bool, is_bot: bool} """
@@ -83,13 +89,13 @@ class Lobby():
 				'is_ready': True,
 				'is_bot': True
 			}
-			self.player_ready(player_id) 
+			self.player_ready(player_id)
 			""" NOTE
 			 If a player mark himself has ready and before a bot joins the game,
 			  we'll have no way to inform back the player the game needs to be started.
 			   Can only happen with modif during lobby phase if we allow that. """
 		return True
-	
+
 	def player_ready(self, player_id) -> bool:
 		""" Mark a player as ready and return True if it was the last player
 		 and the game was initiated with success. """
@@ -118,13 +124,7 @@ class Lobby():
 			self.delete()
 
 	def check_rules(self):
-		match (self.game_type, self.player_num, self.settings['lives']):
-			case("pong2d", x, y) if (x == 2 or x == 4) and y > 0 :
-				pass
-			case("pong3d", 2, y) if y > 0:
-				pass
-			case _:
-				raise ValueError("Wrong rules")
+		pass
 
 	def init_game(self) -> bool:
 		""" Send HTTP request to pong backend and sent link to consumers. Update players status """
@@ -204,6 +204,16 @@ class SimpleMatchLobby(Lobby):
 	def __str__(self) -> str:
 		return "simple_match"
 
+	def check_rules(self):
+
+		match (self.game_type, self.player_num, self.settings['lives']):
+			case ("pong2d", x, y) if x in (2, 4) and y > 0:
+				pass
+			case ("pong3d", x, y) if x == 2 and y > 0:
+				pass
+			case _:
+				raise KeyError("Wrong settings")
+
 
 class LocalMatchLobby(SimpleMatchLobby):
 
@@ -217,15 +227,30 @@ class LocalMatchLobby(SimpleMatchLobby):
 	def __str__(self) -> str:
 		return "local_match"
 
+	def check_rules(self):
+		match(self.game_type, self.player_num, self.settings['lives']):
+			case ("pong2d", 2, y) if y > 0:
+				pass
+			case ("pong3d", 2, y) if y > 0:
+				pass
+			case _:
+				raise KeyError("Wrong settings")
+
+
 class TurnamentInitialLobby(Lobby):
 
 	def __init__(self, settings: Dict[str, Any]) -> None:
 		super().__init__(settings, prefix='I')
 
 	def check_rules(self):
-		""" Need to override """
-		if self.player_num not in (2, 4, 8):
-			raise Exception('Invalid number of players.')
+
+		if self.game_type not in ("pong2d", "pong3d"):
+			raise KeyError(f"Wrong settings {self.game_type}")
+		if self.player_num not in (2, 4 ,8):
+			raise KeyError(f"Wrong settings, {self.player_num} players")
+		if self.lives < 1:
+			raise KeyError(f"Wrong lives, {self.settings['lives']}")
+
 
 	def handle_results(self, results: Dict[str, Any]):
 		pass
@@ -245,7 +270,7 @@ class TurnamentInitialLobby(Lobby):
 			return False
 		self.delete()
 		return True
-	
+
 	def __str__(self) -> str:
 		return "tournament_lobby"
 
@@ -268,7 +293,7 @@ class TurnamentMatchLobby(Lobby):
 		return "tournament_match"
 
 	# def check_time_out(self):
-	# 	if time.time() - self.created_at > 
+	# 	if time.time() - self.created_at >
 
 
 lobby = SimpleMatchLobby({

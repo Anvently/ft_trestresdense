@@ -1,6 +1,6 @@
 from typing import Dict, Any, List, Tuple
 from matchmaking.common import online_players, tournaments, PlayerStatus, lobbies
-# from matchmaking.lobby import TurnamentMatchLobby
+from matchmaking.lobby import TurnamentMatchLobby
 import re
 
 SUFFIXES = {
@@ -85,5 +85,5 @@ class Tournament:
 				 lobby result handler to update status of associated players. """
 				pass
 		if stage == 0: #If final match
-			self.delete() 
+			self.delete()
 
