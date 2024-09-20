@@ -1,6 +1,5 @@
 from typing import Dict, Any, List, Tuple
 from matchmaking.common import online_players, tournaments, PlayerStatus, lobbies
-from matchmaking.lobby import TurnamentMatchLobby
 import re
 
 SUFFIXES = {

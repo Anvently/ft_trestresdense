@@ -370,7 +370,7 @@
 			handleMessage(message) {
 				// Implement message handling logic here
 				console.log('Received message:', message);
-				this.dispatcher(JSON.parse(message))
+				this.dispatcher(message)
 				// Example: You might want to dispatch the message to a game state handler
 				// gameStateHandler.processMessage(message);
 			}

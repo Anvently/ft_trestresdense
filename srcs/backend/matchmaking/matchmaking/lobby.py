@@ -44,7 +44,7 @@ class Lobby():
 		# self.check_rules(lives, player_num, type)
 		self.name = settings.pop('name', f"{self.hostname}'s lobby")
 		if id == None:
-			self.id = generate_id(settings['public'], settings.get['allow_spectators'], prefix)
+			self.id = generate_id(settings['public'], settings['allow_spectators'], prefix)
 		else:
 			self.id = id
 		""" {has_joined: bool, is_ready: bool, is_bot: bool} """
@@ -249,7 +249,7 @@ class TurnamentInitialLobby(Lobby):
 			raise KeyError(f"Wrong settings {self.game_type}")
 		if self.player_num not in (2, 4 ,8):
 			raise KeyError(f"Wrong settings, {self.player_num} players")
-		if self.lives < 1:
+		if self.settings['lives'] < 1:
 			raise KeyError(f"Wrong lives, {self.settings['lives']}")
 
 
@@ -308,7 +308,7 @@ lobby = SimpleMatchLobby({
 })
 
 lobby2 = SimpleMatchLobby({
-	'hostname': 'anonymous',
+	'hostname': 'herve',
 	'name': "Herve's room",
 	'game_type': 'pong2d',
 	'nbr_players': 4,

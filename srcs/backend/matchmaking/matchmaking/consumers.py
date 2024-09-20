@@ -13,7 +13,6 @@ from channels.layers import get_channel_layer
 from matchmaking.common import online_players, lobbies, PlayerStatus
 from matchmaking.lobby import Lobby
 from matchmaking.tournament import Tournament
-from lobby import SimpleMatchLobby, TurnamentInitialLobby, LocalMatchLobby
 
 
 def verify_jwt(token, is_ttl_based=False, ttl_key="exp"):
@@ -156,13 +155,11 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 
 	async def check_infos(self):
 		if self.username in online_players:
-			self.sync_with_list()
-			await self.send_json({"type": "in_game", "game_id": self._lobby_id})
+			await self.send_json({"type": "in_game", "game_id": online_players[self.username]['lobby_id']})
 		else:
-			online_players[self.username] = {'status': 0, 'lobby_id': None, 'tournament_id': None}
+			online_players[self.username] = {'status': PlayerStatus.NO_LOBBY, 'lobby_id': None, 'tournament_id': None}
 			await self.channel_layer.group_add(self.username, self.channel_name)
 			await self.channel_layer.group_add(MatchMakingConsumer.matchmaking_group, self.channel_name)
-
 
 	async def connect(self):
 		await self.accept()
@@ -177,15 +174,14 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 	async def disconnect(self, code):
 		async with MatchMakingConsumer.matchmaking_lock:
 			status = online_players[self.username]['status']
-			if status == PlayerStatus.NO_LOBBY:
-				del online_players[self.username]
-			elif status == PlayerStatus.IN_LOBBY:
+			if status == PlayerStatus.IN_LOBBY:
 				if self._is_host == 1:
 					await self.cancel_lobby(self._lobby_id)
 				else:
 					lobbies[self._lobby_id].remove_player(self.username)
 				del online_players[self.username]
 				await self.channel_layer.group_discard(self._lobby_id, self.channel_name)
+			del online_players[self.username]
 		await self.send_general_update()
 		await self.channel_layer.group_discard(self.username, self.channel_name)
 		await self.channel_layer.group_discard(MatchMakingConsumer.matchmaking_group, self.channel_name)
@@ -278,7 +274,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 			self._send_error(msg='You can\t host at this moment', code=Errors.HOST_ERROR, close=False)
 			return
 		try:
-			data = json.loads(content)['settings']
+			data = content['settings']
 			match data.pop('lobby_type'):
 				case "simple_match":
 					new_lobby = SimpleMatchLobby(data)
@@ -320,12 +316,12 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		state["availableLobbies"] = data["games_to_join"]
 		state["ongoingMatches"] = data["ongoing_games"]
 		# state["tournament_to_join"] = data["tournaments_to_join"]
-		await self.send_json(json.dumps(state))
+		await self.send_json(state)
 
 	async def lobby_update(self,content):
 		if self.status not in (1,3):
 			return
-		await self.send_json(json.dumps(content))
+		await self.send_json(content)
 
 
 	async def player_ready(self, content):
@@ -382,8 +378,6 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 			lobbies_copy = lobbies
 		data['games_to_join'] = [{lobby_id: jsonize_lobby(lobbies_copy[lobby_id])} for lobby_id in lobbies_copy if (lobby_id[1] == 'O' and not lobbies_copy[lobby_id].started)]
 		data['ongoing_games'] = [{lobby_id: jsonize_lobby(lobbies_copy[lobby_id])} for lobby_id in lobbies_copy if (lobby_id[2] == 'A' and lobby_id[0] in ('S', 'T')  and lobbies_copy[lobby_id].started)]
-		print(data['games_to_join'])
-		print(data['ongoing_games'])
 		# data["private"] = [{lobby_id, jsonize_lobby(lobbies_copy[lobby_id])} for lobby_id in lobbies_copy if (lobby_id[1] == 'C')]
 		return data
 
