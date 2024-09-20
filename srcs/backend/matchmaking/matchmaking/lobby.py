@@ -1,14 +1,14 @@
 import uuid
 import base64
-from matchmaking.consumers import MatchMakingConsumer, online_players, PlayerStatus
 from typing import List, Dict, Set, Tuple, Any
 import json
 import requests
 from abc import abstractmethod
-from matchmaking.matchmaking import settings
-from tournament import tournament_creator, tournaments
-import time
-
+from django.conf import settings
+# from matchmaking.common import tournament_creator
+import time, logging, random, string
+from matchmaking.common import online_players, PlayerStatus, lobbies, tournaments, tournament_creator
+	
 def generate_id(public, prefix=''):
 	""" Simplr => S
 	 	TurnamentInit => I
@@ -28,25 +28,48 @@ def generate_id(public, prefix=''):
 	else:
 		return generate_id(public)
 
+def generate_bot_id():
+	return '!' + ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(31))
 
 class Lobby():
 	def __init__(self, settings: Dict[str, Any], id:str = None, prefix='') -> None:
+		print(f"prefix={prefix}")
 		self.hostname = settings.pop('hostname', None)
 		# self.check_rules(lives, player_num, type)
 		self.name = settings.pop('name', f"{self.hostname}'s lobby")
-		if not id:
-			self.id = generate_id(settings.get('public'))
+		if id == None:
+			self.id = generate_id(settings.get('public'), prefix)
+		else:
+			self.id = id
 		""" {has_joined: bool, is_ready: bool, is_bot: bool} """
 		self.players: Dict[str] = {}
 		self.started = False
 		self.game_type = settings.pop('game_type')
-		self.player_num = settings.pop('number_players')
-		self.id = generate_id(settings.get('public'))
+		self.player_num = settings.pop('nbr_players')
 		self.settings = settings
+		self.settings['nbr_players'] = self.player_num
 		self.check_rules()
 
-	def add_player(self, player_id):
+	def iterate_human_player(self):
+		return ((player_id, player) for player_id, player in self.players.items() if not player['is_bot'])
+
+	def add_bot(self) -> bool:
+		return self.add_player(generate_bot_id())
+
+	def remove_bot(self):
+		""" Delete the first bot in the list players if any. """
+		for player_id, player in self.players:
+			if player['is_bot'] == True:
+				del self.players[player_id]
+				return
+
+	def add_player(self, player_id) -> bool:
+		""" Add a player  to a lobby. Return True is success.
+		 If player was bot it will mark himself has ready and possibly trigger
+		  game initialization. """
 		if len(self.players) == self.player_num:
+			logging.warning(f"Trying to add a player ({player_id}) to a full lobby")
+			print(f"players = {self.players}")
 			return False
 
 		self.players[player_id] = {
@@ -54,7 +77,39 @@ class Lobby():
 			'is_ready': False,
 			'is_bot': False
 		}
+		if player_id[0] == '!':
+			self.players[player_id] = {
+				'has_joined': True,
+				'is_ready': True,
+				'is_bot': True
+			}
+			self.player_ready(player_id) 
+			""" NOTE
+			 If a player mark himself has ready and before a bot joins the game,
+			  we'll have no way to inform back the player the game needs to be started.
+			   Can only happen with modif during lobby phase if we allow that. """
 		return True
+	
+	def player_ready(self, player_id) -> bool:
+		""" Mark a player as ready and return True if it was the last player
+		 and the game was initiated with success. """
+		if self.started == True:
+			logging.warning(f"{player_id} marked as ready but game has already started.")
+			return False
+		self.players[player_id]['is_ready'] = True
+		if len(self.players) != self.player_num or any(not player['is_ready'] for (player_id, player) in self.players.items()):
+			return False
+		if not self.init_game():
+			return False
+		return True
+
+	def player_not_ready(self, player_id):
+		self.players[player_id]['is_ready'] = False
+
+	def player_joined(self, player_id):
+		if player_id not in self.players:
+			raise Exception(f"{player_id} try to join lobby {self.id} but does not belong to it.")
+		self.players[player_id]['has_joined'] = True
 
 	def remove_player(self, player_id):
 		if player_id in self.players:
@@ -63,10 +118,10 @@ class Lobby():
 			self.delete()
 
 	def check_rules(self):
-		match (self.type, self.player_num, self.settings['lives']):
-			case("classic", x, y) if (x == 2 or x == 4) and y > 0 :
+		match (self.game_type, self.player_num, self.settings['lives']):
+			case("pong2d", x, y) if (x == 2 or x == 4) and y > 0 :
 				pass
-			case("3d", 2, y) if y > 0:
+			case("pong3d", 2, y) if y > 0:
 				pass
 			case _:
 				raise ValueError("Wrong rules")
@@ -78,85 +133,98 @@ class Lobby():
 			raise Exception("Can't init game. Actual number of players does not match set number of players.")
 		# Send request
 		data = {
+			'game_name': self.game_type,
 			'game_id': self.id,
 			'settings': self.settings,
 			'player_list': list(self.players.keys())
 		}
 		try:
-			requests.post('http://pong:8002/init-game/?format=json',
+			response = requests.post('http://pong:8002/init-game/?format=json',
 					data=json.dumps(data),
 					headers = {
 						'Host': 'localhost',
+						'Content-type': 'application/json',
 						'Authorization': "Bearer {0}".format(settings.API_TOKEN.decode('ASCII'))
 						}
 					)
+			if response.status_code != 201:
+				raise Exception(f"expected status 201 got {response.status_code} ({response.content})")
 		except Exception as e:
-			print("ERROR: Failed to post game initialization to pong api")
+			print(f"ERROR: Failed to post game initialization to pong api: {e}")
 			return False
 		# Update player status
-		for player in self.players.keys():
-			online_players[player]['status'] = PlayerStatus.IN_GAME
-		# Send invitation ??
-		# !!!!!!!!!!!!!!!!!!!!!!!!!
-		# !NEED TO SEND INVITATION!
-		# !!!!!!!!!!!!!!!!!!!!!!!!!
+		for player_id, player in self.iterate_human_player():
+			online_players[player_id]['status'] = PlayerStatus.IN_GAME
+		self.started = True
 		return True
 
 	def delete(self):
 		""" Delete players from online_players and remove lobby from list of lobbies """
-		for player in self.players.keys():
-			if online_players[player]['lobby_id'] == self.id:
-				del online_players[player]
+		for player_id, player in self.iterate_human_player():
+			if online_players[player_id]['lobby_id'] == self.id:
+				del online_players[player_id]
 		del lobbies[self.id]
 
 	def handle_results(self, results: dict[str, Any]):
 		""" register in database"""
-		if results['state'] != 'cancelled':
+		if results['status'] != 'cancelled':
 			results.pop('status')
 			# results['scores_set'] = [el for el in results['scores_set'] if el['username'][0] != '!']
 			try:
-				requests.post('http://users_api:8001/post-result/?format=json',
+				response = requests.post('http://users_api:8001/post-result/?format=json',
 						data=json.dumps(results),
 						headers = {
 							'Host': 'localhost',
+							'Content-type': 'application/json',
 							'Authorization': "Bearer {0}".format(settings.API_TOKEN.decode('ASCII'))
 							}
 						)
+				if response.status_code != 201:
+					raise Exception(f"expected status 201 got {response.status_code} ({response.content})")
 			except Exception as e:
-				print("ERROR: Failed to post results to users_info")
+				logging.error(f"Failed to post results to users_info: {e}")
 
 	def check_time_out(self):
 		pass
+
+	def __str__(self) -> str:
+		return "lobby"
 
 
 class SimpleMatchLobby(Lobby):
 
 	def __init__(self, settings: Dict[str, Any]) -> None:
-		super().__init__(settings, 'S')
+		super().__init__(settings, prefix='S')
 		self.add_player(self.hostname)
 
 	def handle_results(self, results: Dict[str, Any]):
 		super().handle_results(results)
 		self.delete()
 
+	def __str__(self) -> str:
+		return "simple_match"
+
 
 class LocalMatchLobby(SimpleMatchLobby):
 
 	def __init__(self, settings: Dict[str, Any]) -> None:
-		super().__init__(settings, 'L')
+		super().__init__(settings, prefix='L')
 		self.settings['public'] = False
 
 	def handle_results(self, results: Dict[str, Any]):
 		self.delete()
 
+	def __str__(self) -> str:
+		return "local_match"
+
 class TurnamentInitialLobby(Lobby):
 
 	def __init__(self, settings: Dict[str, Any]) -> None:
-		super().__init__(settings, 'I')
+		super().__init__(settings, prefix='I')
 
 	def check_rules(self):
 		""" Need to override """
-		if self.number_players not in (2, 4, 8):
+		if self.player_num not in (2, 4, 8):
 			raise Exception('Invalid number of players.')
 
 	def handle_results(self, results: Dict[str, Any]):
@@ -169,13 +237,17 @@ class TurnamentInitialLobby(Lobby):
 			'game_type': self.game_type,
 			'hostname': self.hostname,
 			'name': self.name,
-			'number_players': self.player_num,
+			'nbr_players': self.player_num,
 			'default_settings': self.settings,
 			'id': self.id,
 			'players': list(self.players.keys())
 		}):
 			return False
+		self.delete()
 		return True
+	
+	def __str__(self) -> str:
+		return "tournament_lobby"
 
 
 class TurnamentMatchLobby(Lobby):
@@ -187,12 +259,54 @@ class TurnamentMatchLobby(Lobby):
 
 	def handle_results(self, results: Dict[str, Any]):
 		super().handle_results(results)
+		tournament_id = results.get('tournament_id', None)
+		if tournament_id and tournament_id in tournaments:
+			tournaments[tournament_id].handle_result(results)
+		self.delete()
 
-	def check_time_out(self):
-		if time.time() - self.created_at >
+	def __str__(self) -> str:
+		return "tournament_match"
 
-lobbies: Dict[str, Lobby] = {}
+	# def check_time_out(self):
+	# 	if time.time() - self.created_at > 
 
+
+lobby = SimpleMatchLobby({
+	'hostname': '!AI1',
+	'name': 'pouet_pouet',
+	'game_type': 'pong3d',
+	'nbr_players': 2,
+	'lives':20,
+	'allow_spectators':True,
+	'public': True
+})
+
+lobby2 = SimpleMatchLobby({
+	'hostname': 'herve',
+	'name': "Herve's room",
+	'game_type': 'pong2d',
+	'nbr_players': 4,
+	'lives':20,
+	'allow_spectators':False,
+	'public': True
+})
+
+lobby3 = TurnamentInitialLobby({
+	'hostname': 'john',
+	'name': "Tornois",
+	'game_type': 'pong2d',
+	'nbr_players': 8,
+	'lives':20,
+	'allow_spectators':False,
+	'public': True
+})
+
+lobbies[lobby.id] = lobby
+lobbies[lobby2.id] = lobby2
+lobbies[lobby3.id] = lobby3
+
+lobbies[lobby.id].add_bot()
+# lobbies["9"].add_bot()
 
 
 

@@ -1,6 +1,6 @@
 from typing import Dict, Any, List, Tuple
-from matchmaking.lobby import Lobby, TurnamentMatchLobby, lobbies
-from matchmaking.consumers import online_players, PlayerStatus
+from matchmaking.common import online_players, tournaments, PlayerStatus, lobbies
+# from matchmaking.lobby import TurnamentMatchLobby
 import re
 
 SUFFIXES = {
@@ -36,11 +36,12 @@ class Tournament:
 				raise Exception("Failed to init tournament")
 
 	def reassign_player(self, player_id: str, lobby_id: str, new_status: int = PlayerStatus.IN_TURNAMENT_LOBBY):
-		lobbies[online_players[player_id]['lobby_id']].remove_player(player_id)
 		lobbies[lobby_id].add_player(player_id)
-		online_players[player_id]['lobby_id'] = lobby_id
-		online_players[player_id]['tournament_id'] = self.id
-		online_players[player_id]['status'] = new_status
+		if not player_id[0] == '!':
+			lobbies[online_players[player_id]['lobby_id']].remove_player(player_id)
+			online_players[player_id]['lobby_id'] = lobby_id
+			online_players[player_id]['tournament_id'] = self.id
+			online_players[player_id]['status'] = new_status
 
 	@staticmethod
 	def extract_id_info(string: str) -> Tuple[int, int]:
@@ -86,11 +87,3 @@ class Tournament:
 		if stage == 0: #If final match
 			self.delete() 
 
-def tournament_creator(data: Dict[str, Any]) -> bool:
-	try:
-		tournaments[data['id']] = Tournament(data)
-	except:
-		return False
-	return True
-
-tournaments: Dict[str, Tournament] = []

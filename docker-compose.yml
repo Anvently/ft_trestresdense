@@ -26,7 +26,16 @@ services:
     secrets:
       - ssl-key
     depends_on:
-      - auth_api
+      auth:
+        condition: service_started
+      pong:
+        condition: service_started
+      users_api:
+        condition: service_started
+      matchmaking:
+        condition: service_started
+      db:
+        condition: service_healthy
 
   db:
     container_name: db_c
@@ -38,9 +47,15 @@ services:
       - POSTGRES_MULTIPLE_DATABASES=${POSTGRES_DB_AUTH},${POSTGRES_DB_USERS}
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 0s
 
-  auth_api:
-    container_name: auth_api_c
+  auth:
+    container_name: auth_c
     build:
       context: ./srcs/django_builds
       target: django_authapi
@@ -52,7 +67,8 @@ services:
     ports:
       - "8000:8000"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
@@ -60,12 +76,17 @@ services:
       - POSTGRES_PORT=${POSTGRES_PORT}
       - POSTGRES_DB=${POSTGRES_DB_AUTH}
       - ISSUER_URL=${AUTH_ISSUER_URL}
-      - ALLOWED_APIS=${AUTH_API_ALLOWED_APIS}
       - API42_UUID=${API42_UUID}
       - API42_SECRET=${API42_SECRET}
     secrets:
       - rsa-key
     restart: always
+    # healthcheck:
+    #   test: ["CMD-SHELL", "curl -f http://auth:8000/ || (($? == 22))"]
+      # interval: 10s
+      # timeout: 5s
+      # retries: 3
+      # start_period: 3s
 
   redis:
     container_name: redis_c
@@ -82,12 +103,22 @@ services:
       - "8002:8002"
     command: python3 manage.py runserver 0.0.0.0:8002
     depends_on:
-        - redis
+        redis:
+          condition: service_started
+        auth:
+          condition: service_started
+        
     volumes:
       - ./srcs/backend/pong/:/code
       - ${DATA_DIR}keys/rsa/pub.pem:/etc/certificate/pub.pem
       - ${DATA_DIR}keys/api-tokens/pong:/etc/certificate/api-token
     restart: always
+    # healthcheck:
+    #   test: ["CMD-SHELL", "curl -f http://pong:8002/ || (($? == 22))"]
+      # interval: 10s
+      # timeout: 5s
+      # retries: 3
+      # start_period: 3s
 
   users_api:
     container_name: users_api_c
@@ -103,14 +134,52 @@ services:
     ports:
       - "8001:8001"
     depends_on:
-      - db
+       db:
+          condition: service_healthy
+       auth:
+          condition: service_started
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_HOST=${POSTGRES_HOST}
       - POSTGRES_PORT=${POSTGRES_PORT}
       - POSTGRES_DB=${POSTGRES_DB_USERS}
-      - ALLOWED_APIS=${USERS_API_ALLOWED_APIS}
+    restart: always
+    # healthcheck:
+    #   test: ["CMD-SHELL", "curl -f http://users_api:8001/ || (($? == 22))"]
+      # interval: 10s
+      # timeout: 5s
+      # retries: 3
+      # start_period: 3s
+
+  matchmaking:
+    container_name: matchmaking_c
+    build:
+      context: ./srcs/django_builds
+      target: django_websocketapi
+    ports:
+      - "8003:8003"
+    command: python3 manage.py runserver 0.0.0.0:8003
+    depends_on:
+        auth:
+          condition: service_started
+        redis:
+          condition: service_started
+        pong:
+          condition: service_started
+        users_api:
+          condition: service_started
+    # healthcheck:
+    #   test: ["CMD-SHELL", "curl -f http://matchmaking:8003/ || (($? == 22))"]
+      # interval: 10s
+      # timeout: 5s
+      # retries: 3
+      # start_period: 3s
+        
+    volumes:
+      - ./srcs/backend/matchmaking/:/code
+      - ${DATA_DIR}keys/rsa/pub.pem:/etc/certificate/pub.pem
+      - ${DATA_DIR}keys/api-tokens/matchmaking:/etc/certificate/api-token
     restart: always
 
   # web2:
@@ -134,7 +203,7 @@ secrets:
     file: ${DATA_DIR}keys/rsa/key.pem
 
 # ports:
-# 8000:auth_api
+# 8000:auth
 # 8001: user_api
 # 8002 pong
 # 8003: matchmaking

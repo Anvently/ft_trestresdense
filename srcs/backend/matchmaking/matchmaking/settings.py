@@ -130,6 +130,7 @@ with open('/etc/certificate/pub.pem', 'rb') as file:
 with open('/etc/certificate/api-token', 'rb') as file:
     API_TOKEN = file.read()
 
+ASGI_APPLICATION = "matchmaking.asgi.application"
 
 CHANNEL_LAYERS = {
     "default": {

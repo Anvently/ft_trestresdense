@@ -13,7 +13,7 @@ import traceback
 
 # Constants
 PADDLE_LENGTH = 0.16
-PADDLE_THICKNESS = 0.02
+PADDLE_THICKNESS = 0.05
 PLAYER_SPEED = 0.016
 
 BALL_RADIUS = 0.015
@@ -26,20 +26,23 @@ EAST = 1
 NORTH = 2
 SOUTH = 3
 
-START_POS = [{"x": PADDLE_THICKNESS / 2, 'y': 0.5, 'width': PADDLE_THICKNESS, 'height': PADDLE_LENGTH},
-			 {"x": 1 - PADDLE_THICKNESS / 2, "y": 0.5,"width": PADDLE_THICKNESS,"height": PADDLE_LENGTH,},
-			 {"x": 0.5, "y": PADDLE_THICKNESS / 2,"width": PADDLE_LENGTH,"height": PADDLE_THICKNESS},
-			 {"x": 0.5, "y":1 - PADDLE_THICKNESS / 2, "width": PADDLE_LENGTH,"height": PADDLE_THICKNESS}
+
+START_POS = [{"x": -0.5 - PADDLE_THICKNESS / 2, 'y': 0, 'width': PADDLE_THICKNESS, 'height': PADDLE_LENGTH},
+			 {"x": 0.5 + PADDLE_THICKNESS / 2, "y": 0,"width": PADDLE_THICKNESS,"height": PADDLE_LENGTH,},
+			 {"x": 0, "y": -0.5 - PADDLE_THICKNESS / 2,"width": PADDLE_LENGTH,"height": PADDLE_THICKNESS},
+			 {"x": 0, "y": 0.5 + PADDLE_THICKNESS / 2, "width": PADDLE_LENGTH,"height": PADDLE_THICKNESS}
 			 ]
 
-BALL_START = {"x": 0.5, "y": 0.5, "r": BALL_RADIUS, "speed": {"x": 0, "y": 0}}
+BALL_START = {"x": 0, "y": 0, "r": BALL_RADIUS, "speed": {"x": 0, "y": 0}}
 
 class Player2D(Player):
 
 	def __init__(self, player_id, side, lives=0, type='wall'):
 		super().__init__(player_id, side, lives)
 		self.type = type
-		self.destination = 0.5
+		self.destination = 0
+		self.coordinates = START_POS[side]
+
 
 	def AI_behavior(self, ballX, ballY, ballSpeedX, ballSpeedY) -> str:
 		if int(time.time()) != self.last_time:
@@ -61,7 +64,7 @@ class Player2D(Player):
 		return ""
 	
 	def calculate_destination(self, ballX, ballY, ballSpeedX, ballSpeedY):
-		self.destination = 0.5
+		self.destination = 0
 		if self.side == WEST and ballSpeedX < 0 or self.side == EAST and ballSpeedX > 0 or self.side == NORTH and ballSpeedY < 0 or self.side == SOUTH and ballSpeedY > 0:
 			self.destination = self.calculate_impact(ballX, ballY, ballSpeedX, ballSpeedY)
 
@@ -85,12 +88,12 @@ class Player2D(Player):
 		while True:
 			fpos_x += fspeed_x
 			fpos_y += fspeed_y
-			if not BALL_RADIUS < fpos_x < 1 - BALL_RADIUS:
+			if not -0.5 + BALL_RADIUS < fpos_x < 0.5 - BALL_RADIUS:
 				if self.side == WEST or self.side == EAST:
 					return fpos_y
 				else:
 					fspeed_x *= -1 
-			if not BALL_RADIUS < fpos_y < 1 - BALL_RADIUS:
+			if not -0.5 + BALL_RADIUS < fpos_y < 0.5 - BALL_RADIUS:
 				if self.side == NORTH or self.side == SOUTH:
 					return fpos_x
 				else:
@@ -106,6 +109,7 @@ class PongLobby2D(PongLobby):
 		for i in range(len(players_list)):
 			self.players.append(Player2D(players_list[i], i, self.settings['lives'], 'Player'))
 			self.match_id_pos[players_list[i]] = i
+		self.waiting_for = sum(1 for player in self.players if not player.is_bot)
 		for i in range(self.player_num, 4):
 			self.players.append(Player2D('!wall', i))
 		self.game_type = 'pong2d'
@@ -117,8 +121,8 @@ class PongLobby2D(PongLobby):
 	def init_game(self):
 		# ball initialization
 		self.ball = {
-			"x": 0.5,
-			"y": 0.5,
+			"x": 0,
+			"y": 0,
 			"r": BALL_RADIUS,
 			"speed": {"x": 0, "y": 0}
 		}
@@ -132,14 +136,15 @@ class PongLobby2D(PongLobby):
 
 		if input == "up":
 			if position == EAST or position == WEST:
-				self.players[position].coordinates['y'] = min(1 - PADDLE_LENGTH / 2, self.players[position].coordinates['y'] + PLAYER_SPEED)
+				self.players[position].coordinates['y'] = min(0.5 - PADDLE_LENGTH / 2, self.players[position].coordinates['y'] + PLAYER_SPEED)
 			else:
-				self.players[position].coordinates['x'] = max(PADDLE_LENGTH / 2, self.players[position].coordinates['x'] - PLAYER_SPEED)
+				self.players[position].coordinates['x'] = max(-0.5 + PADDLE_LENGTH / 2, self.players[position].coordinates['x'] - PLAYER_SPEED)
 		elif input == "down":
 			if position == EAST or position == WEST:
-				self.players[position].coordinates['y'] = max(PADDLE_LENGTH / 2, self.players[position].coordinates['y'] - PLAYER_SPEED)
+				self.players[position].coordinates['y'] = max(-0.5 + PADDLE_LENGTH / 2, self.players[position].coordinates['y'] - PLAYER_SPEED)
 			else:
-				self.players[position].coordinates['x'] = min(1 - PADDLE_LENGTH / 2, self.players[position].coordinates['x'] + PLAYER_SPEED)
+				self.players[position].coordinates['x'] = min(0.5 - PADDLE_LENGTH / 2, self.players[position].coordinates['x'] + PLAYER_SPEED)
+
 
 	def move_ball(self):
 		self.ball['x'] += self.ball["speed"]['x']
@@ -150,14 +155,49 @@ class PongLobby2D(PongLobby):
 		self.paddle_collision()
 
 	def wall_collision(self):
-		if self.players[NORTH].type != "Player" and self.ball['y'] - BALL_RADIUS <= 0 and self.ball["speed"]['y'] < 0:
-			self.ball["speed"]['y'] *= -1
-		elif self.players[SOUTH].type != "Player" and self.ball['y'] + BALL_RADIUS >= 1 and self.ball["speed"]['y'] > 0:
-			self.ball["speed"]['y'] *= -1
-		elif self.players[WEST].type != "Player" and self.ball['x'] - BALL_RADIUS <= 0 and self.ball["speed"]['x'] < 0:
-			self.ball["speed"]['x'] *= -1
-		elif self.players[EAST].type != "Player" and self.ball['x'] + BALL_RADIUS >= 1 and self.ball["speed"]['x'] > 0:
-			self.ball["speed"]['x'] *= -1
+		# if self.players[NORTH].type != "Player" and self.ball['y'] - BALL_RADIUS <= -0.5 and self.ball["speed"]['y'] < 0:
+		# 	self.ball["speed"]['y'] *= -1
+		# elif self.players[SOUTH].type != "Player" and self.ball['y'] + BALL_RADIUS >= 0.5 and self.ball["speed"]['y'] > 0:
+		# 	self.ball["speed"]['y'] *= -1
+		# elif self.players[WEST].type != "Player" and self.ball['x'] - BALL_RADIUS <= -0.5 and self.ball["speed"]['x'] < 0:
+		# 	self.ball["speed"]['x'] *= -1
+		# elif self.players[EAST].type != "Player" and self.ball['x'] + BALL_RADIUS >= 0.5 and self.ball["speed"]['x'] > 0:
+		# 	self.ball["speed"]['x'] *= -1
+
+		# print(f"ball x = {self.ball["x"]}, ball y = {self.ball["y"]}")
+
+		if self.ball["y"] <= 0 and abs(self.ball["y"]) >= abs(self.ball["x"]):
+			ball_position = SOUTH
+			# print("SOUTH")
+		elif self.ball["y"] > 0 and abs(self.ball["y"]) > abs(self.ball["x"]):
+			ball_position = NORTH
+			# print("NORTH")
+		elif self.ball["x"] < 0 and abs(self.ball["y"]) < abs(self.ball["x"]):
+			ball_position = EAST
+			# print("EAST")
+		elif self.ball["x"] > 0 and abs(self.ball["y"]) < abs(self.ball["x"]):
+			ball_position = WEST
+			# print("WEST")
+
+
+		if ball_position == NORTH or ball_position == SOUTH:
+			if not -0.5 + BALL_RADIUS < self.ball["y"] < 0.5 - BALL_RADIUS:
+				if self.players[ball_position].type != "Player":
+					self.ball["speed"]["y"] *= -1
+					print("A")
+				elif not -0.5 + BALL_RADIUS < self.ball["x"] < 0.5 - BALL_RADIUS:
+					self.ball["speed"]["x"] *= -1
+					print("B")
+		else:
+			if not -0.5 + BALL_RADIUS < self.ball["x"] < 0.5 - BALL_RADIUS:
+				if self.players[ball_position].type != "Player":
+					self.ball["speed"]["x"] *= -1
+					print("C")
+				elif not -0.5 + BALL_RADIUS < self.ball["y"] < 0.5 - BALL_RADIUS:
+					self.ball["speed"]["y"] *= -1
+					print("D")
+
+
 
 	def paddle_collision(self):
 		for direction in range(0, self.player_num):
@@ -213,19 +253,19 @@ class PongLobby2D(PongLobby):
 	def check_goals(self):
 		#meh, pue un peu la merde dans le cas des buts marques tres pres du bord
 		goal_scored = False
-		if self.ball['x'] < 0 and self.players[WEST].type == "Player":
+		if self.ball['x'] < -1.5 and self.players[WEST].type == "Player":
 			self.players[WEST].lives -= 1
 			print(f"WEST lost a life, {self.players[WEST].lives} remaining")
 			goal_scored = True
-		elif self.ball['x'] > 1 and self.players[EAST].type == "Player":
+		elif self.ball['x'] > 1.5 and self.players[EAST].type == "Player":
 			self.players[EAST].lives -= 1
 			print(f"EAST lost a life, {self.players[EAST].lives} remaining")
 			goal_scored = True
-		elif self.ball['y'] < 0 and self.players[NORTH].type == "Player":
+		elif self.ball['y'] < -1.5 and self.players[NORTH].type == "Player":
 			self.players[NORTH].lives -= 1
 			print(f"NORTH lost a life, {self.players[NORTH].lives} remaining")
 			goal_scored = True
-		elif self.ball['y'] > 1 and self.players[SOUTH].type == "Player":
+		elif self.ball['y'] > 1.5 and self.players[SOUTH].type == "Player":
 			self.players[SOUTH].lives -= 1
 			print(f"SOUTH lost a life, {self.players[SOUTH].lives} remaining")
 			goal_scored = True
@@ -235,8 +275,8 @@ class PongLobby2D(PongLobby):
 			self.reset_ball()
 
 	def	reset_ball(self):
-		self.ball['x'] = 0.5
-		self.ball['y'] = 0.5
+		self.ball['x'] = 0
+		self.ball['y'] = 0
 		speed = BALL_SERVICE_SPEED
 
 		self.update_service_direction()
@@ -293,7 +333,7 @@ class PongLobby2D(PongLobby):
 			'ball_speed_y': self.ball["speed"]['y'],
 		}
 
-		for index in range(self.player_num):
+		for index in range(4):
 			json[f"player{index}_type"] = self.players[index].type
 			json[f"player{index}_lives"] = self.players[index].lives
 			json[f"player{index}_x"] = self.players[index].coordinates['x']

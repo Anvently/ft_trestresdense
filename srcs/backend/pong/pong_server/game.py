@@ -11,6 +11,7 @@ import json
 from django.conf import settings
 import traceback
 from abc import abstractmethod
+import logging, threading
 
 # Constants
 PADDLE_LENGTH = 0.16
@@ -27,13 +28,13 @@ EAST = 1
 NORTH = 2
 SOUTH = 3
 
-START_POS = [{"x": PADDLE_THICKNESS / 2, 'y': 0.5, 'width': PADDLE_THICKNESS, 'height': PADDLE_LENGTH},
-			 {"x": 1 - PADDLE_THICKNESS / 2, "y": 0.5,"width": PADDLE_THICKNESS,"height": PADDLE_LENGTH,},
-			 {"x": 0.5, "y": PADDLE_THICKNESS / 2,"width": PADDLE_LENGTH,"height": PADDLE_THICKNESS},
-			 {"x": 0.5, "y":1 - PADDLE_THICKNESS / 2, "width": PADDLE_LENGTH,"height": PADDLE_THICKNESS}
+START_POS = [{"x": -0.5 - PADDLE_THICKNESS / 2, 'y': 0, 'width': PADDLE_THICKNESS, 'height': PADDLE_LENGTH},
+			 {"x": 0.5 + PADDLE_THICKNESS / 2, "y": 0,"width": PADDLE_THICKNESS,"height": PADDLE_LENGTH,},
+			 {"x": 0, "y": -0.5 - PADDLE_THICKNESS / 2,"width": PADDLE_LENGTH,"height": PADDLE_THICKNESS},
+			 {"x": 0, "y": 0.5 + PADDLE_THICKNESS / 2, "width": PADDLE_LENGTH,"height": PADDLE_THICKNESS}
 			 ]
 
-BALL_START = {"x": 0.5, "y": 0.5, "r": BALL_RADIUS, "speed": {"x": 0, "y": 0}}
+BALL_START = {"x": 0, "y": 0, "r": BALL_RADIUS, "speed": {"x": 0, "y": 0}}
 
 
 # test AI
@@ -43,6 +44,7 @@ BALL_START = {"x": 0.5, "y": 0.5, "r": BALL_RADIUS, "speed": {"x": 0, "y": 0}}
 class Player:
 	def __init__(self, player_id, side, lives=0):
 		self.player_id = player_id
+		self.is_bot = self.player_id[0] == '!'
 		self.side = side
 		self.lives = lives
 		self.coordinates = START_POS[side]
@@ -70,6 +72,8 @@ class PongLobby:
 		self.player_num = len(players_list)
 		if tournId:
 			self.tournId = tournId
+		else:
+			self.tournId = None
 		self.ball = None
 		self.players: List[Player] = []
 		self.match_id_pos = {}
@@ -78,9 +82,14 @@ class PongLobby:
 		self.gameState = 0
 		self.mut_lock = asyncio.Lock()
 		self.loop = None
-		self.waiting_for = self.player_num
+		self.waiting_for = -1
 		self.winner = None
 		self.game_type = None
+	
+	def check_game_start(self) -> bool:
+		if self.waiting_for == 0:
+			return True
+		return False
 
 	def check_user(self, username:str):
 		"""Check that the user belong to the lobby"""
@@ -89,8 +98,7 @@ class PongLobby:
 		return False
 	
 	async def start_game_loop(self):
-		print("loop started")
-		self.loop = asyncio.create_task(self.game_loop())
+		self.loop = await asyncio.create_task(self.game_loop())
 
 	async def stop_game_loop(self):
 		if self.loop:
@@ -113,7 +121,7 @@ class PongLobby:
 		self.waiting_for += 1
 
 	def send_result(self):
-		data = Dict()
+		data = {}
 		data['lobby_id'] =  self.lobby_id
 		data['game_name'] = self.game_type
 		if self.tournId:
@@ -129,15 +137,18 @@ class PongLobby:
 					'has_win': self.winner == player.player_id
 				})
 		try:
-			requests.post('http://matchmaking:8003/result/?format=json',
+			response = requests.post('http://matchmaking:8003/result/?format=json',
 					data=json.dumps(data),
 					headers = {
 						'Host': 'localhost',
+						'Content-type': 'application/json',
 						'Authorization': "Bearer {0}".format(settings.API_TOKEN.decode('ASCII'))
 						}
 					)
+			if response.status_code != 200:
+				raise Exception(f"expected status 201 but got {response.status_code} ({response.content})")
 		except Exception as e:
-			pass
+			logging.error(f"Failed to send results of lobby {self.lobby_id}: {e}")
 		# API call to send result to matchmaking
 			# -> gameState == 3 match was played -> get stats in self and send them
 			# -> gameState == 0 game was canceled
@@ -149,6 +160,7 @@ class PongLobby:
 
 	async def	game_loop(self):
 		try:
+			print(f"Lobby {self.lobby_id}: Game loop has started")
 			loop_start = time.time()
 			player_channel = get_channel_layer()
 			# pregame : check that all players are present
@@ -186,13 +198,18 @@ class PongLobby:
 			await player_channel.group_send(
 				self.lobby_id, {
 					"type": "game_finish",
-					"content": f"{self.get_winner()} has winned the game."
+					"winner": self.winner
 				}
 			)
 			self.send_result()
-			# remove from list
+			await player_channel.group_send(
+				self.lobby_id, {
+					"type": "leave_lobby"
+				}
+			)
+			logging.info(f"Lobby {self.lobby_id}: Terminating game loop.")
 		except Exception as e:
-			print(e)
+			logging.error(e)
 			await player_channel.group_send(self.lobby_id, {'type':'error', 'detail':'error in game loop'})
 			traceback.print_exc()
 
@@ -203,6 +220,7 @@ class PongLobby:
 		self.compute_AI()	### AI TEST ###
 		if self.check_winning_condition():
 			self.gameState = 3
+			self.winner = self.get_winner()
 		return self.generate_JSON()
 
 	def compute_AI(self):
@@ -237,7 +255,7 @@ class PongLobby:
 
 	def get_winner(self) -> str:
 		for i in range(self.player_num):
-			if self.players[i].type == 'Player':
+			if self.players[i].is_bot:
 				print(f"{self.players[i].player_id} won the game")
 				self.winner = self.players[i].player_id
 				return self.winner

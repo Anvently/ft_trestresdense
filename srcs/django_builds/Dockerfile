@@ -5,6 +5,7 @@ ENV PYTHONUNBUFFERED=1
 WORKDIR /code
 COPY requirements.txt /code/
 RUN pip3 install -r requirements.txt
+RUN apt-get install curl
 
 FROM django_base AS django_restapi
 RUN pip3 install -U  djangorestframework pyjwt[crypto]
@@ -20,3 +21,4 @@ RUN pip3 install -U 'channels[daphne]'
 RUN pip3 install -U channels-redis
 RUN pip3 install -U pottery
 
+CMD ["sh", "./entrypoint.sh" ]

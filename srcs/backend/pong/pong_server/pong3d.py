@@ -122,15 +122,17 @@ class PongLobby3D(PongLobby):
 	def __init__(self, lobby_id: str, players_list: List[str], settings: Dict[str, Any], tournId=None) -> None:
 		super().__init__(lobby_id, players_list, settings, tournId)
 		for i in range(2):
-			self.players.append(Player3D(players_list[i], i))
+			self.players.append(Player3D(players_list[i], i, settings['lives']))
 			self.match_id_pos[players_list[i]] = i
 		self.ball = BALL_START
 		self.gameState = 0
 		self.mut_lock = asyncio.Lock()
 		self.loop = None
-		self.waiting_for = self.player_num
+		self.waiting_for = sum(1 for player in self.players if not player.is_bot)
 		self.winner = None
 		self.game_type = 'pong3d'
+		self.points_to_win = settings['lives']
+		
 
 	def player_input(self, player_id, input):
 		if player_id not in self.match_id_pos:
@@ -268,23 +270,23 @@ class PongLobby3D(PongLobby):
 				# point for attacking player
 				self.players[attacker].points += 1
 				point_scored = True
-				print(f"{self.players[attacker].player_id} marked a point !")
+				print(f"Lobby {self.lobby_id}: {self.players[attacker].player_id} marked a point !")
 			else:
 				# point for defending player
 				self.players[not attacker].points += 1
 				point_scored = True
-				print(f"{self.players[not attacker].player_id} marked a point !")
+				print(f"Lobby {self.lobby_id}: {self.players[not attacker].player_id} marked a point !")
 		# if point scored reset ball
 		if point_scored == True:
-			print(f"score is {self.players[WEST].points} to {self.players[EAST].points}")
+			print(f"Lobby {self.lobby_id}: score is {self.players[WEST].points} to {self.players[EAST].points}")
 			self.reset_ball()
 
 	def check_winning_condition(self):
-		if self.players[0].points >= 11 and self.players[0].points >= self.players[1].points + 2:
-			print("Winner is :", self.players[0].player_id)
+		if self.players[0].points >= self.points_to_win and self.players[0].points >= self.players[1].points + 2:
+			print(f"Lobby {self.lobby_id}: Winner is :", self.players[0].player_id)
 			return True
-		elif self.players[1].points >= 11 and self.players[1].points >= self.players[0].points + 2:
-			print("Winner is:", self.players[1].player_id)
+		elif self.players[1].points >= self.points_to_win and self.players[1].points >= self.players[0].points + 2:
+			print(f"Lobby {self.lobby_id}: Winner is:", self.players[1].player_id)
 			return True
 		return False
 
