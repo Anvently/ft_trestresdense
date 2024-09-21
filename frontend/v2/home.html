@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plus2Chicos</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        #content {
+            margin-top: 70px;
+        }
+    </style>
+</head>
+<body>
+    <div id="errorPopup" class="alert alert-danger alert-dismissible fade show" role="alert" style="position: fixed; top: 20px; left: 50%; transform: translateX(-50%); display: none; z-index: 1050;">
+		<span id="errorMessage"></span>
+		<button type="button" class="btn-close" aria-label="Close" onclick="closeErrorPopup()"></button>
+	</div>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top">
+        <div id='menu' class="container-fluid">
+            <a class="navbar-brand" href="#matchmaking">SPA Jeux</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Matchmaking</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#stats">Statistiques</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#about">À propos</a>
+                    </li>
+                </ul>
+                <div id="userMenu" class="dropdown d-none">
+                    <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+                        <img id='userAvatar' src="https://localhost:8083/image/default.jpg" alt="Avatar" width="30" height="30" class="rounded-circle">
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton">
+                        <li><a class="dropdown-item" href="#profile">Profil</a></li>
+                        <li><a class="dropdown-item" href="#" id="logoutButton">Déconnexion</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div id="content">
+        <!-- Le contenu dynamique sera chargé ici -->
+    </div> 
+
+    <footer class="bg-light text-center text-lg-start mt-4">
+        <div class="text-center p-3">
+            © 2024 Plateforme de Jeux en Ligne
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+	<script type="module">
+        import { Router } from './js/router.js';
+        // import { AuthService } from './js/services/auth-service.js';
+        import { ViewManager } from './js/view-manager.js';
+
+        const router = new Router();
+        const viewManager = new ViewManager(document.getElementById('content'));
+        let userInfo;
+
+        // Définition des routes
+        router.addRoute('#', 'js/views/matchmaking.js', 'html/matchmaking.html');
+        router.addRoute('#login', 'js/views/login.js', 'html/login.html');
+        router.addRoute('#profile', 'js/views/profile.js', 'html/profile.html');
+        router.addRoute('#about', 'js/views/about.js', 'html/about.html');
+        router.addRoute('#stats', 'js/views/stats.js', 'html/stats.html');
+        router.addRoute('#pong2d', 'js/views/pong2d.js', 'html/pong2d.html');
+        router.addRoute('#pong3d', 'js/views/pong3d.js', 'html/pong3d.html');
+        
+        function isAuthenticated() {
+            return document.cookie.includes('auth-token');
+        }
+
+        // Gestion de l'authentification
+        function updateUserMenu() {
+            const userMenu = document.getElementById('userMenu');
+            if (isAuthenticated()) {
+                userMenu.classList.remove('d-none');
+                document.getElementById("userAvatar").src = userInfo.avatar;
+            } else {
+                userMenu.classList.add('d-none');
+            }
+        }
+
+        async function getUserInfos() {
+            const response = await fetch(`https://${document.location.host}/api/me/`);
+            if (!response.ok) {
+                console.error(`Failed to fetch user informations: status=${response.statusText}`);
+                return undefined;
+            }
+            return await response.json();
+        }
+
+        // Fonction pour afficher le pop-up d'erreur
+        function errorHandler(error) {
+            console.log('Error loading view: ', error);
+            document.getElementById('errorMessage').textContent = error;
+            const errorPopup = document.getElementById('errorPopup');
+            errorPopup.style.display = 'block';
+
+            // Masquer le pop-up après quelques secondes (optionnel)
+            setTimeout(() => {
+                errorPopup.style.display = 'none';
+            }, 5000); // Masquer après 5 secondes
+        }
+
+        document.getElementById('logoutButton').addEventListener('click', (e) => {
+            e.preventDefault();
+            document.cookie = 'auth-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+            updateUserMenu();
+            router.navigate('#login');
+        });
+
+        // Middleware d'authentification
+        router.use((path, next) => {
+            if (path !== '#login' && !isAuthenticated()) {
+                console.log("going to logging");
+                router.navigate('#login');
+            } else {
+                next();
+            }
+        });
+
+        //Midleware pour obtenir les informations sur l'utilisateur actif.
+        router.use(async (path, next) => {
+            if (path !== '#login' && !userInfo) {
+                userInfo = await getUserInfos();
+                console.log(userInfo);
+                updateUserMenu();
+            }
+            next();
+        });
+
+        // Gestion du changement de route
+        router.onRouteChange(async (route) => {
+            updateUserMenu()
+            const sucess = await viewManager.loadView(route.viewPath, route.htmlPath);
+            return sucess;
+        });
+
+        viewManager.setErrorHandler(errorHandler);
+
+        // Initialisation du routeur
+        router.init();
+
+        // Gestion des boutons précédent/suivant du navigateur
+        window.addEventListener('popstate', () => {
+            router.handleLocationChange();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Système de Matchmaking</title>
+	<style>
+		body {
+			background-color: #f8f9fa;
+			height: 100vh;
+			display: flex;
+			flex-direction: column;
+		}
+		.container {
+			flex-grow: 1;
+			display: flex;
+			flex-direction: column;
+		}
+		.lobby-list {
+			flex-grow: 1;
+			overflow-y: auto;
+			margin-bottom: 20px;
+		}
+		.table {
+			background-color: #fff;
+		}
+		.table-hover tbody tr:hover {
+			background-color: #f5f5f5;
+		}
+		.tournament {
+			border-left: 5px solid #ffc107;
+		}
+		.side-buttons {
+			display: flex;
+			flex-direction: row;
+			justify-content: space-between;
+			margin-top: 20px;
+			align-items: flex-end;
+		}
+		#hostOptions {
+			/* margin-right: 50px; */
+			display: flex;
+			margin-right: auto;
+			flex-direction: row;
+		}
+		.mainOptions {
+			display: flex;
+			margin-left: auto;
+			flex-direction: row;
+		}
+		.side-buttons .btn {
+			margin-bottom: 10px;
+			margin-left: 5px;
+			margin-right:5px;
+		}
+		.btn, .form-control {
+			border-radius: 2px;
+		}
+		.modal-content {
+			border-radius: 2px;
+		}
+
+	</style>
+</head>
+<body>
+	<!-- Pop-up d'erreur -->
+	<div id="errorPopup" class="alert alert-danger alert-dismissible fade show" role="alert" style="position: fixed; top: 20px; left: 50%; transform: translateX(-50%); display: none; z-index: 1050;">
+		<span id="errorMessage"></span>
+		<button type="button" class="btn-close" aria-label="Close" onclick="closeErrorPopup()"></button>
+	</div>
+	<div class="container mt-4" id="mainView">
+		<h1 class="mb-4">Système de Matchmaking</h1>
+
+		<div class="row">
+			<div class="col-md-6">
+				<h2>Lobbies disponibles</h2>
+				<div id="availableLobbies" class="lobby-list">
+					<table class="table table-hover">
+						<thead>
+							<tr>
+								<th>Nom</th>
+								<th>Type</th>
+								<th>Host</th>
+								<th>Places</th>
+								<th>Action</th>
+							</tr>
+						</thead>
+						<tbody></tbody>
+					</table>
+				</div>
+			</div>
+			<div class="col-md-6">
+				<h2>Matchs en cours</h2>
+				<div id="ongoingMatches" class="lobby-list">
+					<table class="table table-hover">
+						<thead>
+							<tr>
+								<th>Nom</th>
+								<th>Type</th>
+								<th>Host</th>
+								<th>Places</th>
+								<th>Action</th>
+							</tr>
+						</thead>
+						<tbody></tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+
+		<div class="side-buttons mainOptions">
+			<button class="btn btn-primary mainView" data-bs-toggle="modal" data-bs-target="#createLobbyModal">Créer un lobby</button>
+			<button class="btn btn-info mainView" data-bs-toggle="modal" data-bs-target="#joinLobbyModal">Rejoindre un lobby</button>
+			<button class="btn btn-secondary mainView" onclick="showOnlinePlayers()">Joueurs en ligne</button>
+		</div>
+
+	</div>
+
+	<div class="container mt-4" id="lobbyView" style="display:none;">
+		<h1 class="mb-4">Lobby: <span id="lobbyName"></span></h1>
+	
+		<div class="row">
+			<table class="table table-hover">
+				<thead>
+					<tr>
+						<th>Nom du joueur</th>
+						<th>État</th>
+						<th>Action</th>
+					</tr>
+				</thead>
+				<tbody id="playerList">
+					<!-- Liste des joueurs insérée ici via WebSocket -->
+				</tbody>
+			</table>
+		</div>
+
+		<div class="side-buttons">
+			<!-- Boutons globaux -->
+			 <!-- Si l'utilisateur est l'hôte, afficher les options supplémentaires -->
+			<div id="hostOptions" class="lobbyView" style="display:none;">
+				<button class="btn btn-warning" onclick="openLobbyOptions()">Modifier les options du lobby</button>
+				<button class="btn btn-success" onclick="startGame()">Démarrer le jeu</button>
+			</div>
+			<div class="mainOptions">
+				<button class="btn btn-secondary lobbyView" style="display:none;" onclick="inviteFriends()">Inviter des amis</button>
+				<button class="btn btn-warning lobbyView" style="display:none;" onclick="beReady()">Pret</button>
+				<button class="btn btn-danger lobbyView" style="display:none;" onclick="leaveLobby()">Quitter le lobby</button>
+			</div>
+		</div>
+
+	</div>
+
+	<!-- Modal pour rejoindre un lobby -->
+	<div class="modal fade" id="joinLobbyModal" tabindex="-1">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title">Rejoindre un lobby</h5>
+					<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+				</div>
+				<div class="modal-body">
+					<input type="text" id="lobbyIdInput" class="form-control" placeholder="ID du lobby">
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+					<button type="button" class="btn btn-primary" onclick="joinLobbyById()">Rejoindre</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Modal pour créer un lobby -->
+	<div class="modal fade" id="createLobbyModal" tabindex="-1" aria-labelledby="createLobbyModalLabel" aria-hidden="true">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title" id="createLobbyModalLabel">Créer un Lobby</h5>
+					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+				</div>
+				<div class="modal-body" style="max-height: 400px; overflow-y: auto;">
+					<form id="createLobbyForm">
+						
+						<div class="mb-3">
+							<label for="gameType" class="form-label">Choisir le type de jeu</label>
+							<select id="gameType" class="form-select">
+								<option value="pong2d">Pong 2D</option>
+								<option value="pong3d">Pong 3D</option>
+							</select>
+						</div>
+						
+						<div class="mb-3">
+							<label for="matchType" class="form-label">Type de partie</label>
+							<select id="matchType" class="form-select">
+								<option value="local_match">Match Local</option>
+								<option value="simple_match">Match Simple</option>
+								<option value="tournament_lobby">Tournoi</option>
+							</select>
+						</div>
+
+						<div class="mb-3">
+							<label for="lobbyName" class="form-label">Nom du Lobby</label>
+							<input type="text" id="lobbyName" class="form-control" required>
+						</div>
+						<div id="error-message-lobby-name" class="form-errors alert alert-danger" style="display: none;"></div>
+
+						<div class="mb-3">
+							<label for="maxPlayers" class="form-label">Nombre maximum de joueurs</label>
+							<input type="number" id="maxPlayers" class="form-control" min="2" max="8" required>
+						</div>
+						<div id="error-message-max-players" class="form-errors alert alert-danger" style="display: none;"></div>
+
+						<div class="mb-3">
+							<label for="botsCount" class="form-label">Nombre de bots</label>
+							<input type="number" id="botsCount" class="form-control" min="0" max="4" required>
+						</div>
+						<div id="error-message-nbr-bots" class="form-errors alert alert-danger" style="display: none;"></div>
+
+						<div class="mb-3">
+							<label class="form-label">Type de lobby</label>
+							<select id="lobbyPrivacy" class="form-select">
+								<option value="public">Public</option>
+								<option value="private">Privé</option>
+							</select>
+						</div>
+
+						<div class="mb-3">
+							<label class="form-label">Autoriser les spectateurs</label>
+							<select id="spectators" class="form-select">
+								<option value="allowed">Autorisés</option>
+								<option value="notAllowed">Interdits</option>
+							</select>
+						</div>
+
+						<div class="mb-3">
+							<label for="nbrLives" class="form-label">Nombre de vie/points par défaut</label>
+							<input type="number" id="nbrLives" class="form-control" min="1" max="100" required>
+						</div>
+					</form>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+					<button type="button" class="btn btn-primary" onclick="createLobby()">Créer Lobby</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Modal pour afficher les joueurs en ligne -->
+	<div class="modal fade" id="onlinePlayersModal" tabindex="-1">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title">Joueurs en ligne</h5>
+					<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+				</div>
+				<div class="modal-body" id="onlinePlayersList">
+
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Modale pour inviter des amis -->
+	<div class="modal fade" id="inviteFriendsModal" tabindex="-1">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title">Inviter des amis</h5>
+					<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+				</div>
+				<div class="modal-body" id="friendList">
+					<!-- Liste des amis à inviter générée ici -->
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Modale pour changer les options du lobby -->
+	<div class="modal fade" id="lobbyOptionsModal" tabindex="-1">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title">Modifier les options du lobby</h5>
+					<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+				</div>
+				<div class="modal-body">
+					<label for="gameType">Type de jeu</label>
+					<select id="gameType" class="form-control">
+						<option value="pong2d">Pong 2D</option>
+						<option value="pong3d">Pong 3D</option>
+					</select>
+
+					<label for="lobbyNameInput">Nom du lobby</label>
+					<input type="text" id="lobbyNameInput" class="form-control">
+
+					<label for="slotCount">Nombre de slots disponibles</label>
+					<input type="number" id="slotCount" class="form-control">
+
+					<label for="livesCount">Nombre de vies</label>
+					<input type="number" id="livesCount" class="form-control">
+
+					<div class="form-check">
+						<input type="checkbox" class="form-check-input" id="allowSpectators">
+						<label class="form-check-label" for="allowSpectators">Autoriser les spectateurs</label>
+					</div>
+
+					<button class="btn btn-primary" onclick="saveLobbyOptions()">Sauvegarder</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+</body>
+</html>

@@ -12,6 +12,15 @@ from users_api.authentication import CookieUserJWTAuthentication, HeaderUserJWTA
 		ApiJWTAuthentication, IsApiAuthenticatedAs
 from django.http import HttpResponseRedirect
 
+class MeUserView(APIView):
+	permission_classes = [IsAuthenticated]
+	authentication_classes = [CookieUserJWTAuthentication, HeaderUserJWTAuthentication]
+
+	def get(self, request):
+		serializer = UserSerializer(request.user)
+		return Response(serializer.data, status=status.HTTP_200_OK)
+
+
 # Create your models here.
 class UserViewSet(viewsets.GenericViewSet, mixins.UpdateModelMixin,
 				mixins.RetrieveModelMixin, mixins.ListModelMixin):

@@ -11,6 +11,7 @@ from auth_api.models import User
 from auth_api.requests import delete_user, post_new_user, obtain_oauth_token, retrieve_user_infos
 from auth_api.requests import post_new_user
 from django.utils.crypto import get_random_string
+from django.http import HttpResponseRedirect
 from typing import Any
 
 import time
@@ -158,7 +159,8 @@ class SignIn42CallbackView(APIView):
 			return Response(
 				{"error": f"Failed to generate token: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
 			)
-		response = Response({"token":token}, status=status.HTTP_200_OK)
+		response = HttpResponseRedirect('https://localhost:8083/template.html')
+		# response = Response({"token":token}, status=status.HTTP_200_OK)
 		response.set_cookie('auth-token', token, expires=time.time() + settings.RSA_KEY_EXPIRATION)
 		return response
 		# return Response(token.content, status=status.HTTP_200_OK)
