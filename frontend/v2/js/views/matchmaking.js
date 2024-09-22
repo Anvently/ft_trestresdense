@@ -1,4 +1,5 @@
 import { BaseView } from '../view-manager.js';
+import { userInfo } from '../home.js'
 
 export default class MatchmakingView extends BaseView {
     constructor() {
@@ -12,6 +13,8 @@ export default class MatchmakingView extends BaseView {
 		this.reconnectAttempts = 0;
 		this.maxReconnectAttempts = 5;
 		this.reconnectInterval = 2000; // 5 secondes
+		this.messageQueue = new Map();
+		this.messageId = 0;
     }
 
     async initView() {
@@ -42,6 +45,9 @@ export default class MatchmakingView extends BaseView {
 		this.joinLobbyButton.addEventListener('click', () => this.joinLobbyById());
 		this.createLobbyButton.addEventListener('click', () => this.createLobby());
 		this.saveLobbyOptionsButton.addEventListener('click', () => this.saveLobbyOptions());
+	
+		document.getElementById('lobbyNameCreation').value = `${userInfo.display_name}'s lobby`;
+
 	}
 
     async initWebSocket() {
@@ -57,8 +63,19 @@ export default class MatchmakingView extends BaseView {
 	
 			this.socket.onmessage = (event) => {
 				const message = JSON.parse(event.data);
-				console.log('Received message:', message);
-				this.dispatch(message)
+				if (Object.hasOwn(message, 'id')) {
+					if (this.messageQueue.has(message.id)) {
+						const {resolve, timeoutId} = this.messageQueue.get(message.id);
+						clearTimeout(timeoutId);
+						resolve(message);
+						this.messageQueue.delete(message.id);
+					} else {
+						this.error('Received a message which had no resolve entry.');
+					}
+				} else {
+					console.log('Received message:', message);
+					this.dispatch(message)
+				}
 			};
 	
 			this.socket.onclose = () => {
@@ -94,12 +111,31 @@ export default class MatchmakingView extends BaseView {
 		}
 	}
 
-	sendMessage(message) {
-		if (this.isConnected)
-			this.socket.send(JSON.stringify(message));
-		else {
-			console.log("Unable to send message: websocket disconnected.")
-		}
+	sendMessage(message, timeout = 0) {
+		return new Promise((resolve, reject) => {
+			if (!this.isConnected) {
+				reject(new Error("Unable to send message: websocket disconnected."));
+				return;
+			}
+			try {
+				this.socket.send(JSON.stringify(message));
+				if (timeout === 0) {
+					resolve();
+					return;
+				}
+				const id = this.messageId++;
+				message.id = id;
+				const timeoutId = setTimeout(() => {
+				if (this.messageQueue.has(id)) {
+					this.messageQueue.delete(id);
+					reject(new Error('Response timeout'));
+				}
+				}, timeout);
+				this.messageQueue.set(id, { resolve, timeoutId });
+			} catch (error) {
+				reject(new Error(`Error sending message: ${error.message}`));
+			}
+		});
 	}
 
     general_update(message) {
@@ -153,21 +189,20 @@ export default class MatchmakingView extends BaseView {
 		`;
 	}
 	
-	createLobby() {
+	async createLobby() {
 		const form = document.getElementById('createLobbyForm');
-		console.log(document.querySelectorAll('.form-errors'));
 		document.querySelectorAll('.form-errors').forEach(function(el) {
 			el.style.display = 'none';
 		});
 		// Récupérer les valeurs
 		const gameType = form.gameType.value;
 		const matchType = form.matchType.value;
-		const lobbyName = form.lobbyName.value.trim();
+		const lobbyName = form.lobbyNameCreation.value.trim();
 		const maxPlayers = parseInt(form.maxPlayers.value, 10);
 		const botsCount = parseInt(form.botsCount.value, 10);
 		const lobbyPrivacy = form.lobbyPrivacy.value;
 		const spectators = form.spectators.value;
-		const nbrLives = form.nbrLives.value;
+		const nbrLives = parseInt(form.nbrLives.value);
 	
 		let errorMessage, error = false;
 	
@@ -203,7 +238,7 @@ export default class MatchmakingView extends BaseView {
 			errorMessage.style.display = 'block';
 			error = true;
 		}
-		if (!botsCount || botsCount < 0 || botsCount > maxPlayers - 1) {
+		if (botsCount < 0 || botsCount > maxPlayers - 1) {
 			errorMessage = document.getElementById('error-message-nbr-bots')
 			errorMessage.style.display = 'block';
 			errorMessage.innerHTML = "Le nombre de bots doit être compris entre 0 et le nombre maximum de joueurs.";
@@ -226,21 +261,32 @@ export default class MatchmakingView extends BaseView {
 			nbrLives
 		});
 	
-		this.sendMessage({
-			type: 'create_lobby',
-			lobby_type: matchType,
-			name: lobbyName,
-			nbr_players: maxPlayers,
-			nbr_bots: botsCount,
-			game_type: gameType,
-			public: (lobbyPrivacy === 'public' ? true : false),
-			allow_spectators: (spectators === 'allowed' ? true: false),
-			lives: nbrLives
-		});
-	
-		// Fermer la modale
 		const modal = bootstrap.Modal.getInstance(document.getElementById('createLobbyModal'));
+		try {
+			const response = await this.sendMessage({
+				type: 'create_lobby',
+				lobby_type: matchType,
+				name: lobbyName,
+				nbr_players: maxPlayers,
+				nbr_bots: botsCount,
+				game_type: gameType,
+				public: (lobbyPrivacy === 'public' ? true : false),
+				allow_spectators: (spectators === 'allowed' ? true: false),
+				lives: nbrLives
+			}, 2000);
+			if (response.type === 'error')
+				throw new Error(response.data);
+			this.lobbyId = response.lobby_id;
+			this.isHost = true;
+		} catch (error) {
+			modal.hide();
+			this.error(`Failed to create lobby: ${error}`);
+			return;
+		}
+
+		// Fermer la modale
 		modal.hide();
+		this.updateCurrentView();
 	}
 	
 	joinLobbyById() {
@@ -276,7 +322,7 @@ export default class MatchmakingView extends BaseView {
 	leaveLobby() {
 		console.log('Quitter le lobby:', this.lobbyId);
 		// socket.sendMessage({ type: 'leave_lobby', lobbyId: lobbyId });
-		this.sendMessage({ type: 'leave_lobby', lobby_id: this.lobbyId });
+		this.sendMessage({ type: 'leave_lobby' });
 		this.lobbyId = undefined
 		this.updateCurrentView()
 	}
@@ -289,7 +335,7 @@ export default class MatchmakingView extends BaseView {
 		lobbyNameEl.textContent = message.lobbyName;
 		playerListEl.innerHTML = '';  // Vider la liste avant mise à jour
 	
-		message.players.forEach(player => {
+		Object.entries(message.players).forEach(player => {
 			const playerRow = document.createElement('tr');
 			const playerState = player.isReady ? 'Prêt' : (player.hasJoined ? 'A rejoint' : 'N\'a pas encore rejoint');
 			
@@ -297,7 +343,7 @@ export default class MatchmakingView extends BaseView {
 				<td>${player.name}</td>
 				<td>${playerState}</td>
 				<td>
-					${isHost && player.id !== message.hostId ? `<button class="btn btn-danger" onclick="kickPlayer('${player.id}')">Expulser</button>` : ''}
+					${this.isHost && player.id !== message.hostId ? `<button class="btn btn-danger" onclick="kickPlayer('${player.id}')">Expulser</button>` : ''}
 				</td>
 			`;
 			playerListEl.appendChild(playerRow);
@@ -314,15 +360,7 @@ export default class MatchmakingView extends BaseView {
 			`;
 			playerListEl.appendChild(emptySlotRow);
 		}
-	
-		// Si c'est l'hôte, afficher les options supplémentaires
-		if (message.hostId === currentPlayerId) {
-			isHost = true;
-			hostOptionsEl.style.display = 'block';
-		} else {
-			isHost = false;
-			hostOptionsEl.style.display = 'none';
-		}
+
 	}
 	
 	kickPlayer(playerId) {

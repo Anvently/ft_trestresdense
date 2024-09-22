@@ -38,8 +38,7 @@ def generate_bot_id():
 	return '!' + ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(31))
 
 class Lobby():
-	def __init__(self, settings: Dict[str, Any], id:str = None, prefix='') -> None:
-		print(f"prefix={prefix}")
+	def __init__(self, settings: Dict[str, Any], id:str = None, prefix:str='') -> None:
 		self.hostname = settings.pop('hostname', None)
 		# self.check_rules(lives, player_num, type)
 		self.name = settings.pop('name', f"{self.hostname}'s lobby")
@@ -193,8 +192,8 @@ class Lobby():
 
 class SimpleMatchLobby(Lobby):
 
-	def __init__(self, settings: Dict[str, Any]) -> None:
-		super().__init__(settings, prefix='S')
+	def __init__(self, settings: Dict[str, Any], prefix:str='S') -> None:
+		super().__init__(settings, prefix=prefix)
 		self.add_player(self.hostname)
 
 	def handle_results(self, results: Dict[str, Any]):
