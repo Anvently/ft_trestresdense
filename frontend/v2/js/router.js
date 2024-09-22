@@ -4,6 +4,16 @@ export class Router {
         this.middlewares = [];
         this.currentRoute = null;
         this.previousRoute = null;
+        this.errorHandler = this.defaultErrorHandler;
+    }
+
+    setErrorHandler(handler) {
+        this.errorHandler = handler;
+    }
+
+    defaultErrorHandler(error) {
+        console.log('Error changing view: ', error);
+        alert(`Une erreur est survenue lors du changement de page : ${error.message}`);
     }
 
     addRoute(path, viewPath, htmlPath) {
@@ -15,14 +25,13 @@ export class Router {
     }
 
     async navigate(path) {
-        console.log("Navigate is called for path: ", path);
         if (this.routes.has(path)) {
             this.previousRoute = this.currentRoute;
             history.pushState(null, '', path);
             const success = await this.handleLocationChange();
             if (!success && this.previousRoute) {
                 // Revenir à la route précédente en cas d'échec
-                console.log('Ca foire');
+                console.log('Loading view has failed. Redirecting to previous view.');
                 history.pushState(null, '', this.previousRoute.path);
                 await this.handleLocationChange();
             }
@@ -33,15 +42,12 @@ export class Router {
 
     async handleLocationChange() {
         const path = window.location.hash || '#';
-        // console.log(window.location.hash.slice(1), path);
         const route = this.routes.get(path);
-        console.log(route);
 
         if (route) {
             for (const middleware of this.middlewares) {
                 await new Promise(resolve => middleware(path, resolve));
             }
-            console.log("done");
 
             this.currentRoute = route;
             return await this.notifyListeners(route);
@@ -63,7 +69,6 @@ export class Router {
     }
 
     init() {
-        console.log("init called");
         // window.addEventListener('hashchange', () => this.handleLocationChange());
         this.handleLocationChange();
     }

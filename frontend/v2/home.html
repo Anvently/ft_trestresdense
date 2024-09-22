@@ -36,7 +36,7 @@
                 </ul>
                 <div id="userMenu" class="dropdown d-none">
                     <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
-                        <img id='userAvatar' src="https://localhost:8083/image/default.jpg" alt="Avatar" width="30" height="30" class="rounded-circle">
+                        <img id='userAvatar' src="https://localhost:8083/avatars/default.jpg" alt="Avatar" width="30" height="30" class="rounded-circle">
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton">
                         <li><a class="dropdown-item" href="#profile">Profil</a></li>
@@ -68,13 +68,13 @@
         let userInfo;
 
         // Définition des routes
-        router.addRoute('#', 'js/views/matchmaking.js', 'html/matchmaking.html');
-        router.addRoute('#login', 'js/views/login.js', 'html/login.html');
-        router.addRoute('#profile', 'js/views/profile.js', 'html/profile.html');
-        router.addRoute('#about', 'js/views/about.js', 'html/about.html');
-        router.addRoute('#stats', 'js/views/stats.js', 'html/stats.html');
-        router.addRoute('#pong2d', 'js/views/pong2d.js', 'html/pong2d.html');
-        router.addRoute('#pong3d', 'js/views/pong3d.js', 'html/pong3d.html');
+        router.addRoute('#', './views/matchmaking.js', 'html/matchmaking.html');
+        router.addRoute('#login', './views/login.js', 'html/login.html');
+        router.addRoute('#profile', './views/profile.js', 'html/profile.html');
+        router.addRoute('#about', './views/about.js', 'html/about.html');
+        router.addRoute('#stats', './views/stats.js', 'html/stats.html');
+        router.addRoute('#pong2d', './views/pong2d.js', 'html/pong2d.html');
+        router.addRoute('#pong3d', './views/pong3d.js', 'html/pong3d.html');
         
         function isAuthenticated() {
             return document.cookie.includes('auth-token');
@@ -85,7 +85,8 @@
             const userMenu = document.getElementById('userMenu');
             if (isAuthenticated()) {
                 userMenu.classList.remove('d-none');
-                document.getElementById("userAvatar").src = userInfo.avatar;
+                if (userInfo)
+                    document.getElementById("userAvatar").src = userInfo.avatar;
             } else {
                 userMenu.classList.add('d-none');
             }
@@ -123,7 +124,7 @@
         // Middleware d'authentification
         router.use((path, next) => {
             if (path !== '#login' && !isAuthenticated()) {
-                console.log("going to logging");
+                console.log("Not logged in, redirecting to login page.");
                 router.navigate('#login');
             } else {
                 next();
@@ -134,8 +135,8 @@
         router.use(async (path, next) => {
             if (path !== '#login' && !userInfo) {
                 userInfo = await getUserInfos();
-                console.log(userInfo);
-                updateUserMenu();
+                if (userInfo)
+                    updateUserMenu();
             }
             next();
         });
@@ -148,6 +149,7 @@
         });
 
         viewManager.setErrorHandler(errorHandler);
+        router.setErrorHandler(errorHandler);
 
         // Initialisation du routeur
         router.init();

@@ -331,7 +331,7 @@ lobbies[lobby.id] = lobby
 lobbies[lobby2.id] = lobby2
 lobbies[lobby3.id] = lobby3
 
-lobbies[lobby.id].add_bot()
+# lobbies[lobby.id].add_bot()
 # lobbies["9"].add_bot()
 
 

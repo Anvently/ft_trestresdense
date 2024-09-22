@@ -27,12 +27,13 @@ export class ViewManager {
                 this.fetchViewClass(jsPath)
             ]);
 
+            this.currentView = new ViewClass();
+
             // Injecter le HTML dans l'élément de la vue
             if (htmlContent)
-                this.container.innerHTML = htmlContent;
+                this.currentView.element.innerHTML = htmlContent;
 
-            this.currentView = new ViewClass();
-            this.container.appendChild(view.element);
+            this.container.appendChild(this.currentView.element);
             await this.currentView.initView();
             return true;
         } catch (error) {
@@ -52,7 +53,7 @@ export class ViewManager {
     }
 
     async fetchViewClass(path) {
-        const module = await import(path).default;
+        const module = await import(path);
         if (!module.default) {
             throw new Error(`No default export found in view module: ${path}`);
         }

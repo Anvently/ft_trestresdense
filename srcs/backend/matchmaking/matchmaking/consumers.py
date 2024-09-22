@@ -125,14 +125,14 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 				self.username = data['username']
 			except:
 				self.scope['error'] = 'token verification failed'
-				self.scope['error_code'] = 4002
+				self.scope['error_code'] = Errors.AUTH_ERROR
 			return True
 		else:
 			self.scope['error'] = "auth token not provided"
 			self.scope['error_code'] = Errors.AUTH_ERROR
 		return False
 
-	DISABLE_AUTH = True
+	DISABLE_AUTH = False
 
 	def get_status(self):
 		return online_players[self.username]['status']
@@ -143,13 +143,15 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 				self.username = self.scope['url_route']['kwargs']["username"]
 			except:
 				self.scope['error'] = "username name not provided in kwargs"
-				self.scope['error_code'] = 4001
+				self.scope['error_code'] = Errors.AUTH_ERROR
 				return False
 			return True
 		if not self._auth_client():
 			return False
 		async with MatchMakingConsumer.matchmaking_lock:
-			if self.username in online_players and online_players[self.username]["status"] < 2:
+			if self.username in online_players and online_players[self.username]["status"] < PlayerStatus.IN_GAME:
+				self.scope['error'] = "an websocket connection for is already opened"
+				self.scope['error_code'] = Errors.AUTH_ERROR
 				return False
 		return True
 
@@ -219,16 +221,16 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		target_lobby = content['lobby_id']
 		if target_lobby not in lobbies or lobbies[target_lobby].started:
 			self._send_error(msg='Can\'t join this lobby', code=Errors.JOIN_ERROR, close=False)
-		if self.status == PlayerStatus.IN_LOBBY:
+		if self.get_status() == PlayerStatus.IN_LOBBY:
 			await self.switch_lobby(target_lobby)
-		elif self.status == PlayerStatus.IN_TURNAMENT_LOBBY:
+		elif self.get_status() == PlayerStatus.IN_TURNAMENT_LOBBY:
 			self._send_error(msg='Already in tournament lobby.', code=Errors.JOIN_ERROR, close=False)
 		else:
 			if lobbies[target_lobby].add_player(self.username):
 				await self.channel_layer.group_add(target_lobby, self.channel_name)
 				await self.channel_layer.group_discard(MatchMakingConsumer.matchmaking_group, self.channel_name)
-				online_players[self.username]['status'] = get_status_from_lobby(target_lobby.id)
-				online_players[self.username]['lobby_id'] = target_lobby.id
+				online_players[self.username]['status'] = get_status_from_lobby(target_lobby)
+				online_players[self.username]['lobby_id'] = target_lobby
 				await self.send_lobby_update(target_lobby)
 				await self.send_general_update()
 			else:
@@ -319,7 +321,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		await self.send_json(state)
 
 	async def lobby_update(self,content):
-		if self.status not in (1,3):
+		if self.get_status not in (1,3):
 			return
 		await self.send_json(content)
 

@@ -66,7 +66,7 @@
 	<!-- Pop-up d'erreur -->
 	<div id="errorPopup" class="alert alert-danger alert-dismissible fade show" role="alert" style="position: fixed; top: 20px; left: 50%; transform: translateX(-50%); display: none; z-index: 1050;">
 		<span id="errorMessage"></span>
-		<button type="button" class="btn-close" aria-label="Close" onclick="closeErrorPopup()"></button>
+		<button type="button" class="btn-close" aria-label="Close"></button>
 	</div>
 	<div class="container mt-4" id="mainView">
 		<h1 class="mb-4">Système de Matchmaking</h1>
@@ -111,7 +111,7 @@
 		<div class="side-buttons mainOptions">
 			<button class="btn btn-primary mainView" data-bs-toggle="modal" data-bs-target="#createLobbyModal">Créer un lobby</button>
 			<button class="btn btn-info mainView" data-bs-toggle="modal" data-bs-target="#joinLobbyModal">Rejoindre un lobby</button>
-			<button class="btn btn-secondary mainView" onclick="showOnlinePlayers()">Joueurs en ligne</button>
+			<button id='buttonShowOnlinePlayers'class="btn btn-secondary mainView">Joueurs en ligne</button>
 		</div>
 
 	</div>
@@ -135,18 +135,16 @@
 		</div>
 
 		<div class="side-buttons">
-			<!-- Boutons globaux -->
-			 <!-- Si l'utilisateur est l'hôte, afficher les options supplémentaires -->
 			<div id="hostOptions" class="lobbyView" style="display:none;">
-				<button class="btn btn-warning" onclick="openLobbyOptions()">Modifier les options du lobby</button>
-				<button class="btn btn-success" onclick="startGame()">Démarrer le jeu</button>
+			  <button id='buttonOptionsLobby' class="btn btn-warning">Modifier les options du lobby</button>
+			  <button id="startGameButton" class="btn btn-success">Démarrer le jeu</button>
 			</div>
 			<div class="mainOptions">
-				<button class="btn btn-secondary lobbyView" style="display:none;" onclick="inviteFriends()">Inviter des amis</button>
-				<button class="btn btn-warning lobbyView" style="display:none;" onclick="beReady()">Pret</button>
-				<button class="btn btn-danger lobbyView" style="display:none;" onclick="leaveLobby()">Quitter le lobby</button>
+			  <button id="inviteFriendsButton" class="btn btn-secondary lobbyView" style="display:none;">Inviter des amis</button>
+			  <button id="beReadyButton" class="btn btn-warning lobbyView" style="display:none;">Pret</button>
+			  <button id="leaveLobbyButton" class="btn btn-danger lobbyView" style="display:none;">Quitter le lobby</button>
 			</div>
-		</div>
+		  </div>
 
 	</div>
 
@@ -163,7 +161,7 @@
 				</div>
 				<div class="modal-footer">
 					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
-					<button type="button" class="btn btn-primary" onclick="joinLobbyById()">Rejoindre</button>
+					<button id='joinLobbyButton' type="button" class="btn btn-primary">Rejoindre</button>
 				</div>
 			</div>
 		</div>
@@ -239,8 +237,8 @@
 				</div>
 				<div class="modal-footer">
 					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
-					<button type="button" class="btn btn-primary" onclick="createLobby()">Créer Lobby</button>
-				</div>
+					<button id="createLobbyButton" type="button" class="btn btn-primary">Créer</button>
+				  </div>
 			</div>
 		</div>
 	</div>
@@ -304,7 +302,7 @@
 						<label class="form-check-label" for="allowSpectators">Autoriser les spectateurs</label>
 					</div>
 
-					<button class="btn btn-primary" onclick="saveLobbyOptions()">Sauvegarder</button>
+					<button id='saveLobbyOptionsButton' class="btn btn-primary">Sauvegarder</button>
 				</div>
 			</div>
 		</div>
