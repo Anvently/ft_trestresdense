@@ -75,20 +75,29 @@ export default class MatchmakingView extends BaseView {
 	
 		message.availableLobbies.forEach(lobby => {
 			const [id, obj] = Object.entries(lobby)[0];
-			availableLobbiesEl.innerHTML += this.createLobbyHTML(id, obj, true);
-			document.getElementById(`joinLobbyButton-${id}`).addEventListener('click', () => {
-				this.joinLobby(id);
-			});
+			availableLobbiesEl.insertAdjacentHTML('beforeend', this.createLobbyHTML(id, obj, true));
+	
+			const joinButton = document.getElementById(`joinLobbyButton-${id}`);
+			if (joinButton) {
+				joinButton.addEventListener('click', () => {
+					this.joinLobby(id);
+				});
+			}
 		});
 	
 		message.ongoingMatches.forEach(match => {
 			const [id, obj] = Object.entries(match)[0];
-			ongoingMatchesEl.innerHTML += this.createLobbyHTML(id, obj, false);
-			document.getElementById(`spectateLobbyButton-${id}`).addEventListener('click', () => {
-				this.spectateLobby(id);
-			});
+			ongoingMatchesEl.insertAdjacentHTML('beforeend', this.createLobbyHTML(id, obj, false));
+	
+			const spectateButton = document.getElementById(`spectateLobbyButton-${id}`);
+			if (spectateButton) {
+				spectateButton.addEventListener('click', () => {
+					this.spectateLobby(id);
+				});
+			}
 		});
 	}
+	
 	
 	createLobbyHTML(id, lobby, isAvailable) {
 		// console.log(id)
@@ -204,37 +213,35 @@ export default class MatchmakingView extends BaseView {
 		// Implémentez la logique pour rejoindre le lobby ici
 	}
 	
-	switchLobbyView() {
+	updateCurrentView() {
 	
-		document.getElementById('mainView').style.display = (this.lobbyId === undefined ? 'none' : 'block');
-		document.getElementById('lobbyView').style.display = (this.lobbyId === undefined ? 'block' : 'none');
-		// Pour tous les éléments avec la classe 'mainView'
-		document.querySelectorAll('.mainView').forEach((element) => {
-			element.style.display = (this.lobbyId === undefined ? 'none' : 'block');
-		});
-		// Pour tous les éléments avec la classe 'lobbyView'
-		document.querySelectorAll('.lobbyView').forEach((element) => {
-			element.style.display = (this.lobbyId === undefined ? 'block' : 'none');
-		});
-		document.getElementById('hostOptions').style.display = (this.lobbyId === undefined && this.isHost === true ? 'flex' : 'none');
-	
-		// Recevoir les détails du lobby via WebSocket
-		// socket.sendMessage({ type: 'getLobbyDetails', lobbyId: lobbyId });
+		if (this.lobbyId) {
+			document.getElementById('lobbyView').classList.remove('d-none');
+			document.getElementById('mainView').classList.add('d-none');
+			if (this.isHost) {
+				document.getElementById('hostOptions').classList.remove('d-none');
+			} else {
+				document.getElementById('hostOptions').classList.add('d-none');
+			}
+		} else {
+			document.getElementById('mainView').classList.remove('d-none');
+			document.getElementById('lobbyView').classList.add('d-none');
+		}
 	}
 	
 	joinLobby(lobbyId) {
 		console.log('Rejoindre le lobby:', lobbyId);
 		// Implémentez la logique pour rejoindre le lobby ici
 		this.sendMessage({ type: 'join_lobby', lobby_id: lobbyId });
-		this.switchLobbyView(lobbyId);
 		this.lobbyId = lobbyId
+		this.updateCurrentView(lobbyId);
 	}
 	
 	leaveLobby() {
 		console.log('Quitter le lobby:', this.lobbyId);
 		// socket.sendMessage({ type: 'leave_lobby', lobbyId: lobbyId });
-		this.switchLobbyView()
 		this.lobbyId = undefined
+		this.updateCurrentView()
 	}
 	
 	lobby_update(message) {

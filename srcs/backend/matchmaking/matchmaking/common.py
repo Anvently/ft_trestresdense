@@ -1,9 +1,9 @@
 from typing import Any, Dict
-from enum import Enum
+from enum import IntEnum
 from functools import total_ordering
 
 @total_ordering
-class PlayerStatus(Enum):
+class PlayerStatus(IntEnum):
 	NO_LOBBY = 0
 	IN_LOBBY = 1
 	IN_GAME = 2
@@ -12,6 +12,8 @@ class PlayerStatus(Enum):
 		if self.__class__ is other.__class__:
 			return self.value < other.value
 		return NotImplemented
+	# def __int__(self):
+	# 	return self.value
 
 lobbies: Dict[str, 'Lobby'] = {}
 online_players : Dict[str, Dict[str, Any]] = {}

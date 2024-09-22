@@ -50,19 +50,8 @@
         }
 
         /* Cacher le menu utilisateur par défaut (par Bootstrap via d-none) */
-        #userMenu.d-none {
+        .userOption.d-none {
             display: none !important;
-        }
-
-        /* Les liens du menu utilisateur en mobile (d-lg-none contrôle ça automatiquement) */
-        .d-lg-none {
-            display: none; /* Masquer sur les écrans lg et plus */
-        }
-
-        @media (max-width: 991px) {
-            .d-lg-none {
-                display: block; /* Afficher sur mobile et tablettes */
-            }
         }
 
     </style>
@@ -90,10 +79,10 @@
                         <a class="nav-link" href="#about">À propos</a>
                     </li>
                     <!-- Options du menu utilisateur en mode mobile -->
-                    <li class="nav-item d-lg-none"> <!-- Visible uniquement sur mobile -->
+                    <li class="nav-item d-lg-none userOption"> <!-- Visible uniquement sur mobile -->
                         <a class="nav-link" href="#profile">Profil</a>
                     </li>
-                    <li class="nav-item d-lg-none"> <!-- Visible uniquement sur mobile -->
+                    <li class="nav-item d-lg-none userOption"> <!-- Visible uniquement sur mobile -->
                         <a class="nav-link text-danger logoutButton" href="#">Déconnexion</a>
                     </li>
                 </ul>
@@ -149,11 +138,17 @@
         function updateUserMenu() {
             const userMenu = document.getElementById('userMenu');
             if (isAuthenticated()) {
-                userMenu.classList.remove('d-none');
+                userMenu.classList.remove('d-lg-none');
+                document.querySelectorAll('.userOption').forEach((el) => {
+                    el.classList.remove('d-none');
+                });
                 if (userInfo)
                     document.getElementById("userAvatar").src = userInfo.avatar;
             } else {
-                userMenu.classList.add('d-none');
+                userMenu.classList.add('d-lg-none');
+                document.querySelectorAll('.userOption').forEach((el) => {
+                    el.classList.add('d-none');
+                });
                 document.getElementById("userAvatar").src = "https://localhost:8083/avatars/default.jpg";
             }
         }
