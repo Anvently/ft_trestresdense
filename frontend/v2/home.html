@@ -9,6 +9,62 @@
         #content {
             margin-top: 70px;
         }
+
+        #userMenu .btn {
+            background-color: transparent; /* Supprime l'arrière-plan du bouton */
+            border: none; /* Supprime les bordures du bouton */
+        }
+
+        #userMenu .dropdown-toggle::after {
+            display: none; /* Supprime la flèche flottante à droite */
+        }
+
+        #userAvatar {
+            transition: all 0.3s ease-in-out;
+        }
+
+        #userAvatar:hover {
+            transform: scale(1.1); /* Agrandir légèrement l'avatar au survol */
+        }
+
+        .dropdown-menu {
+            border-radius: 10px; /* Coins arrondis du menu */
+            padding: 10px 0; /* Espacement interne pour plus de respirabilité */
+        }
+
+        .dropdown-item {
+            padding: 10px 20px; /* Plus d'espace pour les éléments du menu */
+            transition: background-color 0.3s;
+        }
+
+        .dropdown-item:hover {
+            background-color: #f8f9fa; /* Couleur de fond au survol */
+        }
+
+        .dropdown-item.text-danger {
+            font-weight: bold;
+        }
+
+        .dropdown-menu.dropdown-menu-end {
+            margin-top: 10px;
+        }
+
+        /* Cacher le menu utilisateur par défaut (par Bootstrap via d-none) */
+        #userMenu.d-none {
+            display: none !important;
+        }
+
+        /* Les liens du menu utilisateur en mobile (d-lg-none contrôle ça automatiquement) */
+        .d-lg-none {
+            display: none; /* Masquer sur les écrans lg et plus */
+        }
+
+        @media (max-width: 991px) {
+            .d-lg-none {
+                display: block; /* Afficher sur mobile et tablettes */
+            }
+        }
+
     </style>
 </head>
 <body>
@@ -33,14 +89,23 @@
                     <li class="nav-item">
                         <a class="nav-link" href="#about">À propos</a>
                     </li>
+                    <!-- Options du menu utilisateur en mode mobile -->
+                    <li class="nav-item d-lg-none"> <!-- Visible uniquement sur mobile -->
+                        <a class="nav-link" href="#profile">Profil</a>
+                    </li>
+                    <li class="nav-item d-lg-none"> <!-- Visible uniquement sur mobile -->
+                        <a class="nav-link text-danger logoutButton" href="#">Déconnexion</a>
+                    </li>
                 </ul>
-                <div id="userMenu" class="dropdown d-none">
-                    <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
-                        <img id='userAvatar' src="https://localhost:8083/avatars/default.jpg" alt="Avatar" width="30" height="30" class="rounded-circle">
+    
+                <!-- Menu utilisateur pour desktop -->
+                <div id="userMenu" class="dropdown d-none d-lg-block"> <!-- Masqué en mobile -->
+                    <button class="btn p-0" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+                        <img id='userAvatar' src="https://localhost:8083/avatars/default.jpg" alt="Avatar" width="40" height="40" class="rounded-circle border border-light shadow-sm">
                     </button>
-                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton">
+                    <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0" aria-labelledby="dropdownMenuButton">
                         <li><a class="dropdown-item" href="#profile">Profil</a></li>
-                        <li><a class="dropdown-item" href="#" id="logoutButton">Déconnexion</a></li>
+                        <li><a class="dropdown-item text-danger logoutButton" href="#">Déconnexion</a></li>
                     </ul>
                 </div>
             </div>
@@ -89,6 +154,7 @@
                     document.getElementById("userAvatar").src = userInfo.avatar;
             } else {
                 userMenu.classList.add('d-none');
+                document.getElementById("userAvatar").src = "https://localhost:8083/avatars/default.jpg";
             }
         }
 
@@ -114,11 +180,14 @@
             }, 5000); // Masquer après 5 secondes
         }
 
-        document.getElementById('logoutButton').addEventListener('click', (e) => {
-            e.preventDefault();
-            document.cookie = 'auth-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-            updateUserMenu();
-            router.navigate('#login');
+        document.querySelectorAll('.logoutButton').forEach(function (el) {
+            el.addEventListener('click', (e) => {
+                e.preventDefault();
+                userInfo = undefined;
+                document.cookie = 'auth-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+                updateUserMenu();
+                router.navigate('#login');
+            });
         });
 
         // Middleware d'authentification

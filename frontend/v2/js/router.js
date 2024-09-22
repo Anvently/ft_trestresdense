@@ -17,7 +17,7 @@ export class Router {
     }
 
     addRoute(path, viewPath, htmlPath) {
-        this.routes.set(path, { viewPath, htmlPath });
+        this.routes.set(path, { path, viewPath, htmlPath });
     }
 
     use(middleware) {
@@ -32,8 +32,10 @@ export class Router {
             if (!success && this.previousRoute) {
                 // Revenir à la route précédente en cas d'échec
                 console.log('Loading view has failed. Redirecting to previous view.');
-                history.pushState(null, '', this.previousRoute.path);
-                await this.handleLocationChange();
+                // history.pushState(null, '', this.previousRoute.path);
+                console.log(this.previousRoute);
+                window.location.hash = this.previousRoute.path;
+                // await this.handleLocationChange(); 
             }
         } else {
             console.error(`Route not found: ${path}`);
@@ -53,6 +55,7 @@ export class Router {
             return await this.notifyListeners(route);
         } else {
             console.error(`No route found for ${path}`);
+            this.errorHandler(`No route found for ${path}`);
             return false;
         }
     }

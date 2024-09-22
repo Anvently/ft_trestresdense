@@ -376,17 +376,16 @@ export default class MatchmakingView extends BaseView {
             this.socket.close();
         }
 
-		this.closeErrorButton.removeEventListener('click', closeErrorPopup);
-		this.showOnlinePLayersButton.removeEventListener('click', showOnlinePlayers);
-		this.openLobbyOptionsButton.removeEventListener('clck', openLobbyOptions);
-		this.startGameButton.removeEventListener('click', startGame);
-		this.inviteFriendsButton.removeEventListener('click', inviteFriends);
-		this.beReadyButton.removeEventListener('click', beReady);
-		this.leaveLobbyButton.removeEventListener('click', leaveLobby);
-		this.joinLobbyButton.removeEventListener('click', joinLobbyById);
-		this.joinLobbyButtonModal.removeEventListener('click', joinLobbyById);
-		this.createLobbyButton.removeEventListener('click', createLobby);
-		this.saveLobbyOptionsButton.removeEventListener('click', saveLobbyOptions);
+		this.closeErrorButton.removeEventListener('click', this.closeErrorPopup);
+		this.showOnlinePLayersButton.removeEventListener('click', this.showOnlinePlayers);
+		this.openLobbyOptionsButton.removeEventListener('clck', this.openLobbyOptions);
+		this.startGameButton.removeEventListener('click', this.startGame);
+		this.inviteFriendsButton.removeEventListener('click', this.inviteFriends);
+		this.beReadyButton.removeEventListener('click', this.beReady);
+		this.leaveLobbyButton.removeEventListener('click', this.leaveLobby);
+		this.joinLobbyButton.removeEventListener('click', this.joinLobbyById);
+		this.createLobbyButton.removeEventListener('click', this.createLobby);
+		this.saveLobbyOptionsButton.removeEventListener('click', this.saveLobbyOptions);
 
         // this.startButton.removeEventListener('click', this.startMatchmaking);
     }

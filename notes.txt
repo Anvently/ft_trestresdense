@@ -2,6 +2,17 @@ Failles possibles :
 	- si on obtient un token valide pour un user "xyz", on supprime le compte, et quelqu'un recreait le compte "xyz", notre token est toujours valide.
 	
 TODO:
+	Backend:
 	- implement 2FA authentification
-	- implement correct order for docker compose
 	- friends in users_api
+
+	Devops:
+	- implement correct order for docker compose
+		- add healthcheck for django app
+		- filter healtcheck views in logs
+	- implement start scripts to make migrations
+	- dig into production server
+
+	Frontend:
+	- ....
+
