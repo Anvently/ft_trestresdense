@@ -185,7 +185,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		async with MatchMakingConsumer.matchmaking_lock:
 			status = online_players[self.username]['status']
 			if status == PlayerStatus.IN_LOBBY:
-				if self._is_host == 1:
+				if self._is_host == True:
 					await self.cancel_lobby(self._lobby_id)
 				else:
 					lobbies[self._lobby_id].remove_player(self.username)
@@ -268,13 +268,13 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		if online_players[self.username]['status'] not in (PlayerStatus.IN_LOBBY, PlayerStatus.IN_TURNAMENT_LOBBY):
 			await self._send_error(msg='You are not in a lobby, leave failed', close=False)
 			return
-		if self._is_host == 1:
+		if self._is_host == True:
 			await self.cancel_lobby()
 		else:
 			await self.channel_layer.group_discard(self._lobby_id, self.channel_name)
 			lobbies[self._lobby_id].remove_player(self.username)
 			self._lobby_id = None
-			self.lobby_update(self._lobby_id)
+			await self.lobby_update(self._lobby_id)
 			online_players[self.username] = reset_status
 			await self.channel_layer.group_add(MatchMakingConsumer.matchmaking_group, self.channel_name)
 			await self.send_general_update()
@@ -307,6 +307,8 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		lobbies[new_lobby.id] = new_lobby
 		online_players[self.username]['status'] = game_type
 		online_players[self.username]['lobby_id'] = new_lobby.id
+		self._lobby_id = new_lobby.id
+		self._is_host = True
 		await self.channel_layer.group_add(new_lobby.id, self.channel_name)
 		await self.channel_layer.group_discard(MatchMakingConsumer.matchmaking_group, self.channel_name)
 		await self.send_lobby_update(new_lobby.id)
@@ -353,7 +355,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		await self.channel_layer.group_discard(self._lobby_id, self.channel_name)
 		await self.channel_layer.group_send(lobby_id, {'type': 'lobby_canceled'})
 		online_players[self.username] = reset_status
-		self._is_host = 0
+		self._is_host = False
 		if lobby_id in lobbies:
 			del lobbies[lobby_id]
 		await self.send_general_update()

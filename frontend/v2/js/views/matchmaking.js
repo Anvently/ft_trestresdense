@@ -8,6 +8,10 @@ export default class MatchmakingView extends BaseView {
 		this.isHost = false;
 		this.lobbyId;
 		this.url = `wss://${location.host}/ws/matchmaking/`;
+		this.received_error = false;
+		this.reconnectAttempts = 0;
+		this.maxReconnectAttempts = 5;
+		this.reconnectInterval = 2000; // 5 secondes
     }
 
     async initView() {
@@ -16,6 +20,7 @@ export default class MatchmakingView extends BaseView {
         this.initWebSocket();
 
 		this.closeErrorButton = document.querySelector('#errorPopup button');
+		this.closeSuccessButton = document.querySelector('#successPopup button');
 		this.showOnlinePLayersButton = document.getElementById('buttonShowOnlinePlayers');
 		this.openLobbyOptionsButton = document.getElementById('buttonOptionsLobby');
 		this.startGameButton = document.getElementById('startGameButton');
@@ -27,6 +32,7 @@ export default class MatchmakingView extends BaseView {
 		this.saveLobbyOptionsButton = document.getElementById("saveLobbyOptionsButton");
 
 		this.closeErrorButton.addEventListener('click', (e) => this.closeErrorPopup());
+		this.closeSuccessButton.addEventListener('click', (e) => this.closeSuccessPopup());
 		this.showOnlinePLayersButton.addEventListener('click', () => this.showOnlinePlayers());
 		this.openLobbyOptionsButton.addEventListener('clck', (e) => this.openLobbyOptions());
 		this.startGameButton.addEventListener('click', () => this.startGame());
@@ -38,32 +44,62 @@ export default class MatchmakingView extends BaseView {
 		this.saveLobbyOptionsButton.addEventListener('click', () => this.saveLobbyOptions());
 	}
 
-    initWebSocket() {
-        this.socket = new WebSocket(this.url);
+    async initWebSocket() {
+		try {
+			this.socket = new WebSocket(this.url);
+	
+			this.socket.onopen = () => {
+				console.log('WebSocket connected');
+				this.success('Websocket connected.')
+				this.isConnected = true;
+				this.reconnectAttempts = 0;
+			};
+	
+			this.socket.onmessage = (event) => {
+				const message = JSON.parse(event.data);
+				console.log('Received message:', message);
+				this.dispatch(message)
+			};
+	
+			this.socket.onclose = () => {
+				console.log('WebSocket disconnected');
+				this.isConnected = false;
+				if (!this.received_error)
+					this.reconnect();
+			};
+	
+			this.socket.onerror = (error) => {
+				console.error('WebSocket error:', error);
+			};
 
-		this.socket.onopen = () => {
-			console.log('WebSocket connected');
-			this.isConnected = true;
-		};
+			await new Promise((resolve, reject) => {
+				this.socket.addEventListener('open', resolve);
+				this.socket.addEventListener('error', reject);
+			  });
 
-		this.socket.onmessage = (event) => {
-			const message = JSON.parse(event.data);
-			console.log('Received message:', message);
-			this.dispatch(message)
-		};
-
-		this.socket.onclose = () => {
-			console.log('WebSocket disconnected');
-			this.isConnected = false;
-		};
-
-		this.socket.onerror = (error) => {
-			console.error('WebSocket error:', error);
-		};
+		} catch (error) {
+			console.error("Error initialising websocket:", error);
+      		this.reconnect();
+		}
     }
 
+	reconnect() {
+		if (this.reconnectAttempts < this.maxReconnectAttempts) {
+			this.reconnectAttempts++;
+			this.error(`Reconnection attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts} in ${this.reconnectInterval / 1000} seconds...`, true);
+			setTimeout(() => this.initWebSocket(), this.reconnectInterval);
+		} else {
+			this.error(`Max reconnection attempts number reached.`, false);
+			// console.error('');
+		}
+	}
+
 	sendMessage(message) {
-		this.socket.send(JSON.stringify(message));
+		if (this.isConnected)
+			this.socket.send(JSON.stringify(message));
+		else {
+			console.log("Unable to send message: websocket disconnected.")
+		}
 	}
 
     general_update(message) {
@@ -240,6 +276,7 @@ export default class MatchmakingView extends BaseView {
 	leaveLobby() {
 		console.log('Quitter le lobby:', this.lobbyId);
 		// socket.sendMessage({ type: 'leave_lobby', lobbyId: lobbyId });
+		this.sendMessage({ type: 'leave_lobby', lobby_id: this.lobbyId });
 		this.lobbyId = undefined
 		this.updateCurrentView()
 	}
@@ -350,11 +387,18 @@ export default class MatchmakingView extends BaseView {
 	}
 	
 	// Fonction pour afficher le pop-up d'erreur
-	error(message) {
-		document.getElementById('errorMessage').textContent = message.data;
+	error(message, attemptReconnect = false) {
+		document.getElementById('errorMessage').textContent =
+			(typeof message === 'object' && message.data !== undefined) ?
+			message.data :
+			message;
+		const successPopup = document.getElementById('successPopup');
+		if (successPopup)
+			successPopup.style.display = 'none';
 		const errorPopup = document.getElementById('errorPopup');
 		errorPopup.style.display = 'block';
-	
+		if (!attemptReconnect)
+			this.received_error = true;
 		// Masquer le pop-up après quelques secondes (optionnel)
 		setTimeout(() => {
 			errorPopup.style.display = 'none';
@@ -364,6 +408,23 @@ export default class MatchmakingView extends BaseView {
 	// Fonction pour fermer le pop-up
 	closeErrorPopup() {
 		document.getElementById('errorPopup').style.display = 'none';
+	}
+
+	// Fonction pour afficher le pop-up de success
+	success(message) {
+		document.getElementById('successMessage').textContent = message;
+		const successPopup = document.getElementById('successPopup');
+		successPopup.style.display = 'block';
+		const errorPopup = document.getElementById('errorPopup');
+		errorPopup.style.display = 'none';
+		setTimeout(() => {
+			successPopup.style.display = 'none';
+		}, 3000); // Masquer après 5 secondes
+	}
+	
+	// Fonction pour fermer le pop-up
+	closeSuccessPopup() {
+		document.getElementById('successPopup').style.display = 'none';
 	}
 	
 	// Connecter le WebSocket au chargement de la page
@@ -380,6 +441,7 @@ export default class MatchmakingView extends BaseView {
 
     cleanupView() {
         if (this.socket) {
+			this.received_error = true;
             this.socket.close();
         }
 
