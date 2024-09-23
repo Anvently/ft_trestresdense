@@ -47,13 +47,15 @@ class Lobby():
 		else:
 			self.id = id
 		""" {has_joined: bool, is_ready: bool, is_bot: bool} """
-		self.players: Dict[str] = {}
+		self.players: Dict[str, Dict[str, Any]] = {}
 		self.started = False
 		self.game_type = settings.pop('game_type')
 		self.player_num = settings.pop('nbr_players')
 		self.settings = settings
 		self.settings['nbr_players'] = self.player_num
 		self.check_rules()
+		for n in range(settings.get('nbr_bots', 0)):
+			self.add_bot()
 
 	def iterate_human_player(self):
 		return ((player_id, player) for player_id, player in self.players.items() if not player['is_bot'])
