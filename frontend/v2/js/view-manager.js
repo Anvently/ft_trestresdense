@@ -3,6 +3,15 @@ export class ViewManager {
         this.container = container;
         this.currentView = null;
         this.errorHandler = this.defaultErrorHandler;
+        this.successHandler = this.defaultSuccessHandler;
+    }
+
+    setSuccessHandler(handler) {
+        this.successHandler = handler;
+    }
+
+    defaultSuccessHandler(msg) {
+        console.log(msg);
     }
 
     setErrorHandler(handler) {
@@ -28,6 +37,8 @@ export class ViewManager {
             ]);
 
             this.currentView = new ViewClass();
+            this.currentView.setErrorHandler(this.errorHandler);
+            this.currentView.setSuccessHandler(this.successHandler);
 
             // Injecter le HTML dans l'élément de la vue
             if (htmlContent)
@@ -67,6 +78,24 @@ export class BaseView {
         this.name = name;
         this.element = document.createElement('div');
         this.element.id = name;
+        this.errorHandler = this.defautErrorHandler;
+        this.successHandler = this.defautSuccessHandler;
+    }
+
+    defautErrorHandler() {
+
+    }
+
+    defautSuccessHandler() {
+        
+    }
+
+    setErrorHandler(handler) {
+        this.errorHandler = handler;
+    }
+
+    setSuccessHandler(handler) {
+        this.successHandler = handler;
     }
 
     async initView() {

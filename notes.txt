@@ -2,6 +2,9 @@ Failles possibles :
 	- si on obtient un token valide pour un user "xyz", on supprime le compte, et quelqu'un recreait le compte "xyz", notre token est toujours valide.
 	
 TODO:
+	matchmaking/pong:
+	- check tournament implementation with bot only
+
 	Backend:
 	- implement 2FA authentification
 	- friends in users_api
@@ -14,5 +17,6 @@ TODO:
 	- dig into production server
 
 	Frontend:
+	- generalize errorHandler
 	- ....
 

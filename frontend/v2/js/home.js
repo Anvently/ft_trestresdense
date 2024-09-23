@@ -55,16 +55,44 @@ async function getUserInfos() {
 }
 
 // Fonction pour afficher le pop-up d'erreur
-function errorHandler(error) {
-	console.log('Error loading view: ', error);
-	document.getElementById('errorMessage').textContent = error;
+function errorHandler(message, attemptReconnect = false) {
+	document.getElementById('errorMessage').textContent =
+		(typeof message === 'object' && message.data !== undefined) ?
+		message.data :
+		message;
+	const successPopup = document.getElementById('successPopup');
+	if (successPopup)
+		successPopup.style.display = 'none';
 	const errorPopup = document.getElementById('errorPopup');
 	errorPopup.style.display = 'block';
-
+	if (!attemptReconnect)
+		this.received_error = true;
 	// Masquer le pop-up après quelques secondes (optionnel)
 	setTimeout(() => {
 		errorPopup.style.display = 'none';
 	}, 5000); // Masquer après 5 secondes
+}
+
+// Fonction pour fermer le pop-up
+function closeErrorPopup() {
+	document.getElementById('errorPopup').style.display = 'none';
+}
+
+// Fonction pour afficher le pop-up de success
+function successHandler(message) {
+	document.getElementById('successMessage').textContent = message;
+	const successPopup = document.getElementById('successPopup');
+	successPopup.style.display = 'block';
+	const errorPopup = document.getElementById('errorPopup');
+	errorPopup.style.display = 'none';
+	setTimeout(() => {
+		successPopup.style.display = 'none';
+	}, 3000); // Masquer après 5 secondes
+}
+
+// Fonction pour fermer le pop-up
+function closeSuccessPopup() {
+	document.getElementById('successPopup').style.display = 'none';
 }
 
 document.querySelectorAll('.logoutButton').forEach(function (el) {
@@ -105,6 +133,7 @@ router.onRouteChange(async (route) => {
 });
 
 viewManager.setErrorHandler(errorHandler);
+viewManager.setSuccessHandler(successHandler);
 router.setErrorHandler(errorHandler);
 
 // Initialisation du routeur
