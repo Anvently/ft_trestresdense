@@ -41,7 +41,7 @@ export default class MatchmakingView extends BaseView {
 		this.joinLobbyButton.addEventListener('click', () => this.joinLobbyById());
 		this.createLobbyButton.addEventListener('click', () => this.createLobby());
 		this.saveLobbyOptionsButton.addEventListener('click', () => this.saveLobbyOptions());
-	
+
 		document.getElementById('lobbyNameCreation').value = `${userInfo.display_name}'s lobby`;
 
 	}
@@ -49,14 +49,14 @@ export default class MatchmakingView extends BaseView {
     async initWebSocket() {
 		try {
 			this.socket = new WebSocket(this.url);
-	
+
 			this.socket.onopen = () => {
 				console.log('WebSocket connected');
 				this.successHandler('Websocket connected.')
 				this.isConnected = true;
 				this.reconnectAttempts = 0;
 			};
-	
+
 			this.socket.onmessage = (event) => {
 				const message = JSON.parse(event.data);
 				if (Object.hasOwn(message, 'id')) {
@@ -73,14 +73,14 @@ export default class MatchmakingView extends BaseView {
 					this.dispatch(message)
 				}
 			};
-	
+
 			this.socket.onclose = () => {
 				console.log('WebSocket disconnected');
 				this.isConnected = false;
 				if (!this.received_error)
 					this.reconnect();
 			};
-	
+
 			this.socket.onerror = (error) => {
 				console.error('WebSocket error:', error);
 			};
@@ -137,14 +137,14 @@ export default class MatchmakingView extends BaseView {
     general_update(message) {
 		const availableLobbiesEl = document.querySelector('#availableLobbies tbody');
 		const ongoingMatchesEl = document.querySelector('#ongoingMatches tbody');
-	
+
 		availableLobbiesEl.innerHTML = '';
 		ongoingMatchesEl.innerHTML = '';
-	
+
 		message.availableLobbies.forEach(lobby => {
 			const [id, obj] = Object.entries(lobby)[0];
 			availableLobbiesEl.insertAdjacentHTML('beforeend', this.createLobbyHTML(id, obj, true));
-	
+
 			const joinButton = document.getElementById(`joinLobbyButton-${id}`);
 			if (joinButton) {
 				joinButton.addEventListener('click', () => {
@@ -152,11 +152,11 @@ export default class MatchmakingView extends BaseView {
 				});
 			}
 		});
-	
+
 		message.ongoingMatches.forEach(match => {
 			const [id, obj] = Object.entries(match)[0];
 			ongoingMatchesEl.insertAdjacentHTML('beforeend', this.createLobbyHTML(id, obj, false));
-	
+
 			const spectateButton = document.getElementById(`spectateLobbyButton-${id}`);
 			if (spectateButton) {
 				spectateButton.addEventListener('click', () => {
@@ -165,8 +165,8 @@ export default class MatchmakingView extends BaseView {
 			}
 		});
 	}
-	
-	
+
+
 	createLobbyHTML(id, lobby, isAvailable) {
 		// console.log(id)
 		const tournamentClass = lobby.match_type == 'tournament_lobby' ? 'tournament' : '';
@@ -184,7 +184,7 @@ export default class MatchmakingView extends BaseView {
 			</tr>
 		`;
 	}
-	
+
 	async createLobby() {
 		const form = document.getElementById('createLobbyForm');
 		document.querySelectorAll('.form-errors').forEach(function(el) {
@@ -199,9 +199,9 @@ export default class MatchmakingView extends BaseView {
 		const lobbyPrivacy = form.lobbyPrivacy.value;
 		const spectators = form.spectators.value;
 		const nbrLives = parseInt(form.nbrLives.value);
-	
+
 		let errorMessage, error = false;
-	
+
 		if (!lobbyName) {
 			errorMessage = document.getElementById('error-message-lobby-name')
 			errorMessage.style.display = 'block';
@@ -240,11 +240,11 @@ export default class MatchmakingView extends BaseView {
 			errorMessage.innerHTML = "Le nombre de bots doit être compris entre 0 et le nombre maximum de joueurs.";
 			error = true;
 		}
-	
+
 		if (error) {
 			return;
 		}
-	
+
 		// Logique de création de lobby (API, stockage, etc.)
 		console.log({
 			gameType,
@@ -256,10 +256,9 @@ export default class MatchmakingView extends BaseView {
 			spectators,
 			nbrLives
 		});
-	
+
 		const modal = bootstrap.Modal.getInstance(document.getElementById('createLobbyModal'));
-		try {
-			const response = await this.sendMessage({
+			await this.sendMessage({
 				type: 'create_lobby',
 				lobby_type: matchType,
 				name: lobbyName,
@@ -268,31 +267,23 @@ export default class MatchmakingView extends BaseView {
 				game_type: gameType,
 				public: (lobbyPrivacy === 'public' ? true : false),
 				allow_spectators: (spectators === 'allowed' ? true: false),
-				lives: nbrLives
-			}, 2000);
-			if (response.type === 'error')
-				throw new Error(response.data);
-			this.lobbyId = response.lobby_id;
-			this.isHost = true;
-		} catch (error) {
-			modal.hide();
-			this.errorHandler(`Failed to create lobby: ${error}`);
-			return;
-		}
+				lives: nbrLives});
+		this.isHost = true;
+
 
 		// Fermer la modale
 		modal.hide();
-		this.updateCurrentView();
+
 	}
-	
+
 	joinLobbyById() {
 		const lobbyId = document.getElementById('lobbyIdInput').value;
 		console.log('Rejoindre le lobby avec l\'ID:', lobbyId);
 		// Implémentez la logique pour rejoindre le lobby ici
 	}
-	
+
 	updateCurrentView() {
-	
+
 		if (this.lobbyId) {
 			document.getElementById('lobbyView').classList.remove('d-none');
 			document.getElementById('mainView').classList.add('d-none');
@@ -306,37 +297,55 @@ export default class MatchmakingView extends BaseView {
 			document.getElementById('lobbyView').classList.add('d-none');
 		}
 	}
-	
+
 	joinLobby(lobbyId) {
 		console.log('Rejoindre le lobby:', lobbyId);
 		// Implémentez la logique pour rejoindre le lobby ici
 		this.sendMessage({ type: 'join_lobby', lobby_id: lobbyId });
-		this.lobbyId = lobbyId
-		this.updateCurrentView(lobbyId);
+		// this.lobbyId = lobbyId
+		// this.updateCurrentView(lobbyId);
 	}
-	
+
 	leaveLobby() {
 		console.log('Quitter le lobby:', this.lobbyId);
 		// socket.sendMessage({ type: 'leave_lobby', lobbyId: lobbyId });
 		this.sendMessage({ type: 'leave_lobby' });
-		this.lobbyId = undefined
-		this.updateCurrentView()
+		this.lobbyId = undefined;
+		this.isHost = false;
+		this.updateCurrentView();
 	}
-	
+
+	lobby_canceled(content)
+	{
+		console.log('lobby_canceled event');
+		console.log(content);
+		this.lobbyId = undefined;
+		this.updateCurrentView();
+	}
+
+	lobby_joined(message)
+	{
+		console.log("lobby_join event");
+		console.log(message);
+		console.log(message.lobby_id)
+		const lobby_id = message.lobby_id;
+		this.lobbyId = lobby_id;
+		this.updateCurrentView();
+	}
+
 	lobby_update(message) {
 		const lobbyNameEl = document.getElementById('lobbyName');
 		const playerListEl = document.getElementById('playerList');
 		const hostOptionsEl = document.getElementById('hostOptions');
-	
+
 		lobbyNameEl.textContent = message.lobbyName;
 		playerListEl.innerHTML = '';  // Vider la liste avant mise à jour
-	
+
 		Object.entries(message.players).forEach(player => {
 			const playerRow = document.createElement('tr');
-			const playerState = player.isReady ? 'Prêt' : (player.hasJoined ? 'A rejoint' : 'N\'a pas encore rejoint');
-			
+			const playerState = player[1].is_ready ? 'Prêt' : (player[1].has_joined ? 'A rejoint' : 'N\'a pas encore rejoint');
 			playerRow.innerHTML = `
-				<td>${player.name}</td>
+				<td>${player[0]}</td>
 				<td>${playerState}</td>
 				<td>
 					${this.isHost && player.id !== message.hostId ? `<button class="btn btn-danger" onclick="kickPlayer('${player.id}')">Expulser</button>` : ''}
@@ -344,7 +353,7 @@ export default class MatchmakingView extends BaseView {
 			`;
 			playerListEl.appendChild(playerRow);
 		});
-	
+
 		// Gérer les slots libres
 		for (let i = message.players.length; i < message.maxSlots; i++) {
 			const emptySlotRow = document.createElement('tr');
@@ -358,24 +367,24 @@ export default class MatchmakingView extends BaseView {
 		}
 
 	}
-	
+
 	kickPlayer(playerId) {
 		// socket.sendMessage({ type: 'kickPlayer', playerId: playerId });
 	}
-	
+
 	inviteFriends() {
 		// Afficher la modale pour inviter des amis
 		new bootstrap.Modal(document.getElementById('inviteFriendsModal')).show();
 	}
-	
+
 	addBot() {
 		this.sendMessage({ type: 'addBot' });
 	}
-	
+
 	openLobbyOptions() {
 		new bootstrap.Modal(document.getElementById('lobbyOptionsModal')).show();
 	}
-	
+
 	saveLobbyOptions() {
 		const options = {
 			gameType: document.getElementById('gameType').value,
@@ -384,19 +393,19 @@ export default class MatchmakingView extends BaseView {
 			livesCount: document.getElementById('livesCount').value,
 			allowSpectators: document.getElementById('allowSpectators').checked
 		};
-	
+
 		this.sendMessage({ type: 'updateLobbyOptions', options });
 	}
-	
+
 	showOnlinePlayers() {
 		// Demander la liste des joueurs en ligne via WebSocket
 		this.sendMessage({ type: 'getOnlinePlayers' });
 	}
-	
+
 	displayOnlinePlayers(players) {
 		const onlinePlayersList = document.getElementById('onlinePlayersList');
 		onlinePlayersList.innerHTML = '';
-	
+
 		players.forEach(player => {
 			let actionButton = '';
 			switch (player.status) {
@@ -407,7 +416,7 @@ export default class MatchmakingView extends BaseView {
 					actionButton = `<button class="btn btn-sm btn-primary" onclick="joinLobby('${player.lobbyId}')">Rejoindre</button>`;
 					break;
 			}
-	
+
 			onlinePlayersList.innerHTML += `
 				<div class="player-item">
 					<p>${player.name} - Status: ${player.status}</p>
@@ -415,11 +424,11 @@ export default class MatchmakingView extends BaseView {
 				</div>
 			`;
 		});
-	
+
 		// Afficher le modal
 		new bootstrap.Modal(document.getElementById('onlinePlayersModal')).show();
 	}
-	
+
 	// Connecter le WebSocket au chargement de la page
 	dispatch(message) {
 		console.log(message.type)

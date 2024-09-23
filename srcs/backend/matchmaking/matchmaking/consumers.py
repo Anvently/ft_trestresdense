@@ -43,7 +43,7 @@ def jsonize_lobby(lobby : Lobby):
 	lobby_data['name'] = lobby.name
 	lobby_data['host'] = lobby.hostname
 	lobby_data['slots'] = f"{len(lobby.players)}/{lobby.player_num}"
-	lobby_data['players'] = lobby.players
+	lobby_data['players'] = copy.deepcopy(lobby.players)
 	lobby_data['settings'] = lobby.settings
 	return lobby_data
 
@@ -209,6 +209,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		if self._messageId != None:
 			content['id'] = self._messageId
 		self._messageId = None
+		print(content)
 		return await super().send_json(content, close)
 
 	async def receive_json(self, content, **kwargs):
@@ -232,18 +233,19 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 
 
 	async def lobby_canceled(self, content):
-		if online_players[self.username] not in (PlayerStatus.IN_LOBBY, PlayerStatus.IN_TURNAMENT_LOBBY):
+		if online_players[self.username]['status'] not in (PlayerStatus.IN_LOBBY, PlayerStatus.IN_TURNAMENT_LOBBY):
 			return
 		if not self._is_host:
 			await self.send_json(content)
 			await self.channel_layer.group_discard(self._lobby_id, self.channel_name)
+			self._lobby_id = None
 			online_players[self.username] = copy.deepcopy(default_status)
 			await self.channel_layer.group_add(MatchMakingConsumer.matchmaking_group, self.channel_name)
+			await self.send_general_update()
 
 
 	async def join_lobby(self, content):
 		target_lobby = content['lobby_id']
-		print(f'{self.username} try to join lobby {target_lobby}')
 		if target_lobby not in lobbies:
 			await self._send_error(msg=f'Can\'t join the lobby {target_lobby}: does not exists', code=Errors.JOIN_ERROR, close=False)
 		elif lobbies[target_lobby].started:
@@ -258,8 +260,9 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 				await self.channel_layer.group_discard(MatchMakingConsumer.matchmaking_group, self.channel_name)
 				online_players[self.username]['status'] = get_status_from_lobby(target_lobby)
 				online_players[self.username]['lobby_id'] = target_lobby
+				lobbies[target_lobby].player_joined(self.username)
 				self._lobby_id = target_lobby
-				print(f"joining lobby {self._lobby_id}")
+				await self.send_json({"type" : 'lobby_joined', 'lobby_id' : target_lobby, 'is_host' : False})
 				await self.send_lobby_update(target_lobby)
 				await self.send_general_update()
 			else:
@@ -285,17 +288,14 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 
 
 	async def leave_lobby(self, content=None):
-		print(f'{self.username} try to leave lobby {self._lobby_id}')
 		if not self._lobby_id:
 			return
 		if online_players[self.username]['status'] not in (PlayerStatus.IN_LOBBY, PlayerStatus.IN_TURNAMENT_LOBBY):
 			await self._send_error(msg="You are not in a lobby, can't do !", close=False)
 			return
 		if self._is_host == True:
-			print(f"Cancelling lobby: {self._lobby_id}")
 			await self.cancel_lobby()
 		else:
-			print(f"leaving lobby: {self._lobby_id}")
 			await self.channel_layer.group_discard(self._lobby_id, self.channel_name)
 			lobbies[self._lobby_id].remove_player(self.username)
 			oldId = self._lobby_id
@@ -312,6 +312,8 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		if online_players[self.username]['status'] != PlayerStatus.NO_LOBBY:
 			await self._send_error(msg='You can\t host at this moment', code=Errors.HOST_ERROR, close=False)
 			return
+		data.pop('type')
+		print(data)
 		data['hostname'] = self.username
 		try:
 			match data.pop('lobby_type'):
@@ -337,7 +339,9 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		online_players[self.username]['lobby_id'] = new_lobby.id
 		self._lobby_id = new_lobby.id
 		self._is_host = True
-		await self.send_json({'type': 'success', 'lobby_id': self._lobby_id})
+		lobbies[new_lobby.id].player_joined(self.username)
+		# await self.send_json({'type': 'success', 'lobby_id': self._lobby_id})
+		await self.send_json({"type" : 'lobby_joined', 'lobby_id' : new_lobby.id, 'is_host': True})
 		await self.channel_layer.group_add(new_lobby.id, self.channel_name)
 		await self.channel_layer.group_discard(MatchMakingConsumer.matchmaking_group, self.channel_name)
 		await self.send_lobby_update(new_lobby.id)
@@ -385,10 +389,11 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		await self.channel_layer.group_send(self._lobby_id, {'type': 'lobby_canceled'})
 		#!!!!!!May want to unassign every player ??!!!!!
 		online_players[self.username] = copy.deepcopy(default_status)
-		self._lobby_id = None
-		self._is_host = False
 		if self._lobby_id in lobbies:
 			del lobbies[self._lobby_id]
+		self._lobby_id = None
+		self._is_host = False
+		print(f'online player after cancel_lobby {online_players}')
 		await self.send_general_update()
 
 	async def send_general_update(self):
