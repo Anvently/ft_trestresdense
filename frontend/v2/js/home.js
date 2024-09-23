@@ -15,7 +15,7 @@ const defaultUserInfo = {
 		return document.cookie.includes('auth-token');
 	}, 
 	received: false,
-	avatar: "https://localhost:8083/avatars/default.jpg",
+	avatar: "https://localhost:8083/avatars/__default__.jpg",
 	display_name: "Anonymous",
 	username: "anonymous"
 };

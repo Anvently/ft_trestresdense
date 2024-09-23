@@ -176,29 +176,49 @@ export default class MatchmakingView extends BaseView {
 		}
 	
 		const nameCell = document.createElement('td');
+		nameCell.classList.add('left');
 		nameCell.textContent = lobby.name;
 		row.appendChild(nameCell);
 	
 		const gameTypeCell = document.createElement('td');
+		gameTypeCell.classList.add('center');
 		gameTypeCell.textContent = lobby.game_type;
 		row.appendChild(gameTypeCell);
 	
 		const hostCell = document.createElement('td');
+		hostCell.classList.add('center');
+		const linkBlock = document.createElement('a');
+		linkBlock.classList.add('user-link', 'd-flex', 'align-items-center', 'text-decoration-none');
 		const hostAvatar = document.createElement('img');
-		hostAvatar.classList.add = (`dynamicAvatarUrl`, `user-${lobby.host}`);
-		hostAvatar.src = userManager.getUserAttr(lobby.host, 'avatar');
-		hostCell.appendChild(hostAvatar);
+		hostAvatar.classList.add('rounded-circle', 'me-2');
 		const hostNameSpan = document.createElement('span');
-		hostNameSpan.classList.add = (`dynamicDisplayName`, `user-${lobby.host}`);
-		hostNameSpan.textContent = userManager.getUserAttr(lobby.host, 'display_name');
-		hostCell.appendChild(hostNameSpan);
+		if (!lobby.host || lobby.host[0] === '!') {
+			hostAvatar.src = "/avatars/__bot__.png";
+			hostNameSpan.textContent = "Bot";
+			linkBlock.href =  "javascript:void(0)";
+		} else {
+			userManager.getUserAttr(lobby.host, 'avatar', "/avatars/__default__.jpg").then(url => {
+				hostAvatar.src = url;
+			});
+			hostAvatar.classList.add = (`dynamicAvatarUrl`, `user-${lobby.host}`);
+			hostNameSpan.classList.add = (`dynamicDisplayName`, `user-${lobby.host}`);
+			userManager.getUserAttr(lobby.host, 'display_name', lobby.host).then(displayName => {
+				hostNameSpan.textContent = displayName;
+			});
+			linkBlock.href = `https://${window.location.host}/api/users/${lobby.host}/`;
+		}
+		linkBlock.appendChild(hostAvatar);
+		linkBlock.appendChild(hostNameSpan);
+		hostCell.appendChild(linkBlock);
 		row.appendChild(hostCell);
 	
 		const slotsCell = document.createElement('td');
+		slotsCell.classList.add('center');
 		slotsCell.textContent = lobby.slots;
 		row.appendChild(slotsCell);
 	
 		const actionCell = document.createElement('td');
+		actionCell.classList.add('right');
 		const actionButton = document.createElement('button');
 		actionButton.className = isAvailable ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-secondary';
 		actionButton.id = isAvailable ? `joinLobbyButton-${id}` : `spectateLobbyButton-${id}`;
@@ -304,7 +324,9 @@ export default class MatchmakingView extends BaseView {
 	joinLobbyById() {
 		const lobbyId = document.getElementById('lobbyIdInput').value;
 		console.log('Rejoindre le lobby avec l\'ID:', lobbyId);
-		// Implémentez la logique pour rejoindre le lobby ici
+		this.joinLobby(lobbyId);
+		const modal = bootstrap.Modal.getInstance(document.getElementById('joinLobbyModal'));
+		modal.hide();
 	}
 
 	updateCurrentView() {
@@ -362,37 +384,98 @@ export default class MatchmakingView extends BaseView {
 		const lobbyNameEl = document.getElementById('lobbyName');
 		const playerListEl = document.getElementById('playerList');
 		const hostOptionsEl = document.getElementById('hostOptions');
-
+	
 		lobbyNameEl.textContent = message.lobbyName;
 		playerListEl.innerHTML = '';  // Vider la liste avant mise à jour
-
-		Object.entries(message.players).forEach(player => {
-			const playerRow = document.createElement('tr');
-			const playerState = player[1].is_ready ? 'Prêt' : (player[1].has_joined ? 'A rejoint' : 'N\'a pas encore rejoint');
-			playerRow.innerHTML = `
-				<td>${player[0]}</td>
-				<td>${playerState}</td>
-				<td>
-					${this.isHost && player.id !== message.hostId ? `<button class="btn btn-danger" onclick="kickPlayer('${player.id}')">Expulser</button>` : ''}
-				</td>
-			`;
-			playerListEl.appendChild(playerRow);
+	
+		Object.entries(message.players).forEach(([playerId, playerData]) => {
+		  this.appendPlayerEntry(playerListEl, playerId, playerData, message.hostId);
 		});
-
+	
 		// Gérer les slots libres
-		for (let i = message.players.length; i < message.maxSlots; i++) {
-			const emptySlotRow = document.createElement('tr');
-			emptySlotRow.classList.add('text-muted');
-			emptySlotRow.innerHTML = `
-				<td>Slot libre</td>
-				<td>En attente</td>
-				<td>${isHost ? `<button class="btn btn-info" onclick="addBot()">Ajouter un bot</button>` : ''}</td>
-			`;
-			playerListEl.appendChild(emptySlotRow);
+		for (let i = Object.keys(message.players).length; i < message.settings.nbr_players; i++) {
+		  this.appendEmptySlotEntry(playerListEl);
 		}
-
 	}
 
+	appendPlayerEntry(tableElement, playerId, playerData, hostId) {
+		const playerRow = document.createElement('tr');
+		const playerState = playerData.is_ready ? 'Prêt' : (playerData.has_joined ? 'A rejoint' : 'N\'a pas encore rejoint');
+		
+		const nameCell = document.createElement('td');
+		nameCell.classList.add('left');
+		const linkBlock = document.createElement('a');
+		linkBlock.classList.add('user-link', 'd-flex', 'align-items-center', 'text-decoration-none');
+		const userAvatar = document.createElement('img');
+		userAvatar.classList.add('rounded-circle', 'me-2');
+		const userNameSpan = document.createElement('span');
+		if (playerId[0] === '!') {
+			userAvatar.src = "/avatars/__bot__.png";
+			userNameSpan.textContent = "Bot";
+			linkBlock.href =  "javascript:void(0)";
+		} else {
+			userManager.getUserAttr(playerId, 'avatar', "/avatars/__default__.jpg").then(url => {
+				userAvatar.src = url;
+			});
+			userAvatar.classList.add = (`dynamicAvatarUrl`, `user-${playerId}`);
+			userNameSpan.classList.add = (`dynamicDisplayName`, `user-${playerId}`);
+			userManager.getUserAttr(playerId, 'display_name', playerId).then(displayName => {
+				userNameSpan.textContent = displayName;
+			});
+			linkBlock.href = `https://${window.location.host}/api/users/${playerId}/`;
+		}
+		linkBlock.appendChild(userAvatar);
+		linkBlock.appendChild(userNameSpan);
+		nameCell.appendChild(linkBlock);
+		playerRow.appendChild(nameCell);
+	
+		const stateCell = document.createElement('td');
+		stateCell.classList.add('center');
+		stateCell.textContent = playerState;
+		playerRow.appendChild(stateCell);
+	
+		const actionCell = document.createElement('td');
+		actionCell.classList.add('right');
+		if (this.isHost && playerId !== hostId) {
+			const kickButton = document.createElement('button');
+			kickButton.className = 'btn btn-danger';
+			kickButton.textContent = 'Expulser';
+			kickButton.onclick = () => this.kickPlayer(playerId);
+			actionCell.appendChild(kickButton);
+		}
+		playerRow.appendChild(actionCell);
+	
+		tableElement.appendChild(playerRow);
+	}
+	
+	appendEmptySlotEntry(tableElement) {
+		const emptySlotRow = document.createElement('tr');
+		emptySlotRow.classList.add('text-muted');
+	
+		const nameCell = document.createElement('td');
+		nameCell.classList.add('left');
+		nameCell.textContent = 'Slot libre';
+		emptySlotRow.appendChild(nameCell);
+	
+		const stateCell = document.createElement('td');
+		stateCell.classList.add('center');
+		stateCell.textContent = 'En attente';
+		emptySlotRow.appendChild(stateCell);
+	
+		const actionCell = document.createElement('td');
+		actionCell.classList.add('right');
+		if (this.isHost) {
+			const addBotButton = document.createElement('button');
+			addBotButton.className = 'btn btn-info';
+			addBotButton.textContent = 'Ajouter un bot';
+			addBotButton.onclick = () => this.addBot();
+			actionCell.appendChild(addBotButton);
+		}
+		emptySlotRow.appendChild(actionCell);
+	
+		tableElement.appendChild(emptySlotRow);
+	}
+	
 	kickPlayer(playerId) {
 		// socket.sendMessage({ type: 'kickPlayer', playerId: playerId });
 	}
@@ -457,7 +540,9 @@ export default class MatchmakingView extends BaseView {
 	// Connecter le WebSocket au chargement de la page
 	dispatch(message) {
 		console.log(message.type)
-		if (typeof this[message.type] === "function") {
+		if (message.type === 'error')
+			this.errorHandler(message);
+		else if (typeof this[message.type] === "function") {
 			this[message.type](message);
 		} else {
 			const errMessage = `Received a message type which has no handler: ${message.type}`;
@@ -481,7 +566,6 @@ export default class MatchmakingView extends BaseView {
             this.socket.close();
         }
 
-		this.closeErrorButton.removeEventListener('click', this.closeErrorPopup);
 		this.showOnlinePLayersButton.removeEventListener('click', this.showOnlinePlayers);
 		this.openLobbyOptionsButton.removeEventListener('clck', this.openLobbyOptions);
 		this.startGameButton.removeEventListener('click', this.startGame);

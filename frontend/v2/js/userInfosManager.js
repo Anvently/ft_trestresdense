@@ -188,8 +188,7 @@ class BackgroundUpdater {
 			}
 			return await response.json();
 		} catch (error) {
-			console.error('Erreur lors de la récupération des utilisateurs:', error);
-			throw error;
+			return;
 		}
 	}
 
@@ -206,9 +205,10 @@ class BackgroundUpdater {
 				if (!user) return username;
 			});
 		}
+		console.log("updating users:", users);
 		for (const username of users) {
 			try {
-				const updatedInfo = await fetchUserFromAPI(username);
+				const updatedInfo = await this.fetchUserFromAPI(username);
 				if (JSON.stringify(updatedInfo) !== JSON.stringify(this.userCache.getUser(username))) {
 					this.userCache.setUser(username, updatedInfo);
 					this.userChangeHandler(username, updatedInfo);

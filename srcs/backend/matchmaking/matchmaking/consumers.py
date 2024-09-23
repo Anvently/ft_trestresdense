@@ -196,7 +196,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 			status = online_players[self.username]['status']
 			if status == PlayerStatus.IN_LOBBY:
 				if self._is_host == True:
-					await self.cancel_lobby(self._lobby_id)
+					await self.cancel_lobby()
 				else:
 					lobbies[self._lobby_id].remove_player(self.username)
 				await self.channel_layer.group_discard(self._lobby_id, self.channel_name)
