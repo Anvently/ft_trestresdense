@@ -48,6 +48,11 @@ async function getUserInfos() {
 	const response = await fetch(`https://${document.location.host}/api/me/`);
 	if (!response.ok) {
 		console.error(`Failed to fetch user informations: status=${response.statusText}`);
+		// console.log(response.status);
+		if (response.status === 401) {
+			logOut();
+			throw (new Error("Seems your auth-token is not valid"));
+		}
 		userInfo.received = false;
 	}
 	Object.assign(userInfo, await response.json());
@@ -95,13 +100,18 @@ function closeSuccessPopup() {
 	document.getElementById('successPopup').style.display = 'none';
 }
 
+function logOut() {
+	Object.assign(userInfo, defaultUserInfo);
+	document.cookie = 'auth-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+	updateUserMenu();
+	window.location.hash = '#login';
+	// router.navigate('#login');
+}
+
 document.querySelectorAll('.logoutButton').forEach(function (el) {
 	el.addEventListener('click', (e) => {
 		e.preventDefault();
-		Object.assign(userInfo, defaultUserInfo);
-		document.cookie = 'auth-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-		updateUserMenu();
-		router.navigate('#login');
+		logOut();
 	});
 });
 
@@ -118,7 +128,12 @@ router.use((path, next) => {
 //Midleware pour obtenir les informations sur l'utilisateur actif.
 router.use(async (path, next) => {
 	if (userInfo.isAuthenticated && !userInfo.received) {
-		Object.assign(userInfo, await getUserInfos());
+		try {
+			Object.assign(userInfo, await getUserInfos());
+		} catch (error) {
+			this.errorHandler(error);
+			return;
+		}
 		if (userInfo.received)
 			updateUserMenu();
 	}
