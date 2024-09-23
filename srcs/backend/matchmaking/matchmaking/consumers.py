@@ -84,7 +84,9 @@ Status:
 """
 {2, 125.0, 125} -> {3, 125.1 , 125}
 """
-reset_status = {'status': PlayerStatus.NO_LOBBY, 'lobby_id' : None, 'turnament_id' : None}
+
+def	reset_status(player_id):
+	online_players[player_id] = {'status' : PlayerStatus.NO_LOBBY, 'lobby_id' : None, 'tournament_id': None}
 
 class Errors(Enum):
 	INVALID_TYPE = 4001
@@ -107,7 +109,6 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 	matchmaking_lock = asyncio.Lock()
 	# list all the players online to handle invitations
 	# list all available lobbies to send to front
-	lobbies: Dict[str, Lobby] = {}
 
 
 	def __init__(self, *args, **kwargs):
@@ -139,7 +140,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 
 	def get_status(self):
 		return online_players[self.username]['status']
-	
+
 	def get_lobby_id(self):
 		return online_players[self.username]['lobby_id']
 
@@ -155,7 +156,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		if not self._auth_client():
 			return False
 		async with MatchMakingConsumer.matchmaking_lock:
-			if self.username in online_players and online_players[self.username]["status"] < PlayerStatus.IN_GAME:
+			if self.username in online_players and online_players[self.username]["status"] != PlayerStatus.IN_GAME:
 				self.scope['error'] = "an websocket connection for is already opened"
 				self.scope['error_code'] = Errors.AUTH_ERROR
 				return False
@@ -229,7 +230,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		if not self._is_host:
 			await self.send_json(content)
 			await self.channel_layer.group_discard(self._lobby_id, self.channel_name)
-			online_players[self.username] = reset_status
+			online_players[self.username] = reset_status(self.username)
 			await self.channel_layer.group_add(MatchMakingConsumer.matchmaking_group, self.channel_name)
 
 
@@ -293,7 +294,8 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 			lobbies[self._lobby_id].remove_player(self.username)
 			oldId = self._lobby_id
 			self._lobby_id = None
-			online_players[self.username] = reset_status
+			online_players[self.username] = reset_status(self.username)
+			print(f"status reset for {self.username}", online_players)
 			await self.send_lobby_update(oldId)
 			await self.channel_layer.group_add(MatchMakingConsumer.matchmaking_group, self.channel_name)
 			await self.send_general_update()
@@ -376,7 +378,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		await self.channel_layer.group_discard(self._lobby_id, self.channel_name)
 		await self.channel_layer.group_send(self._lobby_id, {'type': 'lobby_canceled'})
 		#!!!!!!May want to unassign every player ??!!!!!
-		online_players[self.username] = reset_status
+		online_players[self.username] = reset_status(self.username)
 		self._lobby_id = None
 		self._is_host = False
 		if self._lobby_id in lobbies:
