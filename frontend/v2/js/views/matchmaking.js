@@ -1,5 +1,5 @@
 import { BaseView } from '../view-manager.js';
-import { userInfo } from '../home.js'
+import { userInfo, userManager } from '../home.js'
 
 export default class MatchmakingView extends BaseView {
     constructor() {
@@ -43,6 +43,8 @@ export default class MatchmakingView extends BaseView {
 		this.saveLobbyOptionsButton.addEventListener('click', () => this.saveLobbyOptions());
 	
 		document.getElementById('lobbyNameCreation').value = `${userInfo.display_name}'s lobby`;
+
+		userManager.setDynamicUpdateHandler(this.updateUserInfos);
 
 	}
 
@@ -114,13 +116,14 @@ export default class MatchmakingView extends BaseView {
 				return;
 			}
 			try {
-				this.socket.send(JSON.stringify(message));
 				if (timeout === 0) {
+					this.socket.send(JSON.stringify(message));
 					resolve();
 					return;
 				}
 				const id = this.messageId++;
 				message.id = id;
+				this.socket.send(JSON.stringify(message));
 				const timeoutId = setTimeout(() => {
 				if (this.messageQueue.has(id)) {
 					this.messageQueue.delete(id);
@@ -134,17 +137,15 @@ export default class MatchmakingView extends BaseView {
 		});
 	}
 
-    general_update(message) {
+	general_update(message) {
 		const availableLobbiesEl = document.querySelector('#availableLobbies tbody');
 		const ongoingMatchesEl = document.querySelector('#ongoingMatches tbody');
-	
 		availableLobbiesEl.innerHTML = '';
 		ongoingMatchesEl.innerHTML = '';
 	
 		message.availableLobbies.forEach(lobby => {
 			const [id, obj] = Object.entries(lobby)[0];
-			availableLobbiesEl.insertAdjacentHTML('beforeend', this.createLobbyHTML(id, obj, true));
-	
+			this.appendLobbyEntry(availableLobbiesEl, id, obj, true);
 			const joinButton = document.getElementById(`joinLobbyButton-${id}`);
 			if (joinButton) {
 				joinButton.addEventListener('click', () => {
@@ -155,8 +156,7 @@ export default class MatchmakingView extends BaseView {
 	
 		message.ongoingMatches.forEach(match => {
 			const [id, obj] = Object.entries(match)[0];
-			ongoingMatchesEl.insertAdjacentHTML('beforeend', this.createLobbyHTML(id, obj, false));
-	
+			this.appendLobbyEntry(ongoingMatchesEl, id, obj, false);
 			const spectateButton = document.getElementById(`spectateLobbyButton-${id}`);
 			if (spectateButton) {
 				spectateButton.addEventListener('click', () => {
@@ -164,26 +164,51 @@ export default class MatchmakingView extends BaseView {
 				});
 			}
 		});
+	
+		userManager.forceUpdate();
 	}
 	
+	appendLobbyEntry(tableElement, id, lobby, isAvailable) {
+		const row = document.createElement('tr');
+		row.id = id;
+		if (lobby.match_type === 'tournament_lobby') {
+		row.classList.add('tournament');
+		}
 	
-	createLobbyHTML(id, lobby, isAvailable) {
-		// console.log(id)
-		const tournamentClass = lobby.match_type == 'tournament_lobby' ? 'tournament' : '';
-		const actionButton = isAvailable
-			? `<button class="btn btn-sm btn-primary" id="joinLobbyButton-${id}">Rejoindre</button>`
-			: `<button class="btn btn-sm btn-secondary" id="spectateLobbyButton-${id}"">Observer</button>`;
-
-		return `
-			<tr class="${tournamentClass}" id="${id}">
-				<td>${lobby.name}</td>
-				<td>${lobby.game_type}</td>
-				<td>${lobby.host}</td>
-				<td>${lobby.slots}</td>
-				<td>${actionButton}</td>
-			</tr>
-		`;
+		const nameCell = document.createElement('td');
+		nameCell.textContent = lobby.name;
+		row.appendChild(nameCell);
+	
+		const gameTypeCell = document.createElement('td');
+		gameTypeCell.textContent = lobby.game_type;
+		row.appendChild(gameTypeCell);
+	
+		const hostCell = document.createElement('td');
+		const hostAvatar = document.createElement('img');
+		hostAvatar.classList.add = (`dynamicAvatarUrl`, `user-${lobby.host}`);
+		hostAvatar.src = userManager.getUserAttr(lobby.host, 'avatar');
+		hostCell.appendChild(hostAvatar);
+		const hostNameSpan = document.createElement('span');
+		hostNameSpan.classList.add = (`dynamicDisplayName`, `user-${lobby.host}`);
+		hostNameSpan.textContent = userManager.getUserAttr(lobby.host, 'display_name');
+		hostCell.appendChild(hostNameSpan);
+		row.appendChild(hostCell);
+	
+		const slotsCell = document.createElement('td');
+		slotsCell.textContent = lobby.slots;
+		row.appendChild(slotsCell);
+	
+		const actionCell = document.createElement('td');
+		const actionButton = document.createElement('button');
+		actionButton.className = isAvailable ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-secondary';
+		actionButton.id = isAvailable ? `joinLobbyButton-${id}` : `spectateLobbyButton-${id}`;
+		actionButton.textContent = isAvailable ? 'Rejoindre' : 'Observer';
+		actionCell.appendChild(actionButton);
+		row.appendChild(actionCell);
+	
+		tableElement.appendChild(row);
 	}
+	
 	
 	async createLobby() {
 		const form = document.getElementById('createLobbyForm');
@@ -430,6 +455,15 @@ export default class MatchmakingView extends BaseView {
 			console.error(errMessage);
 			this.errorHandler(errMessage);
 		}
+	}
+
+	updateUserInfos(username, userInfo) {
+		document.querySelectorAll(`.dynamicDisplayName.user-${username}`).forEach(el => {
+			el.textContent = userInfo.display_name;
+		});
+		document.querySelectorAll(`.dynamicAvatarUrl.user-${username}`).forEach(el => {
+			el.src = userInfo.avatar;
+		});
 	}
 
     cleanupView() {

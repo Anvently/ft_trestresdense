@@ -1,3 +1,5 @@
+import { userManager } from "./home.js";
+
 export class ViewManager {
     constructor(container) {
         this.container = container;
@@ -27,6 +29,8 @@ export class ViewManager {
         try {
             if (this.currentView) {
                 await this.currentView.cleanupView();
+                userManager.clearUsers();
+                userManager.setDynamicUpdateHandler(null);
                 this.container.innerHTML = '';
             }
 

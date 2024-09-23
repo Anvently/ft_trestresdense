@@ -1,6 +1,9 @@
 import { Router } from './router.js';
-// import { AuthService } from './js/services/auth-service.js';
 import { ViewManager } from './view-manager.js';
+import { UserInfoManager } from './userInfosManager.js';
+
+
+console.log("pouet");
 
 const router = new Router();
 const viewManager = new ViewManager(document.getElementById('content'));
@@ -16,6 +19,7 @@ const defaultUserInfo = {
 	display_name: "Anonymous",
 	username: "anonymous"
 };
+
 export const userInfo = defaultUserInfo;
 
 // Définition des routes
@@ -26,6 +30,11 @@ router.addRoute('#about', './views/about.js', 'html/about.html');
 router.addRoute('#stats', './views/stats.js', 'html/stats.html');
 router.addRoute('#pong2d', './views/pong2d.js', 'html/pong2d.html');
 router.addRoute('#pong3d', './views/pong3d.js', 'html/pong3d.html');
+
+export const userManager = new UserInfoManager(3600000, 300000, 3000);
+
+userManager.startBackgroundRefresh();
+
 
 // Gestion de l'authentification
 function updateUserMenu() {
