@@ -3,7 +3,7 @@ var 	canvas = document.getElementById("canvas");
 const 	usernameButt = document.getElementById("username-field");
 const 	lobbyID = document.getElementById("lobby-id");
 const 	loginBUTT = document.getElementById("submit-btn");
-// const	webSocket = null;
+// const	wsRef = null;
 
 // loginBUTT.addEventListener("click", e => {
 //     e.preventDefault();
@@ -38,39 +38,36 @@ var walls = [];
 /////////////////// 3D WIP ///////////////////
 import * as THREE from "https://cdn.skypack.dev/three@0.132.2";
 
-// Dans votre script de jeu
-let renderer, spotLight, scene, camera, webSocket;
+const scene = new THREE.Scene();
 
-function initGame() {
-    // Initialisation de Three.js et WebSocket
-    renderer = new THREE.WebGLRenderer({ canvas: document.querySelector('#gameCanvas') });
-	this.canvasRef.nativeElement.appendChild(renderer.domElement);
+// CAMERA
+// FOV, ratio, near clipping, far clipping
+const camera = new THREE.PerspectiveCamera( 75, 1, 0.1, 1000);
+camera.position.z = 10;
+camera.lookAt(0, 0, 0);
 
-	spotLight = new THREE.SpotLight( 0xffffff );
-	spotLight.position.set( 0, 0, 10 );
-	spotLight.castShadow = true;
-	spotLight.shadow.mapSize.width = 1024;
-	spotLight.shadow.mapSize.height = 1024;
-	spotLight.shadow.camera.near = 5;
-	spotLight.shadow.camera.far = 40;
-	spotLight.shadow.camera.fov = 30;
-    scene = new THREE.Scene();
+// LIGHT
+const spotLight = new THREE.SpotLight( 0xffffff );
+spotLight.position.set( 0, 0, 10 );
+spotLight.castShadow = true;
+spotLight.shadow.mapSize.width = 1024;
+spotLight.shadow.mapSize.height = 1024;
+spotLight.shadow.camera.near = 5;
+spotLight.shadow.camera.far = 40;
+spotLight.shadow.camera.fov = 30;
 
-	scene.add( spotLight );
+scene.add( spotLight );
 
-	// RENDERER
-	const renderer = new THREE.WebGLRenderer();
-	renderer.setSize(1200, 1200);
+// RENDERER
+const renderer = new THREE.WebGLRenderer();
+renderer.setSize(1200, 1200);
 
-	renderer.shadowMap.enabled = true;
-	renderer.shadowMap.type = THREE.PCFSoftShadowMap; // default THREE.PCFShadowMap
-	// FOV, ratio, near clipping, far clipping
-	camera = new THREE.PerspectiveCamera( 75, 1, 0.1, 1000);
-	camera.position.z = 10;
-	camera.lookAt(0, 0, 0);
-	// LIGHT
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap; // default THREE.PCFShadowMap
 
-	// Define different geometries
+document.body.appendChild(renderer.domElement);
+
+// Define different geometries
 const paddleGeometry = [
 	new THREE.BoxGeometry(PADDLE_THICKNESS * 10, PADDLE_LENGTH * 10, 0.5),
 	new THREE.BoxGeometry(PADDLE_THICKNESS * 10, PADDLE_LENGTH * 10, 0.5),
@@ -149,23 +146,56 @@ const WALL_POSITION = {
 }
 
 
-    
 
-    webSocket = new WebSocket(
+
+const paddles = [];
+	
+function create_paddles(number_of_players)
+{
+	for (var i = 0; i < number_of_players; i++)
+	{
+		const geometry = paddleGeometry[i % paddleGeometry.length];
+		const material = paddleMaterial[i % paddleMaterial.length];
+		const paddle = new THREE.Mesh(geometry, material);
+		paddle.position.z = -1
+		
+		paddle.castShadow = true;
+		paddle.receiveShadow = true;
+
+		paddles.push(paddle);
+		console.log("create paddle");
+		scene.add(paddle);
+	}
+}
+
+create_paddles(4);
+
+///////////////////////////////////////////////////
+
+
+
+window.onload = function() {
+	// Afficher une fenêtre popup pour demander à l'utilisateur d'entrer une valeur
+	user_id = prompt("Veuillez entrer une valeur :");
+
+	// Afficher la valeur dans la console pour vérification
+	console.log("Valeur saisie par l'utilisateur : " + user_id);
+
+	const wsRef = new WebSocket(
 		'wss://'
 		+ `${location.hostname}` + ':8083'
 		+ `/ws/pong/10/`
 	);
 	
 
-	webSocket.onmessage = function (e) {
+	wsRef.onmessage = function (e) {
 
 
 		const msg = JSON.parse(e.data);
 		if (msg.hasOwnProperty("type") === false)
 			return
 		else if (msg["type"] === "ping")
-			webSocket.send(JSON.stringify({type: 'join_game', username: `${user_id}`}));
+			wsRef.send(JSON.stringify({type: 'join_game', username: `${user_id}`}));
 		else if (msg["type"] === "send_game_state") {
 			number_of_players = parseInt(msg.number_of_players);
 			ball.x = parseFloat(msg.ball_x);
@@ -192,56 +222,13 @@ const WALL_POSITION = {
 
 	setInterval(() => {
 		if (pressKey.key_up === true)
-			webSocket.send(JSON.stringify({type: 'key_input', username:user_id,  input: "up" }));
+			wsRef.send(JSON.stringify({type: 'key_input', username:user_id,  input: "up" }));
 		if (pressKey.key_down === true)
-			webSocket.send(JSON.stringify({type: 'key_input', username:user_id,  input: "down" }));
+			wsRef.send(JSON.stringify({type: 'key_input', username:user_id,  input: "down" }));
 
 	}, 15);
-    
-    // ... (reste de l'initialisation)
 
-    // Enregistrer la fonction de nettoyage
-    
-}
-
-registerCleanup('pong2d', () => {
-	console.log("cleanup pong2d");
-	renderer.dispose();
-	scene.clear();
-	webSocket.close();
-});
-
-registerInit('pong2d', () => {
-	console.log('init pong2d');
-	initGame();
-});
-
-
-
-
-const paddles = [];
-	
-function create_paddles(number_of_players)
-{
-	for (var i = 0; i < number_of_players; i++)
-	{
-		const geometry = paddleGeometry[i % paddleGeometry.length];
-		const material = paddleMaterial[i % paddleMaterial.length];
-		const paddle = new THREE.Mesh(geometry, material);
-		paddle.position.z = -1
-		
-		paddle.castShadow = true;
-		paddle.receiveShadow = true;
-
-		paddles.push(paddle);
-		console.log("create paddle");
-		scene.add(paddle);
-	}
-}
-
-create_paddles(4);
-
-///////////////////////////////////////////////////
+};
 
 
 function init_3d_map()
