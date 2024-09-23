@@ -3,9 +3,12 @@ FROM python:3 AS django_base
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 WORKDIR /code
-COPY requirements.txt /code/
+COPY ./requirements.txt /code/
+COPY ./start_script.sh /etc/init.d/start_script.sh
+RUN chmod 777 /etc/init.d/start_script.sh
 RUN pip3 install -r requirements.txt
 RUN apt-get install curl
+CMD ["sh", "/etc/init.d/start_script.sh" ]
 
 FROM django_base AS django_restapi
 RUN pip3 install -U  djangorestframework pyjwt[crypto]
@@ -20,5 +23,3 @@ FROM django_authapi AS django_websocketapi
 RUN pip3 install -U 'channels[daphne]'
 RUN pip3 install -U channels-redis
 RUN pip3 install -U pottery
-
-CMD ["sh", "./entrypoint.sh" ]

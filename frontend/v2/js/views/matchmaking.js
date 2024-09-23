@@ -22,8 +22,6 @@ export default class MatchmakingView extends BaseView {
         // Initialiser la connexion WebSocket
         this.initWebSocket();
 
-		this.closeErrorButton = document.querySelector('#errorPopup button');
-		this.closeSuccessButton = document.querySelector('#successPopup button');
 		this.showOnlinePLayersButton = document.getElementById('buttonShowOnlinePlayers');
 		this.openLobbyOptionsButton = document.getElementById('buttonOptionsLobby');
 		this.startGameButton = document.getElementById('startGameButton');
@@ -34,8 +32,6 @@ export default class MatchmakingView extends BaseView {
 		this.createLobbyButton = document.getElementById('createLobbyButton');
 		this.saveLobbyOptionsButton = document.getElementById("saveLobbyOptionsButton");
 
-		this.closeErrorButton.addEventListener('click', (e) => this.closeErrorPopup());
-		this.closeSuccessButton.addEventListener('click', (e) => this.closeSuccessPopup());
 		this.showOnlinePLayersButton.addEventListener('click', () => this.showOnlinePlayers());
 		this.openLobbyOptionsButton.addEventListener('clck', (e) => this.openLobbyOptions());
 		this.startGameButton.addEventListener('click', () => this.startGame());
@@ -56,7 +52,7 @@ export default class MatchmakingView extends BaseView {
 	
 			this.socket.onopen = () => {
 				console.log('WebSocket connected');
-				this.success('Websocket connected.')
+				this.successHandler('Websocket connected.')
 				this.isConnected = true;
 				this.reconnectAttempts = 0;
 			};
@@ -70,7 +66,7 @@ export default class MatchmakingView extends BaseView {
 						resolve(message);
 						this.messageQueue.delete(message.id);
 					} else {
-						this.error('Received a message which had no resolve entry.');
+						this.errorHandler('Received a message which had no resolve entry.');
 					}
 				} else {
 					console.log('Received message:', message);
@@ -103,10 +99,10 @@ export default class MatchmakingView extends BaseView {
 	reconnect() {
 		if (this.reconnectAttempts < this.maxReconnectAttempts) {
 			this.reconnectAttempts++;
-			this.error(`Reconnection attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts} in ${this.reconnectInterval / 1000} seconds...`, true);
+			this.errorHandler(`Reconnection attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts} in ${this.reconnectInterval / 1000} seconds...`, true);
 			setTimeout(() => this.initWebSocket(), this.reconnectInterval);
 		} else {
-			this.error(`Max reconnection attempts number reached.`, false);
+			this.errorHandler(`Max reconnection attempts number reached.`, false);
 			// console.error('');
 		}
 	}
@@ -280,7 +276,7 @@ export default class MatchmakingView extends BaseView {
 			this.isHost = true;
 		} catch (error) {
 			modal.hide();
-			this.error(`Failed to create lobby: ${error}`);
+			this.errorHandler(`Failed to create lobby: ${error}`);
 			return;
 		}
 
@@ -424,47 +420,6 @@ export default class MatchmakingView extends BaseView {
 		new bootstrap.Modal(document.getElementById('onlinePlayersModal')).show();
 	}
 	
-	// Fonction pour afficher le pop-up d'erreur
-	error(message, attemptReconnect = false) {
-		document.getElementById('errorMessage').textContent =
-			(typeof message === 'object' && message.data !== undefined) ?
-			message.data :
-			message;
-		const successPopup = document.getElementById('successPopup');
-		if (successPopup)
-			successPopup.style.display = 'none';
-		const errorPopup = document.getElementById('errorPopup');
-		errorPopup.style.display = 'block';
-		if (!attemptReconnect)
-			this.received_error = true;
-		// Masquer le pop-up après quelques secondes (optionnel)
-		setTimeout(() => {
-			errorPopup.style.display = 'none';
-		}, 5000); // Masquer après 5 secondes
-	}
-	
-	// Fonction pour fermer le pop-up
-	closeErrorPopup() {
-		document.getElementById('errorPopup').style.display = 'none';
-	}
-
-	// Fonction pour afficher le pop-up de success
-	success(message) {
-		document.getElementById('successMessage').textContent = message;
-		const successPopup = document.getElementById('successPopup');
-		successPopup.style.display = 'block';
-		const errorPopup = document.getElementById('errorPopup');
-		errorPopup.style.display = 'none';
-		setTimeout(() => {
-			successPopup.style.display = 'none';
-		}, 3000); // Masquer après 5 secondes
-	}
-	
-	// Fonction pour fermer le pop-up
-	closeSuccessPopup() {
-		document.getElementById('successPopup').style.display = 'none';
-	}
-	
 	// Connecter le WebSocket au chargement de la page
 	dispatch(message) {
 		console.log(message.type)
@@ -473,7 +428,7 @@ export default class MatchmakingView extends BaseView {
 		} else {
 			const errMessage = `Received a message type which has no handler: ${message.type}`;
 			console.error(errMessage);
-			this.error(errMessage);
+			this.errorHandler(errMessage);
 		}
 	}
 

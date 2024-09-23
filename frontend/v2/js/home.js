@@ -48,6 +48,11 @@ async function getUserInfos() {
 	const response = await fetch(`https://${document.location.host}/api/me/`);
 	if (!response.ok) {
 		console.error(`Failed to fetch user informations: status=${response.statusText}`);
+		// console.log(response.status);
+		if (response.status === 401) {
+			logOut();
+			throw (new Error("Seems your auth-token is not valid"));
+		}
 		userInfo.received = false;
 	}
 	Object.assign(userInfo, await response.json());
@@ -55,25 +60,58 @@ async function getUserInfos() {
 }
 
 // Fonction pour afficher le pop-up d'erreur
-function errorHandler(error) {
-	console.log('Error loading view: ', error);
-	document.getElementById('errorMessage').textContent = error;
+function errorHandler(message, attemptReconnect = false) {
+	document.getElementById('errorMessage').textContent =
+		(typeof message === 'object' && message.data !== undefined) ?
+		message.data :
+		message;
+	const successPopup = document.getElementById('successPopup');
+	if (successPopup)
+		successPopup.style.display = 'none';
 	const errorPopup = document.getElementById('errorPopup');
 	errorPopup.style.display = 'block';
-
+	if (!attemptReconnect)
+		this.received_error = true;
 	// Masquer le pop-up après quelques secondes (optionnel)
 	setTimeout(() => {
 		errorPopup.style.display = 'none';
 	}, 5000); // Masquer après 5 secondes
 }
 
+// Fonction pour fermer le pop-up
+function closeErrorPopup() {
+	document.getElementById('errorPopup').style.display = 'none';
+}
+
+// Fonction pour afficher le pop-up de success
+function successHandler(message) {
+	document.getElementById('successMessage').textContent = message;
+	const successPopup = document.getElementById('successPopup');
+	successPopup.style.display = 'block';
+	const errorPopup = document.getElementById('errorPopup');
+	errorPopup.style.display = 'none';
+	setTimeout(() => {
+		successPopup.style.display = 'none';
+	}, 3000); // Masquer après 5 secondes
+}
+
+// Fonction pour fermer le pop-up
+function closeSuccessPopup() {
+	document.getElementById('successPopup').style.display = 'none';
+}
+
+function logOut() {
+	Object.assign(userInfo, defaultUserInfo);
+	document.cookie = 'auth-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+	updateUserMenu();
+	window.location.hash = '#login';
+	// router.navigate('#login');
+}
+
 document.querySelectorAll('.logoutButton').forEach(function (el) {
 	el.addEventListener('click', (e) => {
 		e.preventDefault();
-		Object.assign(userInfo, defaultUserInfo);
-		document.cookie = 'auth-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-		updateUserMenu();
-		router.navigate('#login');
+		logOut();
 	});
 });
 
@@ -90,7 +128,12 @@ router.use((path, next) => {
 //Midleware pour obtenir les informations sur l'utilisateur actif.
 router.use(async (path, next) => {
 	if (userInfo.isAuthenticated && !userInfo.received) {
-		Object.assign(userInfo, await getUserInfos());
+		try {
+			Object.assign(userInfo, await getUserInfos());
+		} catch (error) {
+			this.errorHandler(error);
+			return;
+		}
 		if (userInfo.received)
 			updateUserMenu();
 	}
@@ -105,6 +148,7 @@ router.onRouteChange(async (route) => {
 });
 
 viewManager.setErrorHandler(errorHandler);
+viewManager.setSuccessHandler(successHandler);
 router.setErrorHandler(errorHandler);
 
 // Initialisation du routeur

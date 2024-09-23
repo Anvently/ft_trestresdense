@@ -14,11 +14,12 @@ from matchmaking.common import online_players, lobbies, PlayerStatus
 from matchmaking.lobby import Lobby, LocalMatchLobby, SimpleMatchLobby, TurnamentInitialLobby
 import copy
 # from matchmaking.tournament import Tournament
-
+import copy
 
 
 def verify_jwt(token, is_ttl_based=False, ttl_key="exp"):
 	data = jwt.decode(token, settings.RSA_PUBLIC_KEY, algorithms=["RS512"])
+	print(data)
 	if is_ttl_based:
 		if data[ttl_key] < time.time():
 			raise ValueError("Token expired")
@@ -85,8 +86,7 @@ Status:
 {2, 125.0, 125} -> {3, 125.1 , 125}
 """
 
-def	reset_status(player_id):
-	online_players[player_id] = {'status' : PlayerStatus.NO_LOBBY, 'lobby_id' : None, 'tournament_id': None}
+default_status = {'status' : PlayerStatus.NO_LOBBY, 'lobby_id' : None, 'tournament_id': None}
 
 class Errors(Enum):
 	INVALID_TYPE = 4001
@@ -136,6 +136,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 			except:
 				self.scope['error'] = 'token verification failed'
 				self.scope['error_code'] = Errors.AUTH_ERROR
+				return False
 			return True
 		else:
 			self.scope['error'] = "auth token not provided"
@@ -173,8 +174,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 			self._lobby_id = online_players[self.username]['lobby_id']
 			await self.send_json({"type": "in_game", "game_id": self._lobby_id})
 		else:
-			print(f'USERNAME = {self.username}')
-			online_players[self.username] = {'status': PlayerStatus.NO_LOBBY, 'lobby_id': None, 'tournament_id': None}
+			online_players[self.username] = copy.deepcopy(default_status)
 			await self.channel_layer.group_add(self.username, self.channel_name)
 			await self.channel_layer.group_add(MatchMakingConsumer.matchmaking_group, self.channel_name)
 
@@ -237,7 +237,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		if not self._is_host:
 			await self.send_json(content)
 			await self.channel_layer.group_discard(self._lobby_id, self.channel_name)
-			online_players[self.username] = reset_status(self.username)
+			online_players[self.username] = copy.deepcopy(default_status)
 			await self.channel_layer.group_add(MatchMakingConsumer.matchmaking_group, self.channel_name)
 
 
@@ -249,7 +249,6 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		elif lobbies[target_lobby].started:
 			await self._send_error(msg=f'Can\'t join the lobby {target_lobby}: already started', code=Errors.JOIN_ERROR, close=False)
 		elif self.get_status() == PlayerStatus.IN_LOBBY:
-			print("switching lobby")
 			await self.switch_lobby(target_lobby)
 		elif self.get_status() == PlayerStatus.IN_TURNAMENT_LOBBY:
 			await self._send_error(msg='Already in tournament lobby.', code=Errors.JOIN_ERROR, close=False)
@@ -301,7 +300,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 			lobbies[self._lobby_id].remove_player(self.username)
 			oldId = self._lobby_id
 			self._lobby_id = None
-			online_players[self.username] = reset_status(self.username)
+			online_players[self.username] = copy.deepcopy(default_status)
 			print(f"status reset for {self.username}", online_players)
 			await self.send_lobby_update(oldId)
 			await self.channel_layer.group_add(MatchMakingConsumer.matchmaking_group, self.channel_name)
@@ -385,7 +384,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		await self.channel_layer.group_discard(self._lobby_id, self.channel_name)
 		await self.channel_layer.group_send(self._lobby_id, {'type': 'lobby_canceled'})
 		#!!!!!!May want to unassign every player ??!!!!!
-		online_players[self.username] = reset_status(self.username)
+		online_players[self.username] = copy.deepcopy(default_status)
 		self._lobby_id = None
 		self._is_host = False
 		if self._lobby_id in lobbies:
