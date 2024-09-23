@@ -159,25 +159,20 @@ class BackgroundUpdater {
 		this.usersToUpdate.clear();
 	}
 
-	async fetchUsersBatch(usernames) {
-		try {
-		  const response = await fetch('https://api.example.com/users/batch', {
+	async fetchUsersBatch(users) {
+		const response = await fetch(`https://${window.location.host}/api/users-batch/`, {
 			method: 'POST',
 			headers: {
-			  'Content-Type': 'application/json',
+			'Content-Type': 'application/json',
 			},
-			body: JSON.stringify({ usernames: usernames }),
-		  });
-	  
-		  if (!response.ok) {
+			body: JSON.stringify({ users: [...users] }),
+		});
+	
+		if (!response.ok) {
 			throw new Error(`HTTP error! status: ${response.status}`);
-		  }
-	  
-		  return await response.json();
-		} catch (error) {
-		  console.error('Erreur lors de la récupération des utilisateurs:', error);
-		  throw error;
 		}
+	
+		return await response.json();
 	}
 
 	async fetchUserFromAPI(username) {
@@ -206,16 +201,16 @@ class BackgroundUpdater {
 			});
 		}
 		console.log("updating users:", users);
-		for (const username of users) {
-			try {
-				const updatedInfo = await this.fetchUserFromAPI(username);
-				if (JSON.stringify(updatedInfo) !== JSON.stringify(this.userCache.getUser(username))) {
-					this.userCache.setUser(username, updatedInfo);
-					this.userChangeHandler(username, updatedInfo);
+		try {
+			const receivedInfo = await this.fetchUsersBatch(users);
+			for (const userInfo of receivedInfo) {
+				if (JSON.stringify(userInfo) !== JSON.stringify(this.userCache.getUser(userInfo.username))) {
+					this.userCache.setUser(userInfo.username, userInfo);
+					this.userChangeHandler(userInfo.username, userInfo);
 				}
-			} catch (error) {
-				console.error(`Erreur lors de la mise à jour de ${username}:`, error);
-			}
+			} 
+		} catch (error) {
+			console.error(`Erreur lors de la mise à jour des utilisateurs (${users}):`, error);
 		}
 	}
 

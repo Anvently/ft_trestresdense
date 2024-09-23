@@ -1,6 +1,6 @@
 import { Router } from './router.js';
 import { ViewManager } from './view-manager.js';
-import { UserInfoManager } from './userInfosManager.js';
+import { UserInfoManager } from './user-infos-manager.js';
 
 
 console.log("pouet");

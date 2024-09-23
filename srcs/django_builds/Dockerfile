@@ -4,10 +4,10 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 WORKDIR /code
 COPY ./requirements.txt /code/
-COPY ./start_script.sh /etc/init.d/start_script.sh
-RUN chmod 777 /etc/init.d/start_script.sh
 RUN pip3 install -r requirements.txt
 RUN apt-get install curl
+COPY ./start_script.sh /etc/init.d/start_script.sh
+RUN chmod 777 /etc/init.d/start_script.sh
 CMD ["sh", "/etc/init.d/start_script.sh" ]
 
 FROM django_base AS django_restapi

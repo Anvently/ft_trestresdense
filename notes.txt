@@ -20,3 +20,6 @@ TODO:
 	- generalize errorHandler
 	- ....
 
+TOFIX:
+	- receiving batch user does not update userInfo at once 
+	- 404 return with avatars
