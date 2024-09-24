@@ -1,0 +1,191 @@
+import { BaseView } from '../view-manager.js';
+import { userInfo, userManager } from '../home.js';
+
+export default class ProfileView extends BaseView {
+    constructor() {
+        super('profile-view');
+		this.patchProfileUrl = `https://${window.location.host}/api/users/${userInfo.username}/`;
+		this.patchCredentialsUrl = `https://${window.location.host}/api/auth/me/`;
+		this.isValidUrlAvatar = false;
+		this.defaultAvatarUrl = '/avatars/__default__.jpg';
+    }
+
+    async initView() {
+		this.avatarFile = document.getElementById('avatar');
+		this.avatarUrl = document.getElementById('avatarUrl');
+		this.profileForm = document.getElementById('profileForm');
+		this.securityForm = document.getElementById('securityForm');
+		this.avatarPreview = document.getElementById('avatarPreview');
+		this.resetFormButon = document.getElementById('resetFormButton');
+		this.password = document.getElementById('password');
+		this.confirmPassword = document.getElementById('confirmPassword');
+
+		this.avatarFile.addEventListener('change', (e) => {
+			e.preventDefault();
+			this.onAvatarFileChange(e.target.files[0])
+		});
+		this.avatarUrl.addEventListener('change', (e) => {
+			e.preventDefault();
+			this.onAvatarUrlChange(e.target.value)
+		});
+		this.profileForm.addEventListener('submit', (e) => {
+			e.preventDefault();
+			this.submitUserInfos();
+		});
+		this.securityForm.addEventListener('submit', (e) => {
+			e.preventDefault();
+			this.submitCredentials();
+		});
+		this.resetFormButon.addEventListener('click', (e) => {
+			e.preventDefault();
+			this.resetForm();
+		});
+		this.password.addEventListener('change', (e) => {
+			e.preventDefault();
+			this.onPasswordChange();
+		});
+		this.confirmPassword.addEventListener('change', (e) => {
+			e.preventDefault();
+			this.onPasswordChange();
+		});
+
+		this.resetForm();
+		if (userInfo.username.startsWith('042'))
+			this.disableSecurityForm();
+		else {
+			this.enableSeciurityForm();
+			this.onPasswordChange();
+		}
+		
+	}
+
+	resetForm() {
+		this.avatarFile.value = "";
+		this.avatarUrl.value = "";
+		this.avatarPreview.src = userInfo.avatar + "#" + new Date().getTime();
+		this.profileForm.displayName.value = userInfo.display_name;
+	}
+
+	onPasswordChange() {
+		if (!this.password.value) {
+			this.password.setCustomValidity("Password must be non-empty.")
+		}
+		else if (this.password.value !== this.confirmPassword.value) {
+			this.password.setCustomValidity("");
+			this.confirmPassword.setCustomValidity("Passwords must match.")
+		} else {
+			this.password.setCustomValidity("");
+			this.confirmPassword.setCustomValidity("");
+		}
+	}
+
+	onAvatarFileChange(file) {
+		if (file) {
+			const reader = new FileReader();
+			reader.onload = function(e) {
+				document.getElementById('avatarPreview').src = e.target.result;
+			}
+			reader.readAsDataURL(file);
+		}
+	}
+
+	disableSecurityForm() {
+		const form = document.getElementById('securityForm');
+		const securityMessage = document.querySelector('.security-message');
+		
+		form.classList.add('form-disabled');
+		securityMessage.style.display = 'block';
+		
+		const inputs = form.querySelectorAll('input, button');
+		inputs.forEach(input => input.disabled = true);
+	}
+
+	enableSeciurityForm() {
+		const form = document.getElementById('securityForm');
+		const securityMessage = document.querySelector('.security-message');
+		
+		form.classList.remove('form-disabled');
+		securityMessage.style.display = 'none';
+		
+		const inputs = form.querySelectorAll('input, button');
+		inputs.forEach(input => input.disabled = false);
+	}
+
+	async onAvatarUrlChange(url) {
+		if (url) {	
+			try {
+				const response = await fetch(url, {
+					method: 'HEAD'
+				});
+				if (!response.ok || !response.headers.get('Content-Type').startsWith('image/'))
+					throw new Error('Could not fetch a valid avatar');
+				console.log('this is valid !');
+				if (this.avatarFile.value === "")
+				this.avatarPreview.src = url;
+					this.avatarUrl.setCustomValidity("");
+			} catch (error) {
+				this.avatarUrl.setCustomValidity("Invalid avatar.");
+				if (this.avatarFile.value === "")
+					this.avatarPreview.src = this.defaultAvatarUrl;
+			}
+		} else
+		this.avatarUrl.setCustomValidity("");
+	}
+
+	async submitUserInfos() {
+		console.log('Envoi des données du profil');
+		const formData = new FormData();
+		formData.append("url_avatar", this.avatarUrl.value);
+		formData.append("display_name", this.profileForm.displayName.value);
+		if (this.avatarFile.files[0])
+			formData.append("uploaded_avatar", this.avatarFile.files[0]);
+		try {
+			const response = await fetch(this.patchProfileUrl, {
+				method: 'PATCH',
+				body: formData
+			});
+			if (response.status === 400)
+				throw new Error(Object.entries(await response.json())[0]);
+			if (!response.ok)
+				throw new Error("Failed to updated informations.");
+			Object.assign(userInfo, await response.json());
+			this.resetForm();
+			this.successHandler("Information mises a jour !");
+		} catch (error) {
+			this.errorHandler(error);
+		}
+	}
+
+	async submitCredentials()
+	{
+		console.log('Envoi des données de securite');
+		try {
+			const response = await fetch(this.patchCredentialsUrl, {
+				method: 'PATCH',
+				headers: {'Content-Type': 'application/json',},
+				body: JSON.stringify({
+					username: userInfo.username,
+					email: this.securityForm.email.value,
+					password: this.securityForm.password.value
+				})
+			});
+			if (response.status === 400)
+				throw new Error(Object.entries(await response.json())[0]);
+			if (!response.ok)
+				throw new Error("Failed to updated informations.");
+			this.successHandler("Informations de connexion mises a jour !");
+		} catch (error) {
+			this.errorHandler(error);
+		}
+	}
+
+	async cleanupView() {
+        this.avatarFile.removeEventListener('change', this.onAvatarFileChange);
+		this.avatarUrl.removeEventListener('change', this.onAvatarUrlChange);
+		this.profileForm.removeEventListener('submit', this.submitUserInfos);
+		this.securityForm.removeEventListener('submit', this.submitCredentials);
+		this.resetFormButon.removeEventListener('click', this.resetForm);
+		this.confirmPassword.removeEventListener('click', this.onPasswordChange);
+    }
+
+}

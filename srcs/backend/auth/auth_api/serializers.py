@@ -11,10 +11,11 @@ class UserInfosSerializer(serializers.HyperlinkedModelSerializer):
 	
 	url_avatar = serializers.URLField(max_length=300, allow_blank=True, required=False)
 	display_name = serializers.CharField(max_length=30, allow_blank=True, required=False)
+	password = serializers.CharField(max_length=30, write_only=True, required=True)
 
 	class Meta:
 		model = User
-		fields = ['username', 'password', 'email', 'url_avatar', 'display_name']
+		fields = ['email', 'username', 'url_avatar', 'display_name', 'password']
 		# username = serializers.CharField
 		# email = serializers.EmailField()
 		# password = serializers.CharField()
@@ -32,7 +33,7 @@ class UserInfosSerializer(serializers.HyperlinkedModelSerializer):
 	def update(self, instance, validated_data):
 		if 'email' in validated_data:
 			instance.email = validated_data["email"]
-		instance.email = validated_data["email"]
-		instance.set_password(validated_data["password"])
+		if 'password' in validated_data:
+			instance.set_password(validated_data["password"])
 		instance.save()
 		return instance

@@ -573,7 +573,7 @@ export default class MatchmakingView extends BaseView {
 			el.textContent = userInfo.display_name;
 		});
 		document.querySelectorAll(`.dynamicAvatarUrl.user-${username}`).forEach(el => {
-			el.src = userInfo.avatar;
+			el.src = userInfo.avatar + "#" + new Date().getTime();
 		});
 	}
 

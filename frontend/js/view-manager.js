@@ -53,6 +53,7 @@ export class ViewManager {
             return true;
         } catch (error) {
             this.errorHandler(error);
+            // throw error
             return false;
         }
     }
