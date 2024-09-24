@@ -24,6 +24,14 @@
 		margin-bottom: 20px;
 		}
 
+		@media (min-width: 1600) {
+		.row {
+			max-width: 1600px;
+			margin-left: auto;
+			margin-right: auto;
+		}
+		}
+
 		.table {
 		background-color: #fff;
 		}
@@ -56,12 +64,6 @@
 		flex-direction: row;
 		}
 
-		.side-buttons .btn {
-		margin-bottom: 10px;
-		margin-left: 5px;
-		margin-right: 5px;
-		}
-
 		.btn, .form-control {
 		border-radius: 2px;
 		}
@@ -92,7 +94,7 @@
 
 		th.left, td.left {
 		text-align: left;
-		padding-left: 15px;
+		padding-left: 15px !important;
 		}
 
 		th.center, td.center {
@@ -100,7 +102,7 @@
 		}
 
 		th.right, td.right {
-		padding-right: 15px;
+		padding-right: 15px !important;
 		text-align: right;
 		}
 
@@ -114,6 +116,10 @@
 		padding: 10px 8px;
 		}
 
+		tr.player-ready {
+			background-color: rgb(207, 246, 207);
+		}
+
 		/* Effet de survol simplifié pour tous les tr */
 		.table-hover tbody tr:hover {
 		background-color: #d3d9df;  /* Gris encore plus foncé au survol */
@@ -125,7 +131,6 @@
 <body>
 	<div class="container mt-4" id="mainView">
 		<h1 class="mb-4">Système de Matchmaking</h1>
-
 		<div class="row">
 			<div class="col-md-6">
 				<h2>Lobbies disponibles</h2>
@@ -162,45 +167,52 @@
 				</div>
 			</div>
 		</div>
-
-		<div class="side-buttons mainOptions">
-			<button class="btn btn-primary mainView" data-bs-toggle="modal" data-bs-target="#createLobbyModal">Créer un lobby</button>
-			<button class="btn btn-info mainView" data-bs-toggle="modal" data-bs-target="#joinLobbyModal">Rejoindre un lobby</button>
-			<button id='buttonShowOnlinePlayers'class="btn btn-secondary mainView">Joueurs en ligne</button>
+		<div class="row mt-4">
+			<div class="col-12">
+				<div class="side-buttons">
+					<div class="mainOptions">
+						<button class="btn btn-primary mainView me-2" data-bs-toggle="modal" data-bs-target="#createLobbyModal">Créer un lobby</button>
+						<button class="btn btn-info mainView me-2" data-bs-toggle="modal" data-bs-target="#joinLobbyModal">Rejoindre un lobby</button>
+						<button id='buttonShowOnlinePlayers'class="btn btn-secondary mainView me-2">Joueurs en ligne</button>
+					</div>
+				</div>
+			</div>
 		</div>
 
 	</div>
 
 	<div class="container mt-4 d-none" id="lobbyView">
 		<h1 class="mb-4">Lobby: <span id="lobbyName"></span></h1>
-	
 		<div class="row">
-			<table class="table table-hover">
+			<div class="col-12">
+				<table class="table table-hover">
 				<thead>
 					<tr>
-						<th class="left">Nom du joueur</th>
-						<th class="center">État</th>
-						<th class="right">Action</th>
+					<th class="left">Nom du joueur</th>
+					<th class="center">État</th>
+					<th class="right">Action</th>
 					</tr>
 				</thead>
 				<tbody id="playerList">
 					<!-- Liste des joueurs insérée ici via WebSocket -->
 				</tbody>
-			</table>
+				</table>
+			</div>
 		</div>
-
-		<div class="side-buttons">
-			<div id="hostOptions" class="lobbyView d-none">
-			  <button id='buttonOptionsLobby' class="btn btn-warning">Modifier les options du lobby</button>
-			  <button id="startGameButton" class="btn btn-success">Démarrer le jeu</button>
+		<div class="row mt-4">
+			<div class="col-12">
+				<div class="side-buttons">
+					<div id="hostOptions" class="hostOptions lobbyView d-none">
+						<button id='buttonOptionsLobby' class="btn btn-warning me-2">Modifier les options du lobby</button>
+						<button id="startGameButton" class="btn btn-success">Démarrer le jeu</button>
+					</div>
+					<div class="mainOptions">
+						<button id="inviteFriendsButton" class="btn btn-secondary lobbyView me-2">Inviter des amis</button>
+						<button id="leaveLobbyButton" class="btn btn-danger lobbyView">Quitter le lobby</button>
+					</div>
+				</div>
 			</div>
-			<div class="mainOptions">
-			  <button id="inviteFriendsButton" class="btn btn-secondary lobbyView">Inviter des amis</button>
-			  <button id="beReadyButton" class="btn btn-warning lobbyView">Pret</button>
-			  <button id="leaveLobbyButton" class="btn btn-danger lobbyView">Quitter le lobby</button>
-			</div>
-		  </div>
-
+		</div>
 	</div>
 
 	<!-- Modal pour rejoindre un lobby -->

@@ -36,7 +36,6 @@ export default class MatchmakingView extends BaseView {
 		this.openLobbyOptionsButton.addEventListener('clck', (e) => this.openLobbyOptions());
 		this.startGameButton.addEventListener('click', () => this.startGame());
 		this.inviteFriendsButton.addEventListener('click', () => this.inviteFriends());
-		this.beReadyButton.addEventListener('click', () => this.beReady());
 		this.leaveLobbyButton.addEventListener('click', () => this.leaveLobby());
 		this.joinLobbyButton.addEventListener('click', () => this.joinLobbyById());
 		this.createLobbyButton.addEventListener('click', () => this.createLobby());
@@ -303,6 +302,7 @@ export default class MatchmakingView extends BaseView {
 		});
 
 		const modal = bootstrap.Modal.getInstance(document.getElementById('createLobbyModal'));
+		try {
 			await this.sendMessage({
 				type: 'create_lobby',
 				lobby_type: matchType,
@@ -313,6 +313,9 @@ export default class MatchmakingView extends BaseView {
 				public: (lobbyPrivacy === 'public' ? true : false),
 				allow_spectators: (spectators === 'allowed' ? true: false),
 				lives: nbrLives});
+		} catch (error) {
+			this.errorHandler(error);
+		}
 		this.isHost = true;
 
 
@@ -348,7 +351,7 @@ export default class MatchmakingView extends BaseView {
 	joinLobby(lobbyId) {
 		console.log('Rejoindre le lobby:', lobbyId);
 		// Implémentez la logique pour rejoindre le lobby ici
-		this.sendMessage({ type: 'join_lobby', lobby_id: lobbyId });
+		this.sendMessage({ type: 'join_lobby', lobby_id: lobbyId }).catch((error) => this.errorHandler(error));
 		// this.lobbyId = lobbyId
 		// this.updateCurrentView(lobbyId);
 	}
@@ -356,7 +359,7 @@ export default class MatchmakingView extends BaseView {
 	leaveLobby() {
 		console.log('Quitter le lobby:', this.lobbyId);
 		// socket.sendMessage({ type: 'leave_lobby', lobbyId: lobbyId });
-		this.sendMessage({ type: 'leave_lobby' });
+		this.sendMessage({ type: 'leave_lobby' }).catch((error) => this.errorHandler(error));;
 		this.lobbyId = undefined;
 		this.isHost = false;
 		this.updateCurrentView();
@@ -364,8 +367,7 @@ export default class MatchmakingView extends BaseView {
 
 	lobby_canceled(content)
 	{
-		console.log('lobby_canceled event');
-		console.log(content);
+		this.errorHandler("Lobby got cancelled");
 		this.lobbyId = undefined;
 		this.updateCurrentView();
 	}
@@ -383,25 +385,34 @@ export default class MatchmakingView extends BaseView {
 	lobby_update(message) {
 		const lobbyNameEl = document.getElementById('lobbyName');
 		const playerListEl = document.getElementById('playerList');
-		const hostOptionsEl = document.getElementById('hostOptions');
 	
 		lobbyNameEl.textContent = message.lobbyName;
 		playerListEl.innerHTML = '';  // Vider la liste avant mise à jour
 	
 		Object.entries(message.players).forEach(([playerId, playerData]) => {
-		  this.appendPlayerEntry(playerListEl, playerId, playerData, message.hostId);
+		  this.appendPlayerEntry(playerListEl, playerId, playerData, message.host);
 		});
 	
 		// Gérer les slots libres
-		for (let i = Object.keys(message.players).length; i < message.settings.nbr_players; i++) {
-		  this.appendEmptySlotEntry(playerListEl);
+		let players_len = Object.keys(message.players).length;
+		for (let i = players_len; i < message.settings.nbr_players; i++) {
+		  this.appendEmptySlotEntry(playerListEl, i === players_len);
 		}
 	}
 
 	appendPlayerEntry(tableElement, playerId, playerData, hostId) {
 		const playerRow = document.createElement('tr');
-		const playerState = playerData.is_ready ? 'Prêt' : (playerData.has_joined ? 'A rejoint' : 'N\'a pas encore rejoint');
-		
+		let playerState;
+		if (playerData.is_ready) {
+			playerState = 'Prêt';
+			playerRow.classList.add('player-ready')
+		} else if (playerData.has_joined) {
+			playerState = 'A rejoint';
+		} else {
+			playerState = 'N\'a pas encore rejoint';
+			playerRow.classList.add('text-muted');
+		}
+
 		const nameCell = document.createElement('td');
 		nameCell.classList.add('left');
 		const linkBlock = document.createElement('a');
@@ -442,15 +453,21 @@ export default class MatchmakingView extends BaseView {
 			kickButton.textContent = 'Expulser';
 			kickButton.onclick = () => this.kickPlayer(playerId);
 			actionCell.appendChild(kickButton);
+		} else if (userInfo.username === playerId) {
+			const beReadyButton = document.createElement('button');
+			beReadyButton.className = 'btn btn-warning';
+			beReadyButton.textContent = 'Prêt';
+			beReadyButton.onclick = () => this.beReady(playerId);
+			actionCell.appendChild(beReadyButton);
 		}
 		playerRow.appendChild(actionCell);
 	
 		tableElement.appendChild(playerRow);
 	}
 	
-	appendEmptySlotEntry(tableElement) {
+	appendEmptySlotEntry(tableElement, addButton = false) {
 		const emptySlotRow = document.createElement('tr');
-		emptySlotRow.classList.add('text-muted');
+		emptySlotRow.classList.add('text-muted', 'empty_slot');
 	
 		const nameCell = document.createElement('td');
 		nameCell.classList.add('left');
@@ -464,7 +481,7 @@ export default class MatchmakingView extends BaseView {
 	
 		const actionCell = document.createElement('td');
 		actionCell.classList.add('right');
-		if (this.isHost) {
+		if (this.isHost && addButton) {
 			const addBotButton = document.createElement('button');
 			addBotButton.className = 'btn btn-info';
 			addBotButton.textContent = 'Ajouter un bot';
@@ -486,7 +503,7 @@ export default class MatchmakingView extends BaseView {
 	}
 
 	addBot() {
-		this.sendMessage({ type: 'addBot' });
+		this.sendMessage({ type: 'addBot' }).catch((error) => this.errorHandler(error));
 	}
 
 	openLobbyOptions() {
@@ -502,12 +519,12 @@ export default class MatchmakingView extends BaseView {
 			allowSpectators: document.getElementById('allowSpectators').checked
 		};
 
-		this.sendMessage({ type: 'updateLobbyOptions', options });
+		this.sendMessage({ type: 'updateLobbyOptions', options }).catch((error) => this.errorHandler(error));
 	}
 
 	showOnlinePlayers() {
 		// Demander la liste des joueurs en ligne via WebSocket
-		this.sendMessage({ type: 'getOnlinePlayers' });
+		this.sendMessage({ type: 'getOnlinePlayers' }).catch((error) => this.errorHandler(error));
 	}
 
 	displayOnlinePlayers(players) {
@@ -570,7 +587,6 @@ export default class MatchmakingView extends BaseView {
 		this.openLobbyOptionsButton.removeEventListener('clck', this.openLobbyOptions);
 		this.startGameButton.removeEventListener('click', this.startGame);
 		this.inviteFriendsButton.removeEventListener('click', this.inviteFriends);
-		this.beReadyButton.removeEventListener('click', this.beReady);
 		this.leaveLobbyButton.removeEventListener('click', this.leaveLobby);
 		this.joinLobbyButton.removeEventListener('click', this.joinLobbyById);
 		this.createLobbyButton.removeEventListener('click', this.createLobby);

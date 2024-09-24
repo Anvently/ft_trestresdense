@@ -140,7 +140,8 @@ router.use(async (path, next) => {
 		try {
 			Object.assign(userInfo, await getUserInfos());
 		} catch (error) {
-			this.errorHandler(error);
+			// this.errorHandler(error);
+			throw new Error(error);
 			return;
 		}
 		if (userInfo.received)
