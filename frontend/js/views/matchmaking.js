@@ -166,24 +166,24 @@ export default class MatchmakingView extends BaseView {
 
 		userManager.forceUpdate();
 	}
-	
+
 	appendLobbyEntry(tableElement, id, lobby, isAvailable) {
 		const row = document.createElement('tr');
 		row.id = id;
 		if (lobby.match_type === 'tournament_lobby') {
 		row.classList.add('tournament');
 		}
-	
+
 		const nameCell = document.createElement('td');
 		nameCell.classList.add('left');
 		nameCell.textContent = lobby.name;
 		row.appendChild(nameCell);
-	
+
 		const gameTypeCell = document.createElement('td');
 		gameTypeCell.classList.add('center');
 		gameTypeCell.textContent = lobby.game_type;
 		row.appendChild(gameTypeCell);
-	
+
 		const hostCell = document.createElement('td');
 		hostCell.classList.add('center');
 		const linkBlock = document.createElement('a');
@@ -210,12 +210,12 @@ export default class MatchmakingView extends BaseView {
 		linkBlock.appendChild(hostNameSpan);
 		hostCell.appendChild(linkBlock);
 		row.appendChild(hostCell);
-	
+
 		const slotsCell = document.createElement('td');
 		slotsCell.classList.add('center');
 		slotsCell.textContent = lobby.slots;
 		row.appendChild(slotsCell);
-	
+
 		const actionCell = document.createElement('td');
 		actionCell.classList.add('right');
 		const actionButton = document.createElement('button');
@@ -224,11 +224,11 @@ export default class MatchmakingView extends BaseView {
 		actionButton.textContent = isAvailable ? 'Rejoindre' : 'Observer';
 		actionCell.appendChild(actionButton);
 		row.appendChild(actionCell);
-	
+
 		tableElement.appendChild(row);
 	}
-	
-	
+
+
 	async createLobby() {
 		const form = document.getElementById('createLobbyForm');
 		document.querySelectorAll('.form-errors').forEach(function(el) {
@@ -385,14 +385,14 @@ export default class MatchmakingView extends BaseView {
 	lobby_update(message) {
 		const lobbyNameEl = document.getElementById('lobbyName');
 		const playerListEl = document.getElementById('playerList');
-	
+
 		lobbyNameEl.textContent = message.lobbyName;
 		playerListEl.innerHTML = '';  // Vider la liste avant mise à jour
-	
+
 		Object.entries(message.players).forEach(([playerId, playerData]) => {
 		  this.appendPlayerEntry(playerListEl, playerId, playerData, message.host);
 		});
-	
+
 		// Gérer les slots libres
 		let players_len = Object.keys(message.players).length;
 		for (let i = players_len; i < message.settings.nbr_players; i++) {
@@ -439,12 +439,12 @@ export default class MatchmakingView extends BaseView {
 		linkBlock.appendChild(userNameSpan);
 		nameCell.appendChild(linkBlock);
 		playerRow.appendChild(nameCell);
-	
+
 		const stateCell = document.createElement('td');
 		stateCell.classList.add('center');
 		stateCell.textContent = playerState;
 		playerRow.appendChild(stateCell);
-	
+
 		const actionCell = document.createElement('td');
 		actionCell.classList.add('right');
 		if (this.isHost && playerId !== hostId) {
@@ -461,24 +461,24 @@ export default class MatchmakingView extends BaseView {
 			actionCell.appendChild(beReadyButton);
 		}
 		playerRow.appendChild(actionCell);
-	
+
 		tableElement.appendChild(playerRow);
 	}
-	
+
 	appendEmptySlotEntry(tableElement, addButton = false) {
 		const emptySlotRow = document.createElement('tr');
 		emptySlotRow.classList.add('text-muted', 'empty_slot');
-	
+
 		const nameCell = document.createElement('td');
 		nameCell.classList.add('left');
 		nameCell.textContent = 'Slot libre';
 		emptySlotRow.appendChild(nameCell);
-	
+
 		const stateCell = document.createElement('td');
 		stateCell.classList.add('center');
 		stateCell.textContent = 'En attente';
 		emptySlotRow.appendChild(stateCell);
-	
+
 		const actionCell = document.createElement('td');
 		actionCell.classList.add('right');
 		if (this.isHost && addButton) {
@@ -489,10 +489,10 @@ export default class MatchmakingView extends BaseView {
 			actionCell.appendChild(addBotButton);
 		}
 		emptySlotRow.appendChild(actionCell);
-	
+
 		tableElement.appendChild(emptySlotRow);
 	}
-	
+
 	kickPlayer(playerId) {
 		// socket.sendMessage({ type: 'kickPlayer', playerId: playerId });
 	}
