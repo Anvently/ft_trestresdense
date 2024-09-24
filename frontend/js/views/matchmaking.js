@@ -431,6 +431,7 @@ export default class MatchmakingView extends BaseView {
 			userAvatar.classList.add = (`dynamicAvatarUrl`, `user-${playerId}`);
 			userNameSpan.classList.add = (`dynamicDisplayName`, `user-${playerId}`);
 			userManager.getUserAttr(playerId, 'display_name', playerId).then(displayName => {
+				console.log(`display name is ${displayName}`);
 				userNameSpan.textContent = displayName;
 			});
 			linkBlock.href = `https://${window.location.host}/api/users/${playerId}/`;
@@ -498,7 +499,100 @@ export default class MatchmakingView extends BaseView {
 	}
 
 	inviteFriends() {
-		// Afficher la modale pour inviter des amis
+		this.sendMessage({'type' : 'get_invite_list'}, 1000)
+		.then ((message) => {
+			console.log(`got an answer ${message}`);
+			console.log(message);
+			const friends = message.players;
+			this.displayFriends(friends);
+		})
+		.catch (error => this.errorHandler(error));
+	}
+
+
+	inviteFriend(friend_id)
+	{
+		this.sendMessage({"type": "invite_player", "invite_id" : friend_id});
+	}
+
+	be_invited(message)
+	{
+		console.log(message);
+		const invite = document.getElementById('invitation');
+		invite.innerHTML = "";
+		let inviting_player = message.invite_from;
+		const lobby_id = message.lobby_id;
+		const invitation = document.createElement('div');
+		// invitation.style.backgroundImage = url("/assets/__duel__");
+		// invitation.style.backgroundSize = 'contain'
+		// invitation.style.backgroundRepeat = "no-repeat";
+		// invitation.style.backgroundPosition = 'center';
+		const inviteText = document.createElement('p');
+		inviteText.style.textAlign = "center";
+		userManager.getUserAttr(inviting_player, 'display_name', inviting_player).then(displayName =>{
+			inviting_player = displayName;
+		})
+		inviteText.textContent = `${inviting_player} wants to challenge you!`;
+		invitation.appendChild(inviteText);
+
+
+		const joinButton = document.createElement('button');
+		joinButton.style.position = "center";
+		joinButton.className = "btn btn-success";
+		joinButton.textContent = "Join Game";
+		joinButton.onclick = () => this.joinLobby(lobby_id);
+		invitation.appendChild(joinButton);
+		invite.appendChild(invitation);
+		new bootstrap.Modal(document.getElementById('receiveInvitation')).show();
+	}
+
+	appendFriendEntry(tableElement, player_id)
+	{
+		// on cree une nouvelle ligne pour y inserer l'ami
+		const friendRow = document.createElement('tr');
+		// on cree une nouvelle cellule pour y inscrire le pseudo du joueur et son avatar
+		const nameCell = document.createElement('td');
+		nameCell.classList.add('left');
+		const linkBlock = document.createElement('a');
+		linkBlock.classList.add('user-link', 'd-flex', 'align-items-center', 'text-decoration-none');
+		const userAvatar = document.createElement('img');
+		userAvatar.classList.add('rounded-circle', 'me-2');
+		const userNameSpan = document.createElement('span');
+		userManager.getUserAttr(player_id, 'avatar', "/avatars/__default__.jpg").then(url =>
+		{
+			userAvatar.src = url;
+		});
+		userAvatar.classList.add = (`dynamicAvatarUrl`, `user-${player_id}`);
+		userNameSpan.classList.add(`dynamicDisplayName`, `user-${player_id}`);
+		userManager.getUserAttr(player_id, 'display_name', player_id).then(displayName => {
+			userNameSpan.textContent = displayName;
+		});
+		linkBlock.href = `https://${window.location.host}/api/users/${player_id}/`;
+		linkBlock.appendChild(userAvatar);
+		linkBlock.appendChild(userNameSpan);
+		nameCell.appendChild(linkBlock);
+		friendRow.appendChild(nameCell);
+
+		const buttonCell = document.createElement('td');
+		buttonCell.classList.add('center');
+		const inviteButton = document.createElement('button');
+		inviteButton.className = "btn btn-primary";
+		inviteButton.textContent = "Invite";
+		inviteButton.onclick = () => this.inviteFriend(player_id);
+		buttonCell.appendChild(inviteButton);
+		friendRow.appendChild(buttonCell);
+
+		tableElement.appendChild(friendRow);
+	}
+
+	displayFriends(friends)
+	{
+		const friendList = document.getElementById('friendList');
+		friendList.innerHTML = '';
+
+		friends.forEach(friend_id => {
+			this.appendFriendEntry(friendList, friend_id);
+		});
 		new bootstrap.Modal(document.getElementById('inviteFriendsModal')).show();
 	}
 
