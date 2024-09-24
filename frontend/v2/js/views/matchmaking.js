@@ -399,7 +399,8 @@ export default class MatchmakingView extends BaseView {
 
 	showOnlinePlayers() {
 		// Demander la liste des joueurs en ligne via WebSocket
-		this.sendMessage({ type: 'getOnlinePlayers' });
+		
+		this.sendMessage({ type: 'get_online_players' });
 	}
 
 	displayOnlinePlayers(players) {
