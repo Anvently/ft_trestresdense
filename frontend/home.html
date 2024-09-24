@@ -1,38 +1,121 @@
-<!-- <!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="fr">
 <head>
-	<title>My first SPA website</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plus2Chicos</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        #content {
+            margin-top: 70px;
+        }
+
+        #userMenu .btn {
+            background-color: transparent; /* Supprime l'arrière-plan du bouton */
+            border: none; /* Supprime les bordures du bouton */
+        }
+
+        #userMenu .dropdown-toggle::after {
+            display: none; /* Supprime la flèche flottante à droite */
+        }
+
+        #userAvatar {
+            transition: all 0.3s ease-in-out;
+        }
+
+        #userAvatar:hover {
+            transform: scale(1.1); /* Agrandir légèrement l'avatar au survol */
+        }
+
+        .dropdown-menu {
+            border-radius: 10px; /* Coins arrondis du menu */
+            padding: 10px 0; /* Espacement interne pour plus de respirabilité */
+        }
+
+        .dropdown-item {
+            padding: 10px 20px; /* Plus d'espace pour les éléments du menu */
+            transition: background-color 0.3s;
+        }
+
+        .dropdown-item:hover {
+            background-color: #f8f9fa; /* Couleur de fond au survol */
+        }
+
+        .dropdown-item.text-danger {
+            font-weight: bold;
+        }
+
+        .dropdown-menu.dropdown-menu-end {
+            margin-top: 10px;
+        }
+
+        /* Cacher le menu utilisateur par défaut (par Bootstrap via d-none) */
+        .userOption.d-none {
+            display: none !important;
+        }
+
+    </style>
 </head>
 <body>
-	<nav>
-		<a id="home" onclick="navigate('home')">Home</a>
-		<a id="about" onclick="navigate('cheval_canard')">Cheval-Canard</a>
-		<a id="contact" onclick="navigate('contact')">Contact</a>
-	</nav>
-	<div id= "mainContainer">
+    <div id="errorPopup" class="alert alert-danger alert-dismissible fade show" role="alert" style="position: fixed; top: 20px; left: 50%; transform: translateX(-50%); display: none; z-index: 1050;">
+		<span id="errorMessage"></span>
+		<button type="button" class="btn-close" aria-label="Close" onclick="closeErrorPopup()"></button>
 	</div>
+    <div id="successPopup" class="alert alert-success alert-dismissible fade show" onclick="closeSuccessPopup()" role="alert" style="position: fixed; top: 20px; left: 50%; transform: translateX(-50%); display: none; z-index: 1050;">
+		<span id="successMessage"></span>
+		<button type="button" class="btn-close" aria-label="Close"></button>
+	</div>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top">
+        <div id='menu' class="container-fluid">
+            <a class="navbar-brand" href="#">SPA Jeux</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Matchmaking</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#stats">Statistiques</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#about">À propos</a>
+                    </li>
+                    <!-- Options du menu utilisateur en mode mobile -->
+                    <li class="nav-item d-lg-none userOption"> <!-- Visible uniquement sur mobile -->
+                        <a class="nav-link" href="#profile">Profil</a>
+                    </li>
+                    <li class="nav-item d-lg-none userOption"> <!-- Visible uniquement sur mobile -->
+                        <a class="nav-link text-danger logoutButton" href="#">Déconnexion</a>
+                    </li>
+                </ul>
+    
+                <!-- Menu utilisateur pour desktop -->
+                <div id="userMenu" class="dropdown d-none d-lg-block"> <!-- Masqué en mobile -->
+                    <button class="btn p-0" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+                        <img id='userAvatar' src="/avatars/__default__.jpg" alt="Avatar" width="40" height="40" class="rounded-circle border border-light shadow-sm">
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0" aria-labelledby="dropdownMenuButton">
+                        <li><a class="dropdown-item" href="#profile">Profil</a></li>
+                        <li><a class="dropdown-item text-danger logoutButton" href="#">Déconnexion</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
 
-	<script src="index.js"></script>
+    <div id="content">
+        <!-- Le contenu dynamique sera chargé ici -->
+    </div> 
+
+    <footer class="bg-light text-center text-lg-start mt-4">
+        <div class="text-center p-3">
+            © 2024 Plateforme de Jeux en Ligne
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+	<script type="module" src='/js/home.js'></script>
 </body>
-</html> -->
-
-<!DOCTYPE html>
-<html lang="en">
-	<head>
-		<title>My first SPA website</title>
-	</head>
-	<body>
-		<nav>
-			<ul>
-				<li><a href="/" onclick="router(event)">Home</a></li>
-				<li><a href="/cheval_canard" onclick="router(event)">Cheval-Canard</a></li>
-				<li><a href="/contact" onclick="router(event)">Contact</a></li>
-			</ul>
-		</nav>
-
-		<div id= "mainContainer">
-		</div>
-	
-		<script src="router.js"></script>
-	</body>
-	</html>
+</html>

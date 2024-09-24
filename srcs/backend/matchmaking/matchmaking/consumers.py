@@ -196,14 +196,16 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 			status = online_players[self.username]['status']
 			if status == PlayerStatus.IN_LOBBY:
 				if self._is_host == True:
-					await self.cancel_lobby(self._lobby_id)
+					await self.cancel_lobby()
 				else:
 					lobbies[self._lobby_id].remove_player(self.username)
-				await self.channel_layer.group_discard(self._lobby_id, self.channel_name)
+					await self.channel_layer.group_discard(self._lobby_id, self.channel_name)
+					await self.send_lobby_update(self._lobby_id)
+					self._lobby_id = None
 			del online_players[self.username]
-		await self.send_general_update()
 		await self.channel_layer.group_discard(self.username, self.channel_name)
 		await self.channel_layer.group_discard(MatchMakingConsumer.matchmaking_group, self.channel_name)
+		await self.send_general_update()
 
 	async def send_json(self, content, close=False):
 		if self._messageId != None:
@@ -295,6 +297,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 			return
 		if self._is_host == True:
 			await self.cancel_lobby()
+			await self.send_general_update()
 		else:
 			await self.channel_layer.group_discard(self._lobby_id, self.channel_name)
 			lobbies[self._lobby_id].remove_player(self.username)
@@ -394,7 +397,6 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		self._lobby_id = None
 		self._is_host = False
 		print(f'online player after cancel_lobby {online_players}')
-		await self.send_general_update()
 
 	async def send_general_update(self):
 		data = await self.generate_update_data()

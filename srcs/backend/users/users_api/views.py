@@ -85,3 +85,18 @@ class ApiUserView(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.Destr
 	lookup_field = "username"
 	queryset = User.objects.all()
 	serializer_class = UserCreationSerializer
+
+class BatchUsersView(APIView):
+	parser_classes = [JSONParser,]
+
+	def post(self, request, *args, **kwargs):
+		user_ids = request.data.get('users', [])
+		
+		if not user_ids or not isinstance(user_ids, list):
+			return Response({'error': 'users is required and should be a list'}, status=status.HTTP_400_BAD_REQUEST)
+
+		users = User.objects.filter(username__in=user_ids)
+
+		serializer = UserSerializer(users, many=True)
+
+		return Response(serializer.data, status=status.HTTP_200_OK)

@@ -331,6 +331,7 @@ class PongLobby3D(PongLobby):
 
 
 	def generate_JSON(self) -> Dict[str, Any]:
+		# print("generate JSON")
 		json = {
 			"type": "send_game_state",
 			"ball_x": self.ball["x"],

@@ -1,5 +1,5 @@
 import { BaseView } from '../view-manager.js';
-import { userInfo } from '../home.js'
+import { userInfo, userManager } from '../home.js'
 
 export default class MatchmakingView extends BaseView {
     constructor() {
@@ -36,13 +36,14 @@ export default class MatchmakingView extends BaseView {
 		this.openLobbyOptionsButton.addEventListener('clck', (e) => this.openLobbyOptions());
 		this.startGameButton.addEventListener('click', () => this.startGame());
 		this.inviteFriendsButton.addEventListener('click', () => this.inviteFriends());
-		this.beReadyButton.addEventListener('click', () => this.beReady());
 		this.leaveLobbyButton.addEventListener('click', () => this.leaveLobby());
 		this.joinLobbyButton.addEventListener('click', () => this.joinLobbyById());
 		this.createLobbyButton.addEventListener('click', () => this.createLobby());
 		this.saveLobbyOptionsButton.addEventListener('click', () => this.saveLobbyOptions());
 
 		document.getElementById('lobbyNameCreation').value = `${userInfo.display_name}'s lobby`;
+
+		userManager.setDynamicUpdateHandler(this.updateUserInfos);
 
 	}
 
@@ -114,13 +115,14 @@ export default class MatchmakingView extends BaseView {
 				return;
 			}
 			try {
-				this.socket.send(JSON.stringify(message));
 				if (timeout === 0) {
+					this.socket.send(JSON.stringify(message));
 					resolve();
 					return;
 				}
 				const id = this.messageId++;
 				message.id = id;
+				this.socket.send(JSON.stringify(message));
 				const timeoutId = setTimeout(() => {
 				if (this.messageQueue.has(id)) {
 					this.messageQueue.delete(id);
@@ -134,17 +136,15 @@ export default class MatchmakingView extends BaseView {
 		});
 	}
 
-    general_update(message) {
+	general_update(message) {
 		const availableLobbiesEl = document.querySelector('#availableLobbies tbody');
 		const ongoingMatchesEl = document.querySelector('#ongoingMatches tbody');
-
 		availableLobbiesEl.innerHTML = '';
 		ongoingMatchesEl.innerHTML = '';
 
 		message.availableLobbies.forEach(lobby => {
 			const [id, obj] = Object.entries(lobby)[0];
-			availableLobbiesEl.insertAdjacentHTML('beforeend', this.createLobbyHTML(id, obj, true));
-
+			this.appendLobbyEntry(availableLobbiesEl, id, obj, true);
 			const joinButton = document.getElementById(`joinLobbyButton-${id}`);
 			if (joinButton) {
 				joinButton.addEventListener('click', () => {
@@ -155,8 +155,7 @@ export default class MatchmakingView extends BaseView {
 
 		message.ongoingMatches.forEach(match => {
 			const [id, obj] = Object.entries(match)[0];
-			ongoingMatchesEl.insertAdjacentHTML('beforeend', this.createLobbyHTML(id, obj, false));
-
+			this.appendLobbyEntry(ongoingMatchesEl, id, obj, false);
 			const spectateButton = document.getElementById(`spectateLobbyButton-${id}`);
 			if (spectateButton) {
 				spectateButton.addEventListener('click', () => {
@@ -164,26 +163,71 @@ export default class MatchmakingView extends BaseView {
 				});
 			}
 		});
+
+		userManager.forceUpdate();
 	}
 
+	appendLobbyEntry(tableElement, id, lobby, isAvailable) {
+		const row = document.createElement('tr');
+		row.id = id;
+		if (lobby.match_type === 'tournament_lobby') {
+		row.classList.add('tournament');
+		}
 
-	createLobbyHTML(id, lobby, isAvailable) {
-		// console.log(id)
-		const tournamentClass = lobby.match_type == 'tournament_lobby' ? 'tournament' : '';
-		const actionButton = isAvailable
-			? `<button class="btn btn-sm btn-primary" id="joinLobbyButton-${id}">Rejoindre</button>`
-			: `<button class="btn btn-sm btn-secondary" id="spectateLobbyButton-${id}"">Observer</button>`;
+		const nameCell = document.createElement('td');
+		nameCell.classList.add('left');
+		nameCell.textContent = lobby.name;
+		row.appendChild(nameCell);
 
-		return `
-			<tr class="${tournamentClass}" id="${id}">
-				<td>${lobby.name}</td>
-				<td>${lobby.game_type}</td>
-				<td>${lobby.host}</td>
-				<td>${lobby.slots}</td>
-				<td>${actionButton}</td>
-			</tr>
-		`;
+		const gameTypeCell = document.createElement('td');
+		gameTypeCell.classList.add('center');
+		gameTypeCell.textContent = lobby.game_type;
+		row.appendChild(gameTypeCell);
+
+		const hostCell = document.createElement('td');
+		hostCell.classList.add('center');
+		const linkBlock = document.createElement('a');
+		linkBlock.classList.add('user-link', 'd-flex', 'align-items-center', 'text-decoration-none');
+		const hostAvatar = document.createElement('img');
+		hostAvatar.classList.add('rounded-circle', 'me-2');
+		const hostNameSpan = document.createElement('span');
+		if (!lobby.host || lobby.host[0] === '!') {
+			hostAvatar.src = "/avatars/__bot__.png";
+			hostNameSpan.textContent = "Bot";
+			linkBlock.href =  "javascript:void(0)";
+		} else {
+			userManager.getUserAttr(lobby.host, 'avatar', "/avatars/__default__.jpg").then(url => {
+				hostAvatar.src = url;
+			});
+			hostAvatar.classList.add(`dynamicAvatarUrl`, `user-${lobby.host}`);
+			hostNameSpan.classList.add(`dynamicDisplayName`, `user-${lobby.host}`);
+			userManager.getUserAttr(lobby.host, 'display_name', lobby.host).then(displayName => {
+				hostNameSpan.textContent = displayName;
+			});
+			linkBlock.href = `https://${window.location.host}/api/users/${lobby.host}/`;
+		}
+		linkBlock.appendChild(hostAvatar);
+		linkBlock.appendChild(hostNameSpan);
+		hostCell.appendChild(linkBlock);
+		row.appendChild(hostCell);
+
+		const slotsCell = document.createElement('td');
+		slotsCell.classList.add('center');
+		slotsCell.textContent = lobby.slots;
+		row.appendChild(slotsCell);
+
+		const actionCell = document.createElement('td');
+		actionCell.classList.add('right');
+		const actionButton = document.createElement('button');
+		actionButton.className = isAvailable ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-secondary';
+		actionButton.id = isAvailable ? `joinLobbyButton-${id}` : `spectateLobbyButton-${id}`;
+		actionButton.textContent = isAvailable ? 'Rejoindre' : 'Observer';
+		actionCell.appendChild(actionButton);
+		row.appendChild(actionCell);
+
+		tableElement.appendChild(row);
 	}
+
 
 	async createLobby() {
 		const form = document.getElementById('createLobbyForm');
@@ -258,6 +302,7 @@ export default class MatchmakingView extends BaseView {
 		});
 
 		const modal = bootstrap.Modal.getInstance(document.getElementById('createLobbyModal'));
+		try {
 			await this.sendMessage({
 				type: 'create_lobby',
 				lobby_type: matchType,
@@ -268,6 +313,9 @@ export default class MatchmakingView extends BaseView {
 				public: (lobbyPrivacy === 'public' ? true : false),
 				allow_spectators: (spectators === 'allowed' ? true: false),
 				lives: nbrLives});
+		} catch (error) {
+			this.errorHandler(error);
+		}
 		this.isHost = true;
 
 
@@ -279,7 +327,9 @@ export default class MatchmakingView extends BaseView {
 	joinLobbyById() {
 		const lobbyId = document.getElementById('lobbyIdInput').value;
 		console.log('Rejoindre le lobby avec l\'ID:', lobbyId);
-		// Implémentez la logique pour rejoindre le lobby ici
+		this.joinLobby(lobbyId);
+		const modal = bootstrap.Modal.getInstance(document.getElementById('joinLobbyModal'));
+		modal.hide();
 	}
 
 	updateCurrentView() {
@@ -301,7 +351,7 @@ export default class MatchmakingView extends BaseView {
 	joinLobby(lobbyId) {
 		console.log('Rejoindre le lobby:', lobbyId);
 		// Implémentez la logique pour rejoindre le lobby ici
-		this.sendMessage({ type: 'join_lobby', lobby_id: lobbyId });
+		this.sendMessage({ type: 'join_lobby', lobby_id: lobbyId }).catch((error) => this.errorHandler(error));
 		// this.lobbyId = lobbyId
 		// this.updateCurrentView(lobbyId);
 	}
@@ -309,7 +359,7 @@ export default class MatchmakingView extends BaseView {
 	leaveLobby() {
 		console.log('Quitter le lobby:', this.lobbyId);
 		// socket.sendMessage({ type: 'leave_lobby', lobbyId: lobbyId });
-		this.sendMessage({ type: 'leave_lobby' });
+		this.sendMessage({ type: 'leave_lobby' }).catch((error) => this.errorHandler(error));;
 		this.lobbyId = undefined;
 		this.isHost = false;
 		this.updateCurrentView();
@@ -317,8 +367,7 @@ export default class MatchmakingView extends BaseView {
 
 	lobby_canceled(content)
 	{
-		console.log('lobby_canceled event');
-		console.log(content);
+		this.errorHandler("Lobby got cancelled");
 		this.lobbyId = undefined;
 		this.updateCurrentView();
 	}
@@ -336,36 +385,112 @@ export default class MatchmakingView extends BaseView {
 	lobby_update(message) {
 		const lobbyNameEl = document.getElementById('lobbyName');
 		const playerListEl = document.getElementById('playerList');
-		const hostOptionsEl = document.getElementById('hostOptions');
 
 		lobbyNameEl.textContent = message.lobbyName;
 		playerListEl.innerHTML = '';  // Vider la liste avant mise à jour
 
-		Object.entries(message.players).forEach(player => {
-			const playerRow = document.createElement('tr');
-			const playerState = player[1].is_ready ? 'Prêt' : (player[1].has_joined ? 'A rejoint' : 'N\'a pas encore rejoint');
-			playerRow.innerHTML = `
-				<td>${player[0]}</td>
-				<td>${playerState}</td>
-				<td>
-					${this.isHost && player.id !== message.hostId ? `<button class="btn btn-danger" onclick="kickPlayer('${player.id}')">Expulser</button>` : ''}
-				</td>
-			`;
-			playerListEl.appendChild(playerRow);
+		Object.entries(message.players).forEach(([playerId, playerData]) => {
+		  this.appendPlayerEntry(playerListEl, playerId, playerData, message.host);
 		});
 
 		// Gérer les slots libres
-		for (let i = message.players.length; i < message.maxSlots; i++) {
-			const emptySlotRow = document.createElement('tr');
-			emptySlotRow.classList.add('text-muted');
-			emptySlotRow.innerHTML = `
-				<td>Slot libre</td>
-				<td>En attente</td>
-				<td>${isHost ? `<button class="btn btn-info" onclick="addBot()">Ajouter un bot</button>` : ''}</td>
-			`;
-			playerListEl.appendChild(emptySlotRow);
+		let players_len = Object.keys(message.players).length;
+		for (let i = players_len; i < message.settings.nbr_players; i++) {
+		  this.appendEmptySlotEntry(playerListEl, i === players_len);
+		}
+	}
+
+	appendPlayerEntry(tableElement, playerId, playerData, hostId) {
+		const playerRow = document.createElement('tr');
+		let playerState;
+		if (playerData.is_ready) {
+			playerState = 'Prêt';
+			playerRow.classList.add('player-ready')
+		} else if (playerData.has_joined) {
+			playerState = 'A rejoint';
+		} else {
+			playerState = 'N\'a pas encore rejoint';
+			playerRow.classList.add('text-muted');
 		}
 
+		const nameCell = document.createElement('td');
+		nameCell.classList.add('left');
+		const linkBlock = document.createElement('a');
+		linkBlock.classList.add('user-link', 'd-flex', 'align-items-center', 'text-decoration-none');
+		const userAvatar = document.createElement('img');
+		userAvatar.classList.add('rounded-circle', 'me-2');
+		const userNameSpan = document.createElement('span');
+		if (playerId[0] === '!') {
+			userAvatar.src = "/avatars/__bot__.png";
+			userNameSpan.textContent = "Bot";
+			linkBlock.href =  "javascript:void(0)";
+		} else {
+			userManager.getUserAttr(playerId, 'avatar', "/avatars/__default__.jpg").then(url => {
+				userAvatar.src = url;
+			});
+			userAvatar.classList.add = (`dynamicAvatarUrl`, `user-${playerId}`);
+			userNameSpan.classList.add = (`dynamicDisplayName`, `user-${playerId}`);
+			userManager.getUserAttr(playerId, 'display_name', playerId).then(displayName => {
+				userNameSpan.textContent = displayName;
+			});
+			linkBlock.href = `https://${window.location.host}/api/users/${playerId}/`;
+		}
+		linkBlock.appendChild(userAvatar);
+		linkBlock.appendChild(userNameSpan);
+		nameCell.appendChild(linkBlock);
+		playerRow.appendChild(nameCell);
+
+		const stateCell = document.createElement('td');
+		stateCell.classList.add('center');
+		stateCell.textContent = playerState;
+		playerRow.appendChild(stateCell);
+
+		const actionCell = document.createElement('td');
+		actionCell.classList.add('right');
+		if (this.isHost && playerId !== hostId) {
+			const kickButton = document.createElement('button');
+			kickButton.className = 'btn btn-danger';
+			kickButton.textContent = 'Expulser';
+			kickButton.onclick = () => this.kickPlayer(playerId);
+			actionCell.appendChild(kickButton);
+		} else if (userInfo.username === playerId) {
+			const beReadyButton = document.createElement('button');
+			beReadyButton.className = 'btn btn-warning';
+			beReadyButton.textContent = 'Prêt';
+			beReadyButton.onclick = () => this.beReady(playerId);
+			actionCell.appendChild(beReadyButton);
+		}
+		playerRow.appendChild(actionCell);
+
+		tableElement.appendChild(playerRow);
+	}
+
+	appendEmptySlotEntry(tableElement, addButton = false) {
+		const emptySlotRow = document.createElement('tr');
+		emptySlotRow.classList.add('text-muted', 'empty_slot');
+
+		const nameCell = document.createElement('td');
+		nameCell.classList.add('left');
+		nameCell.textContent = 'Slot libre';
+		emptySlotRow.appendChild(nameCell);
+
+		const stateCell = document.createElement('td');
+		stateCell.classList.add('center');
+		stateCell.textContent = 'En attente';
+		emptySlotRow.appendChild(stateCell);
+
+		const actionCell = document.createElement('td');
+		actionCell.classList.add('right');
+		if (this.isHost && addButton) {
+			const addBotButton = document.createElement('button');
+			addBotButton.className = 'btn btn-info';
+			addBotButton.textContent = 'Ajouter un bot';
+			addBotButton.onclick = () => this.addBot();
+			actionCell.appendChild(addBotButton);
+		}
+		emptySlotRow.appendChild(actionCell);
+
+		tableElement.appendChild(emptySlotRow);
 	}
 
 	kickPlayer(playerId) {
@@ -378,7 +503,7 @@ export default class MatchmakingView extends BaseView {
 	}
 
 	addBot() {
-		this.sendMessage({ type: 'addBot' });
+		this.sendMessage({ type: 'addBot' }).catch((error) => this.errorHandler(error));
 	}
 
 	openLobbyOptions() {
@@ -394,13 +519,12 @@ export default class MatchmakingView extends BaseView {
 			allowSpectators: document.getElementById('allowSpectators').checked
 		};
 
-		this.sendMessage({ type: 'updateLobbyOptions', options });
+		this.sendMessage({ type: 'updateLobbyOptions', options }).catch((error) => this.errorHandler(error));
 	}
 
 	showOnlinePlayers() {
 		// Demander la liste des joueurs en ligne via WebSocket
-		
-		this.sendMessage({ type: 'get_online_players' });
+		this.sendMessage({ type: 'getOnlinePlayers' }).catch((error) => this.errorHandler(error));
 	}
 
 	displayOnlinePlayers(players) {
@@ -433,7 +557,9 @@ export default class MatchmakingView extends BaseView {
 	// Connecter le WebSocket au chargement de la page
 	dispatch(message) {
 		console.log(message.type)
-		if (typeof this[message.type] === "function") {
+		if (message.type === 'error')
+			this.errorHandler(message);
+		else if (typeof this[message.type] === "function") {
 			this[message.type](message);
 		} else {
 			const errMessage = `Received a message type which has no handler: ${message.type}`;
@@ -442,18 +568,25 @@ export default class MatchmakingView extends BaseView {
 		}
 	}
 
+	updateUserInfos(username, userInfo) {
+		document.querySelectorAll(`.dynamicDisplayName.user-${username}`).forEach(el => {
+			el.textContent = userInfo.display_name;
+		});
+		document.querySelectorAll(`.dynamicAvatarUrl.user-${username}`).forEach(el => {
+			el.src = userInfo.avatar;
+		});
+	}
+
     cleanupView() {
         if (this.socket) {
 			this.received_error = true;
             this.socket.close();
         }
 
-		this.closeErrorButton.removeEventListener('click', this.closeErrorPopup);
 		this.showOnlinePLayersButton.removeEventListener('click', this.showOnlinePlayers);
 		this.openLobbyOptionsButton.removeEventListener('clck', this.openLobbyOptions);
 		this.startGameButton.removeEventListener('click', this.startGame);
 		this.inviteFriendsButton.removeEventListener('click', this.inviteFriends);
-		this.beReadyButton.removeEventListener('click', this.beReady);
 		this.leaveLobbyButton.removeEventListener('click', this.leaveLobby);
 		this.joinLobbyButton.removeEventListener('click', this.joinLobbyById);
 		this.createLobbyButton.removeEventListener('click', this.createLobby);

@@ -1,6 +1,9 @@
 import { Router } from './router.js';
-// import { AuthService } from './js/services/auth-service.js';
 import { ViewManager } from './view-manager.js';
+import { UserInfoManager } from './user-infos-manager.js';
+
+
+console.log("pouet");
 
 const router = new Router();
 const viewManager = new ViewManager(document.getElementById('content'));
@@ -12,10 +15,11 @@ const defaultUserInfo = {
 		return document.cookie.includes('auth-token');
 	}, 
 	received: false,
-	avatar: "https://localhost:8083/avatars/default.jpg",
+	avatar: "https://localhost:8083/avatars/__default__.jpg",
 	display_name: "Anonymous",
 	username: "anonymous"
 };
+
 export const userInfo = defaultUserInfo;
 
 // Définition des routes
@@ -26,6 +30,11 @@ router.addRoute('#about', './views/about.js', 'html/about.html');
 router.addRoute('#stats', './views/stats.js', 'html/stats.html');
 router.addRoute('#pong2d', './views/pong2d.js', 'html/pong2d.html');
 router.addRoute('#pong3d', './views/pong3d.js', 'html/pong3d.html');
+
+export const userManager = new UserInfoManager(3600000, 300000, 3000);
+
+userManager.startBackgroundRefresh();
+
 
 // Gestion de l'authentification
 function updateUserMenu() {
@@ -131,7 +140,8 @@ router.use(async (path, next) => {
 		try {
 			Object.assign(userInfo, await getUserInfos());
 		} catch (error) {
-			this.errorHandler(error);
+			// this.errorHandler(error);
+			throw new Error(error);
 			return;
 		}
 		if (userInfo.received)

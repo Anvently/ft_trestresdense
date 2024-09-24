@@ -6,66 +6,131 @@
 	<title>Système de Matchmaking</title>
 	<style>
 		body {
-			background-color: #f8f9fa;
-			height: 100vh;
-			display: flex;
-			flex-direction: column;
+		background-color: #f8f9fa;
+		height: 100vh;
+		display: flex;
+		flex-direction: column;
 		}
+
 		.container {
-			flex-grow: 1;
-			display: flex;
-			flex-direction: column;
+		flex-grow: 1;
+		display: flex;
+		flex-direction: column;
 		}
+
 		.lobby-list {
-			flex-grow: 1;
-			overflow-y: auto;
-			margin-bottom: 20px;
+		flex-grow: 1;
+		overflow-y: auto;
+		margin-bottom: 20px;
 		}
-		.table {
-			background-color: #fff;
-		}
-		.table-hover tbody tr:hover {
-			background-color: #f5f5f5;
-		}
-		.tournament {
-			border-left: 5px solid #ffc107;
-		}
-		.side-buttons {
-			display: flex;
-			flex-direction: row;
-			justify-content: space-between;
-			margin-top: 20px;
-			align-items: flex-end;
-		}
-		#hostOptions {
-			/* margin-right: 50px; */
-			display: flex;
-			margin-right: auto;
-			flex-direction: row;
-		}
-		.mainOptions {
-			display: flex;
+
+		@media (min-width: 1600) {
+		.row {
+			max-width: 1600px;
 			margin-left: auto;
-			flex-direction: row;
+			margin-right: auto;
 		}
-		.side-buttons .btn {
-			margin-bottom: 10px;
-			margin-left: 5px;
-			margin-right:5px;
 		}
+
+		.table {
+		background-color: #fff;
+		}
+
+		.table-hover tbody tr:hover {
+		background-color: #f5f5f5;
+		}
+
+		.tournament {
+		border-left: 5px solid #ffc107;
+		}
+
+		.side-buttons {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		margin-top: 20px;
+		align-items: flex-end;
+		}
+
+		#hostOptions {
+		display: flex;
+		margin-right: auto;
+		flex-direction: row;
+		}
+
+		.mainOptions {
+		display: flex;
+		margin-left: auto;
+		flex-direction: row;
+		}
+
 		.btn, .form-control {
-			border-radius: 2px;
+		border-radius: 2px;
 		}
+
 		.modal-content {
-			border-radius: 2px;
+		border-radius: 2px;
 		}
+
+		td img {
+		width: 30px;
+		height: 30px;
+		margin-right: 10px;
+		}
+
+		.user-link {
+		color: inherit;
+		}
+
+		.user-link img {
+		width: 30px;
+		height: 30px;
+		object-fit: cover;
+		}
+
+		.table td {
+		vertical-align: middle;
+		}
+
+		th.left, td.left {
+		text-align: left;
+		padding-left: 15px !important;
+		}
+
+		th.center, td.center {
+		text-align: center;
+		}
+
+		th.right, td.right {
+		padding-right: 15px !important;
+		text-align: right;
+		}
+
+		/* Modifications pour les slots vides */
+		tr.text-muted {
+		background-color: #e2e6ea;  /* Gris plus foncé mais léger */
+		color: #495057;  /* Couleur de texte plus foncée */
+		}
+
+		tr.text-muted td {
+		padding: 10px 8px;
+		}
+
+		tr.player-ready {
+			background-color: rgb(207, 246, 207);
+		}
+
+		/* Effet de survol simplifié pour tous les tr */
+		.table-hover tbody tr:hover {
+		background-color: #d3d9df;  /* Gris encore plus foncé au survol */
+		}
+
 
 	</style>
 </head>
 <body>
 	<div class="container mt-4" id="mainView">
 		<h1 class="mb-4">Système de Matchmaking</h1>
-
 		<div class="row">
 			<div class="col-md-6">
 				<h2>Lobbies disponibles</h2>
@@ -73,11 +138,11 @@
 					<table class="table table-hover">
 						<thead>
 							<tr>
-								<th>Nom</th>
-								<th>Type</th>
-								<th>Host</th>
-								<th>Places</th>
-								<th>Action</th>
+								<th class="left">Nom</th>
+								<th class="center">Type</th>
+								<th class="center">Host</th>
+								<th class="center">Places</th>
+								<th class="right">Action</th>
 							</tr>
 						</thead>
 						<tbody></tbody>
@@ -90,11 +155,11 @@
 					<table class="table table-hover">
 						<thead>
 							<tr>
-								<th>Nom</th>
-								<th>Type</th>
-								<th>Host</th>
-								<th>Places</th>
-								<th>Action</th>
+								<th class="left">Nom</th>
+								<th class="center">Type</th>
+								<th class="center">Host</th>
+								<th class="center">Places</th>
+								<th class="right">Action</th>
 							</tr>
 						</thead>
 						<tbody></tbody>
@@ -102,45 +167,52 @@
 				</div>
 			</div>
 		</div>
-
-		<div class="side-buttons mainOptions">
-			<button class="btn btn-primary mainView" data-bs-toggle="modal" data-bs-target="#createLobbyModal">Créer un lobby</button>
-			<button class="btn btn-info mainView" data-bs-toggle="modal" data-bs-target="#joinLobbyModal">Rejoindre un lobby</button>
-			<button id='buttonShowOnlinePlayers'class="btn btn-secondary mainView">Joueurs en ligne</button>
+		<div class="row mt-4">
+			<div class="col-12">
+				<div class="side-buttons">
+					<div class="mainOptions">
+						<button class="btn btn-primary mainView me-2" data-bs-toggle="modal" data-bs-target="#createLobbyModal">Créer un lobby</button>
+						<button class="btn btn-info mainView me-2" data-bs-toggle="modal" data-bs-target="#joinLobbyModal">Rejoindre un lobby</button>
+						<button id='buttonShowOnlinePlayers'class="btn btn-secondary mainView me-2">Joueurs en ligne</button>
+					</div>
+				</div>
+			</div>
 		</div>
 
 	</div>
 
 	<div class="container mt-4 d-none" id="lobbyView">
 		<h1 class="mb-4">Lobby: <span id="lobbyName"></span></h1>
-	
 		<div class="row">
-			<table class="table table-hover">
+			<div class="col-12">
+				<table class="table table-hover">
 				<thead>
 					<tr>
-						<th>Nom du joueur</th>
-						<th>État</th>
-						<th>Action</th>
+					<th class="left">Nom du joueur</th>
+					<th class="center">État</th>
+					<th class="right">Action</th>
 					</tr>
 				</thead>
 				<tbody id="playerList">
 					<!-- Liste des joueurs insérée ici via WebSocket -->
 				</tbody>
-			</table>
+				</table>
+			</div>
 		</div>
-
-		<div class="side-buttons">
-			<div id="hostOptions" class="lobbyView d-none">
-			  <button id='buttonOptionsLobby' class="btn btn-warning">Modifier les options du lobby</button>
-			  <button id="startGameButton" class="btn btn-success">Démarrer le jeu</button>
+		<div class="row mt-4">
+			<div class="col-12">
+				<div class="side-buttons">
+					<div id="hostOptions" class="hostOptions lobbyView d-none">
+						<button id='buttonOptionsLobby' class="btn btn-warning me-2">Modifier les options du lobby</button>
+						<button id="startGameButton" class="btn btn-success">Démarrer le jeu</button>
+					</div>
+					<div class="mainOptions">
+						<button id="inviteFriendsButton" class="btn btn-secondary lobbyView me-2">Inviter des amis</button>
+						<button id="leaveLobbyButton" class="btn btn-danger lobbyView">Quitter le lobby</button>
+					</div>
+				</div>
 			</div>
-			<div class="mainOptions">
-			  <button id="inviteFriendsButton" class="btn btn-secondary lobbyView">Inviter des amis</button>
-			  <button id="beReadyButton" class="btn btn-warning lobbyView">Pret</button>
-			  <button id="leaveLobbyButton" class="btn btn-danger lobbyView">Quitter le lobby</button>
-			</div>
-		  </div>
-
+		</div>
 	</div>
 
 	<!-- Modal pour rejoindre un lobby -->

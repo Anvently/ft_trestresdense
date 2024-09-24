@@ -53,7 +53,6 @@ class Player:
 		self.last_time = int(time.time())
 
 	@abstractmethod
-	######### AI ##############
 	def AI_behavior(self, ballX, ballY, ballSpeedX, ballSpeedY) -> str:
 		pass
 
@@ -180,7 +179,7 @@ class PongLobby:
 				return
 			await player_channel.group_send(self.lobby_id, {"type": "game_start"})
 			loop_start = time.time()
-			print("game has started")
+			print("game will start in 3 sec")
 			while time.time() - loop_start < 3:
 				await asyncio.sleep(0.05)
 				async with self.mut_lock:
@@ -190,6 +189,7 @@ class PongLobby:
 			# play !
 				# launch ball
 			self.reset_ball()
+			print("game has started")
 			while self.gameState == 2:
 				await asyncio.sleep(0.016)	# 0.16 -> 60Hz
 				async with self.mut_lock:
@@ -217,7 +217,7 @@ class PongLobby:
 		self.move_ball()
 		self.collision_logic()
 		self.check_goals()
-		self.compute_AI()	### AI TEST ###
+		self.compute_AI()
 		if self.check_winning_condition():
 			self.gameState = 3
 			self.winner = self.get_winner()
