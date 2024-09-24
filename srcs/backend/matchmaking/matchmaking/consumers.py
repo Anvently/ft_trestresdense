@@ -379,7 +379,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 			self.dispatch_players(self._lobby_id, True)
 			await self.send_general_update()
 		else:
-			self.dispatch_players(self._lobby_id, False)
+			self.send_lobby_update(self._lobby_id)
 
 ##########################################################################3
 

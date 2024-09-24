@@ -431,7 +431,6 @@ export default class MatchmakingView extends BaseView {
 			userAvatar.classList.add = (`dynamicAvatarUrl`, `user-${playerId}`);
 			userNameSpan.classList.add = (`dynamicDisplayName`, `user-${playerId}`);
 			userManager.getUserAttr(playerId, 'display_name', playerId).then(displayName => {
-				console.log(`display name is ${displayName}`);
 				userNameSpan.textContent = displayName;
 			});
 			linkBlock.href = `https://${window.location.host}/api/users/${playerId}/`;
@@ -509,6 +508,10 @@ export default class MatchmakingView extends BaseView {
 		.catch (error => this.errorHandler(error));
 	}
 
+	beReady(playerId)
+	{
+		this.sendMessage({'type'  : "player_ready"})
+	}
 
 	inviteFriend(friend_id)
 	{
@@ -517,16 +520,18 @@ export default class MatchmakingView extends BaseView {
 
 	be_invited(message)
 	{
+		// TODO ITS UGLY!!!
 		console.log(message);
+		let modal = new bootstrap.Modal(document.getElementById('receiveInvitation'));
 		const invite = document.getElementById('invitation');
 		invite.innerHTML = "";
 		let inviting_player = message.invite_from;
 		const lobby_id = message.lobby_id;
 		const invitation = document.createElement('div');
-		// invitation.style.backgroundImage = url("/assets/__duel__");
-		// invitation.style.backgroundSize = 'contain'
-		// invitation.style.backgroundRepeat = "no-repeat";
-		// invitation.style.backgroundPosition = 'center';
+		invitation.style.backgroundImage = "url('/assets/duel.jpg')";
+		invitation.style.backgroundSize = 'contain'
+		invitation.style.backgroundRepeat = "no-repeat";
+		invitation.style.backgroundPosition = 'center';
 		const inviteText = document.createElement('p');
 		inviteText.style.textAlign = "center";
 		userManager.getUserAttr(inviting_player, 'display_name', inviting_player).then(displayName =>{
@@ -540,10 +545,13 @@ export default class MatchmakingView extends BaseView {
 		joinButton.style.position = "center";
 		joinButton.className = "btn btn-success";
 		joinButton.textContent = "Join Game";
-		joinButton.onclick = () => this.joinLobby(lobby_id);
+		joinButton.onclick = () => {
+			modal.hide();
+			this.joinLobby(lobby_id);};
 		invitation.appendChild(joinButton);
 		invite.appendChild(invitation);
-		new bootstrap.Modal(document.getElementById('receiveInvitation')).show();
+		// new bootstrap.Modal(document.getElementById('receiveInvitation')).show();
+		modal.show();
 	}
 
 	appendFriendEntry(tableElement, player_id)
@@ -565,6 +573,7 @@ export default class MatchmakingView extends BaseView {
 		userAvatar.classList.add = (`dynamicAvatarUrl`, `user-${player_id}`);
 		userNameSpan.classList.add(`dynamicDisplayName`, `user-${player_id}`);
 		userManager.getUserAttr(player_id, 'display_name', player_id).then(displayName => {
+			console.log(`display name is ${displayName}`);
 			userNameSpan.textContent = displayName;
 		});
 		linkBlock.href = `https://${window.location.host}/api/users/${player_id}/`;
@@ -574,11 +583,14 @@ export default class MatchmakingView extends BaseView {
 		friendRow.appendChild(nameCell);
 
 		const buttonCell = document.createElement('td');
-		buttonCell.classList.add('center');
+		buttonCell.classList.add('right');
 		const inviteButton = document.createElement('button');
 		inviteButton.className = "btn btn-primary";
 		inviteButton.textContent = "Invite";
-		inviteButton.onclick = () => this.inviteFriend(player_id);
+		inviteButton.onclick = () => {this.inviteFriend(player_id);
+			inviteButton.textContent = "Invite sent";
+			inviteButton.disabled = true;
+		}
 		buttonCell.appendChild(inviteButton);
 		friendRow.appendChild(buttonCell);
 
