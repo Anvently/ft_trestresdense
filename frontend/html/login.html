@@ -34,24 +34,41 @@
 							<label for="loginPassword" class="form-label">Mot de passe</label>
 							<input type="password" class="form-control" id="loginPassword" required>
 						</div>
-						<div id="error-message-connection-failed" class="form-errors alert alert-danger" style="display: none;"></div>
+						<div id="errorLogin" class="form-errors alert alert-danger" style="display: none;"></div>
 						<button type="submit" class="btn btn-primary">Se connecter</button>
 					</form>
 				</div>
 				<div class="tab-pane fade" id="signup" role="tabpanel" aria-labelledby="signup-tab">
-					<form id="signupForm" class="mt-3">
+					<form id="signupForm" class="mt-3 needs-validation was-validated">
 						<div class="mb-3">
 							<label for="signupUsername" class="form-label">Nom d'utilisateur</label>
 							<input type="text" class="form-control" id="signupUsername" required>
+							<div class="invalid-feedback">
+								Nom d'utilisateur requis.
+							</div>
 						</div>
 						<div class="mb-3">
 							<label for="signupEmail" class="form-label">Email</label>
 							<input type="email" class="form-control" id="signupEmail" required>
+							<div class="invalid-feedback">
+								Email requis.
+							</div>
 						</div>
 						<div class="mb-3">
-							<label for="signupPassword" class="form-label">Mot de passe</label>
-							<input type="password" class="form-control" id="signupPassword" required>
+							<label for="password" class="form-label">Mot de passe</label>
+							<input type="password" class="form-control" id="password" required>
+							<div class="invalid-feedback">
+								Mot de passe requis.
+							</div>
 						</div>
+						<div class="mb-3">
+							<label for="confirmPassword" class="form-label">Confirmer le mot de passe</label>
+							<input type="password" class="form-control" id="confirmPassword" required>
+							<div class="invalid-feedback">
+								Mots de passe non identiques.
+							</div>
+						</div>
+						<div id="errorRegister" class="form-errors alert alert-danger" style="display: none;"></div>
 						<button type="submit" class="btn btn-primary">S'inscrire</button>
 					</form>
 				</div>

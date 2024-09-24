@@ -15,7 +15,17 @@ const defaultUserInfo = {
 		return document.cookie.includes('auth-token');
 	}, 
 	received: false,
-	avatar: "https://localhost:8083/avatars/__default__.jpg",
+	_avatar: "https://localhost:8083/avatars/__default__.jpg",
+	get avatar() {
+		return this._avatar;
+	},
+	set avatar(url) {
+		this._avatar = url;
+		updateUserMenu();
+	},
+	refresh() {
+		getUserInfos();
+	},
 	display_name: "Anonymous",
 	username: "anonymous"
 };
@@ -50,7 +60,7 @@ function updateUserMenu() {
 			el.classList.add('d-none');
 		});
 	}
-	document.getElementById("userAvatar").src = userInfo.avatar;
+	document.getElementById("userAvatar").src = userInfo.avatar + "#" + new Date().getTime();
 }
 
 async function getUserInfos() {

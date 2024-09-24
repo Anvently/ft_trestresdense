@@ -201,6 +201,7 @@ class BackgroundUpdater {
 				if (!user) return username;
 			});
 		}
+		if (users.length === 0) return;
 		console.log("updating users:", users);
 		try {
 			const receivedInfo = await this.fetchUsersBatch(users);

@@ -3,6 +3,7 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.parsers import JSONParser
 from django.conf import settings
 from auth_api.serializers import UserSerializer, UserInfosSerializer
 from auth_api.authentication import CookieJWTAuthentication, HeaderJWTAuthentication
@@ -56,8 +57,9 @@ class UpdateView(APIView):
 
 	permission_classes = [IsAuthenticated]
 	authentication_classes = [CookieJWTAuthentication, HeaderJWTAuthentication]
+	parser_classes = [JSONParser]
 
-	def post(self, request):
+	def patch(self, request):
 		serializer = UserInfosSerializer(data=request.data, instance=request.user)
 		if not serializer.is_valid():
 			return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

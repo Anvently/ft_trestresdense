@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Édition du profil</title>
+	<style>
+		#main-container {
+			max-width: 600px;
+		}
+		#main-container button {
+			width: 100%;
+		}
+		.avatar-preview {
+			width: 80px;
+			height: 80px;
+			object-fit: cover;
+			margin-bottom: 10px;
+		}
+		.input-with-preview {
+			display: flex;
+			flex-direction: row;
+			align-items: center;
+			/* margin-bottom: 15px; */
+		}
+		.avatar-fields {
+			display: flex;
+			flex-direction: column;
+			width:100%;
+		}
+		.input-with-preview img {
+			margin: auto 20px auto auto;
+		}
+		#resetFormButton {
+			margin-top: 10px;
+		}
+		#securityForm a, #securityForm a:hover {
+			color:#333
+		}
+		.form-disabled {
+			opacity: 0.6;
+			pointer-events: none;
+		}
+		.security-message {
+			display: none;
+			margin-bottom: 15px;
+		}
+	</style> 
+</head>
+<body>
+	<div id="main-container" class="container mt-5">
+		<h1 class="mb-4">Édition du profil</h1>
+		
+		<form id="profileForm" class="needs-validation was-validated">
+			<div class="mb-3">
+				<label for="avatar" class="form-label">Avatar</label>
+				<div class="input-with-preview">
+					<img id="avatarPreview" src="/avatars/__default__.jpg" class="avatar-preview">
+					<div class="avatar-fields">
+						<input type="file" class="form-control" id="avatar" accept="image/*">
+						<input type="text" class="form-control mt-2" id="avatarUrl" placeholder="Ou entrez une URL d'image">
+						<div class="invalid-feedback">
+							Invalid url.
+						</div>
+					</div>
+				</div>
+			</div>
+			
+			<div class="mb-3">
+				<label for="displayName" class="form-label">Nom complet</label>
+				<input type="text" class="form-control" id="displayName" required>
+			</div>
+			
+			<button type="submit" class="btn btn-primary">Enregistrer les modifications</button>
+		</form>
+		<button id="resetFormButton" class="btn btn-primary">Annuler les changements</button>
+		
+		<hr class="my-5">
+		
+		<h2 class="mb-4">Modifier les informations de connexion</h2>
+		
+		<div class="alert alert-warning security-message" role="alert">
+			Ce formulaire est désactivé pour les comptes créés via 42.
+		</div>
+		<form id="securityForm" class="needs-validation was-validated" >
+			<div class="mb-3">
+				<label for="email" class="form-label">Nouvelle adresse e-mail</label>
+				<input type="email" class="form-control" id="email" required>
+				<div class="invalid-feedback">
+					Email requis.
+				</div>
+			</div>
+			
+			<div class="mb-3">
+				<label for="password" class="form-label">Nouveau mot de passe</label>
+				<input type="password" class="form-control" id="password">
+				<div class="invalid-feedback">
+					Mot de passe requis.
+				</div>
+			</div>
+			
+			<div class="mb-3">
+				<label for="confirmPassword" class="form-label">Confirmer le nouveau mot de passe</label>
+				<input type="password" class="form-control" id="confirmPassword">
+				<div class="invalid-feedback">
+					Mots de passe non identiques.
+				</div>
+			</div>
+			
+			<button type="submit" class="btn btn-primary">Mettre à jour les informations de connexion</button>
+		</form>
+	</div>
+</body>
+</html>

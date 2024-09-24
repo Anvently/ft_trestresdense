@@ -30,7 +30,7 @@ urlpatterns = [
     path("api/auth/verify-token/", VerifyToken.as_view(), name="verify-token"),
 	path("api/auth/login/", LoginView.as_view(), name="login"),
 	path("api/auth/register/", RegisterView.as_view(), name="register"),
-	path("api/auth/update/", UpdateView.as_view(), name="update"),
+	path("api/auth/me/", UpdateView.as_view(), name="update"),
 	path("api/auth/delete/", DeleteView.as_view(), name="delete"),
 	path("api/auth/logout/", LogoutView.as_view()),
 	path("api/auth/42-api-callback", SignIn42CallbackView.as_view(), name="42-callback"),
