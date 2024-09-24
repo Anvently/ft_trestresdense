@@ -21,7 +21,7 @@ class	User(user_models.AbstractUser):
             'unique': ("A user with that username already exists."),
         },
     )
-	uploaded_avatar = models.ImageField(upload_to=upload_to, blank=True, default="__default__.png")
+	uploaded_avatar = models.ImageField(upload_to=upload_to, blank=True, default="__default__.jpg")
 	external_avatar = models.URLField(blank=True)
 	display_name = models.CharField(max_length=30, default="DisplayName")
 
@@ -32,12 +32,12 @@ class	User(user_models.AbstractUser):
 	
 	def get_avatar_url(self) -> str:
 		if self.uploaded_avatar:
-			if self.uploaded_avatar.name != "__default__.png" or not self.external_avatar:
+			if self.uploaded_avatar.name != "__default__.jpg" or not self.external_avatar:
 				return "/avatars/{}".format(self.uploaded_avatar.name)
 		return self.external_avatar
 	
 	def delete(self):
-		if self.uploaded_avatar.name != "__default__.png":
+		if self.uploaded_avatar.name != "__default__.jpg":
 			self.uploaded_avatar.delete()
 		return super().delete()
 	
@@ -46,10 +46,10 @@ class	User(user_models.AbstractUser):
 			this = User.objects.get(id=self.id)
 			if this.uploaded_avatar:
 				if ((this.uploaded_avatar != self.uploaded_avatar or this.username != self.username)
-					and this.uploaded_avatar.name != "__default__.png"):
+					and this.uploaded_avatar.name != "__default__.jpg"):
 					this.uploaded_avatar.delete(save=False)
 			if not self.uploaded_avatar:
-					self.uploaded_avatar = "__default__.png"
+					self.uploaded_avatar = "__default__.jpg"
 		except: pass
 		return super(User, self).save(*args, **kwargs)
 	

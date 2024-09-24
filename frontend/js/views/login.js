@@ -87,13 +87,14 @@ export default class LoginView extends BaseView {
 
 	async register () {
 		console.log('Enregistrement en cours');
+		const errorDiv = document.getElementById('errorRegister');
 		try {
 			const response = await fetch(this.registerUrl, {
-				method: 'PATCH',
+				method: 'POST',
 				headers: {'Content-Type': 'application/json',},
 				body: JSON.stringify({
-					username: this.signupForm.username,
-					email: this.signupForm.email.value,
+					username: this.signupForm.signupUsername.value,
+					email: this.signupForm.signupEmail.value,
 					password: this.signupForm.password.value
 				})
 			});
@@ -102,8 +103,8 @@ export default class LoginView extends BaseView {
 			if (!response.ok)
 				throw new Error("L'inscription a echouee.");
 			this.successHandler("Inscription reussie !");
+			errorDiv.style.display = 'none';
 		} catch (error) {
-			const errorDiv = document.getElementById('errorRegister');
 			errorDiv.style.display = 'block';
 			errorDiv.innerHTML = error;
 		}
