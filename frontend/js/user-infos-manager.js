@@ -151,6 +151,7 @@ class BackgroundUpdater {
 	}
 
 	forceUpdate() {
+		if (this.usersToUpdate.size == 0) return;
 		this.updateUsers(this.usersToUpdate);
 		if (this.updateTimeoutId) {
 			clearTimeout(this.updateTimeoutId);

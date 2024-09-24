@@ -22,7 +22,7 @@ services:
       - ${DATA_DIR}logs/nginx/:/var/log/nginx/:rw
       - ./srcs/nginx/nginx.conf:/etc/nginx/nginx.conf
       - ${DATA_DIR}keys/ssl/ssl.crt:/etc/certificate/ssl.crt
-      - ${DATA_DIR}media/avatars/:/www/html/avatars/:ro
+      - ${DATA_DIR}media/avatars/:/www/html/media/avatars/:ro 
     secrets:
       - ssl-key
     depends_on:

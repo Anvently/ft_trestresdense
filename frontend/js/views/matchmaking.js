@@ -164,7 +164,7 @@ export default class MatchmakingView extends BaseView {
 				});
 			}
 		});
-	
+
 		userManager.forceUpdate();
 	}
 	
@@ -200,8 +200,8 @@ export default class MatchmakingView extends BaseView {
 			userManager.getUserAttr(lobby.host, 'avatar', "/avatars/__default__.jpg").then(url => {
 				hostAvatar.src = url;
 			});
-			hostAvatar.classList.add = (`dynamicAvatarUrl`, `user-${lobby.host}`);
-			hostNameSpan.classList.add = (`dynamicDisplayName`, `user-${lobby.host}`);
+			hostAvatar.classList.add(`dynamicAvatarUrl`, `user-${lobby.host}`);
+			hostNameSpan.classList.add(`dynamicDisplayName`, `user-${lobby.host}`);
 			userManager.getUserAttr(lobby.host, 'display_name', lobby.host).then(displayName => {
 				hostNameSpan.textContent = displayName;
 			});
