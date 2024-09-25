@@ -100,3 +100,32 @@ class BatchUsersView(APIView):
 		serializer = UserSerializer(users, many=True)
 
 		return Response(serializer.data, status=status.HTTP_200_OK)
+
+class FriendsUpdateView(APIView):
+	permission_classes = [IsAuthenticated]
+	authentication_classes = [CookieUserJWTAuthentication, HeaderUserJWTAuthentication]
+
+	def post(self, request):
+		"""Ajoute des utilisateurs à la liste d'amis."""
+		user = request.user
+		users_to_add = request.data.get('friends', [])
+		
+
+		friends_to_add = User.objects.filter(username__in=users_to_add).exclude(username=user)
+
+		for friend in friends_to_add:
+			user.friends.add(friend)
+
+		return Response({"friends": [user.username for user in friends_to_add]}, status=status.HTTP_200_OK)
+
+	def delete(self, request):
+		"""Supprime des utilisateurs de la liste d'amis."""
+		user = request.user
+		friends_to_remove = request.data.get('friends', [])
+
+		friends_removed = User.objects.filter(username__in=friends_to_remove).filter(id__in=user.friends.all())
+
+		for friend in friends_removed:
+			user.friends.remove(friend)
+
+		return Response({"friends_removed": [user.username for user in friends_removed]}, status=status.HTTP_200_OK)

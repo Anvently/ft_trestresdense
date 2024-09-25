@@ -1,5 +1,5 @@
 import { BaseView } from '../view-manager.js';
-import { userInfo, userManager } from '../home.js'
+import { authenticatedUser, userManager } from '../home.js'
 
 export default class MatchmakingView extends BaseView {
     constructor() {
@@ -41,7 +41,7 @@ export default class MatchmakingView extends BaseView {
 		this.createLobbyButton.addEventListener('click', () => this.createLobby());
 		this.saveLobbyOptionsButton.addEventListener('click', () => this.saveLobbyOptions());
 
-		document.getElementById('lobbyNameCreation').value = `${userInfo.display_name}'s lobby`;
+		document.getElementById('lobbyNameCreation').value = `${authenticatedUser.display_name}'s lobby`;
 
 		userManager.setDynamicUpdateHandler(this.updateUserInfos);
 
@@ -204,7 +204,7 @@ export default class MatchmakingView extends BaseView {
 			userManager.getUserAttr(lobby.host, 'display_name', lobby.host).then(displayName => {
 				hostNameSpan.textContent = displayName;
 			});
-			linkBlock.href = `https://${window.location.host}/api/users/${lobby.host}/`;
+			linkBlock.href = `https://${window.location.host}/#user?username=${lobby.host}`;;
 		}
 		linkBlock.appendChild(hostAvatar);
 		linkBlock.appendChild(hostNameSpan);
@@ -433,7 +433,7 @@ export default class MatchmakingView extends BaseView {
 			userManager.getUserAttr(playerId, 'display_name', playerId).then(displayName => {
 				userNameSpan.textContent = displayName;
 			});
-			linkBlock.href = `https://${window.location.host}/api/users/${playerId}/`;
+			linkBlock.href = `https://${window.location.host}/#user?username=${playerId}`;
 		}
 		linkBlock.appendChild(userAvatar);
 		linkBlock.appendChild(userNameSpan);
@@ -453,7 +453,7 @@ export default class MatchmakingView extends BaseView {
 			kickButton.textContent = 'Expulser';
 			kickButton.onclick = () => this.kickPlayer(playerId);
 			actionCell.appendChild(kickButton);
-		} else if (userInfo.username === playerId) {
+		} else if (authenticatedUser.username === playerId) {
 			const beReadyButton = document.createElement('button');
 			beReadyButton.className = 'btn btn-warning';
 			beReadyButton.textContent = 'Prêt';

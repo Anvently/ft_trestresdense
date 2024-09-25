@@ -39,12 +39,14 @@ class ScoreListSerializer(serializers.ListSerializer):
 class ScoreSerializer(DynamicFieldsSerializer):
 	username = 	serializers.CharField(source='user.username', allow_blank=True)
 	display_name = serializers.CharField(source='user.display_name', allow_blank=True, required=False, read_only=True)
-	lobby = serializers.CharField(source='lobby.lobby_id', read_only=True)
+	lobby_id = serializers.CharField(source='lobby.lobby_id', read_only=True)
+	lobby_name = serializers.CharField(source='lobby.lobby_name', read_only=True)
+	game_name = serializers.CharField(source='lobby.game_name', read_only = True)
 	turnament_id = serializers.CharField(source='lobby.tournament.turnament_id', read_only=True, allow_blank=True, required=False)
 
 	class Meta:
 		model = Score
-		fields = ['username', 'display_name', 'lobby', 'score', 'has_win', 'turnament_id',]
+		fields = ['username', 'display_name', 'lobby_id', 'lobby_name', 'game_name', 'score', 'has_win', 'date', 'turnament_id',]
 		list_serializer_class = ScoreListSerializer
 
 	def validate_username(self, value):
@@ -65,12 +67,13 @@ class LobbySerializer(DynamicFieldsSerializer):
 
 	class Meta:
 		model = Lobby
-		fields = ('lobby_id', 'game_name', 'turnament_id', 'scores_set',)
+		fields = ('lobby_id', 'lobby_name', 'game_name', 'turnament_id', 'scores_set',)
 		read_only_fields = ('date',)
 
 	def create(self, validated_data):
 		lobby = Lobby(
 			lobby_id = validated_data["lobby_id"],
+			lobby_name = validated_data["lobby_name"],
 			game_name = validated_data["game_name"],
 		)
 		if 'tournament' in validated_data and 'turnament_id' in validated_data['tournament']:
@@ -96,7 +99,7 @@ class LobbySerializer(DynamicFieldsSerializer):
 		return lobby
 
 class TurnamentSerializer(serializers.HyperlinkedModelSerializer):
-	lobbys_set = LobbySerializer(many=True, read_only=True, fields=['lobby_id', 'scores_set',])
+	lobbys_set = LobbySerializer(many=True, read_only=True, fields=['lobby_id', 'lobby_name', 'scores_set',])
 
 	class Meta:
 		model = Tournament
@@ -104,18 +107,22 @@ class TurnamentSerializer(serializers.HyperlinkedModelSerializer):
 
 class UserSerializer(serializers.HyperlinkedModelSerializer):
 	username = serializers.CharField(read_only=True)
-	scores_set = ScoreSerializer(many=True, read_only=True, fields=['lobby', 'turnament_id', 'score', 'has_win',], required=False)
+	scores_set = ScoreSerializer(many=True, read_only=True, fields=['lobby_id', 'lobby_name', 'game_name', 'turnament_id', 'score', 'has_win', 'date',], required=False)
 	avatar = serializers.SerializerMethodField(read_only=True)
 	uploaded_avatar = serializers.ImageField(required = False, write_only = True)
 	url_avatar = serializers.URLField(write_only=True, source='external_avatar', required=False)
 	display_name = serializers.CharField(max_length=30, required=False)
+	friends = serializers.SerializerMethodField(read_only=True)
 
 	class Meta:
 		model = User
-		fields = ['username', 'display_name', 'uploaded_avatar', 'url_avatar', 'avatar', 'scores_set',]
+		fields = ['username', 'display_name', 'uploaded_avatar', 'url_avatar', 'avatar', 'last_visit', 'friends', 'scores_set',]
 
 	def get_avatar(self, obj: User):
 		return obj.get_avatar_url()
+	
+	def get_friends(self, obj: User):
+		return [friend.username for friend in obj.friends.all()]
 
 class UserCreationSerializer(serializers.HyperlinkedModelSerializer):
 	url_avatar = serializers.URLField(write_only=True, source='external_avatar', required=False)

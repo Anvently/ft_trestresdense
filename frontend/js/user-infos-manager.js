@@ -1,3 +1,6 @@
+// import { userInfo } from "./home";
+import { User } from "./home.js"
+
 export class UserInfoManager {
 	constructor(cacheExpiration = 3600000, refreshInterval = 300000, updateTimeout = 3000, userCache = new UserCache()) {
 		this.userCache = userCache;
@@ -6,19 +9,35 @@ export class UserInfoManager {
 	}
 
 	/**
+	 * Return userInfo from a fetch request, even if user exists in the cache.
+	 * Update the cache with the received infos.
+	 * For page displaying multiple users, getUserAttr should be prefered
+	 * as it allows for batch request with dynamic updates.
+	 * If the request fails, return the cached information or default user if none.
+	 */
+	async fetchUserInfo(username) {
+		const userInfo = await this.backgroundUpdater.fetchUserFromAPI(username);
+		if (!userInfo) {
+			return new User(username, this.userCache.getUser(username));
+		}
+		this.userCache.setUser(username, userInfo);
+		return new User(username, userInfo);
+	}
+
+	/**
 	 * Return userInfo either from the cache or from a request.
 	 * getUserAttr should be prefered as it allows for batch request with 
 	 * dynamic updates.
 	 */
-	getUserInfo(username, dft = null, suscribe_changes = true) {
-		let userInfo = userCache.getUser(username);
+	getUserInfo(username, suscribe_changes = true) {
+		let userInfo = this.userCache.getUser(username);
 		if (suscribe_changes)
 			this.backgroundUpdater.addActiveUser(username);
 		if (userInfo) {
-			return Promise.resolve(userInfo);
+			return Promise.resolve(new User(username, userInfo));	
 		} else {
 			this.backgroundUpdater.registerUserToUpdate(username);
-			return Promise.resolve(dft);
+			return Promise.resolve(new User(username));
 		}
 	}
 	
@@ -202,7 +221,6 @@ class BackgroundUpdater {
 			});
 		}
 		if (users.length === 0) return;
-		console.log("updating users:", users);
 		try {
 			const receivedInfo = await this.fetchUsersBatch(users);
 			for (const userInfo of receivedInfo) {

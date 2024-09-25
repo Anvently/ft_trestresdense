@@ -27,6 +27,7 @@ export class Router {
     async navigate(path) {
         if (this.routes.has(path)) {
             this.previousRoute = this.currentRoute;
+            this.previousPath = this.path;
             history.pushState(null, '', path);
             const success = await this.handleLocationChange();
             if (!success && this.previousRoute) {
@@ -34,7 +35,7 @@ export class Router {
                 console.log('Loading view has failed. Redirecting to previous view.');
                 // history.pushState(null, '', this.previousRoute.path);
                 console.log(this.previousRoute);
-                window.location.hash = this.previousRoute.path;
+                window.location.hash = this.previousPath;
                 // await this.handleLocationChange(); 
             }
         } else {
@@ -43,7 +44,7 @@ export class Router {
     }
 
     async handleLocationChange() {
-        const path = window.location.hash || '#';
+        const path = window.location.hash.split('?').at(0) || '#';
         const route = this.routes.get(path);
 
         if (route) {

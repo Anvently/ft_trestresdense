@@ -1,4 +1,4 @@
-import { userInfo, userManager } from '../home.js';
+import { authenticatedUser, userManager } from '../home.js';
 import { BaseView } from '../view-manager.js';
 
 export default class LoginView extends BaseView {
@@ -74,7 +74,7 @@ export default class LoginView extends BaseView {
 				if (response.status == 200) {
 					// Connexion réussie
 					console.log('Connexion réussie');
-					userInfo.refresh();
+					authenticatedUser.getInfos();
 					// Rediriger vers la page principale ou effectuer d'autres actions
 					window.location.hash = '#';
 				} else {

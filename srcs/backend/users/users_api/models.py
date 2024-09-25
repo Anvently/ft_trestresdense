@@ -3,6 +3,7 @@ from django.db import models
 from django.contrib.auth import models as user_models
 from django.urls import reverse
 from django.contrib.auth.validators import UnicodeUsernameValidator
+from django.utils import timezone
 
 # Create your models here.
 class	User(user_models.AbstractUser):
@@ -24,6 +25,13 @@ class	User(user_models.AbstractUser):
 	uploaded_avatar = models.ImageField(upload_to=upload_to, blank=True, default="__default__.jpg")
 	external_avatar = models.URLField(blank=True)
 	display_name = models.CharField(max_length=30, default="DisplayName")
+	last_visit = models.DateTimeField(blank=True, default=timezone.now)
+	friends = models.ManyToManyField(
+		'self',
+		blank=True,
+		related_name='friend_of',
+		symmetrical=False
+	)
 
 	api_name: str = None
 
@@ -74,6 +82,7 @@ class	Lobby(models.Model):
 	1598.2.3 => 4th quarter
 	"""
 	lobby_id = models.CharField(max_length=64, verbose_name="lobby unique id", unique=True)
+	lobby_name = models.CharField(max_length=64, verbose_name="lobby_display_name", default="Unknown")
 	game_name = models.CharField(max_length=50)
 	date = models.DateTimeField(auto_now_add=True, editable=False)
 	tournament = models.ForeignKey(

@@ -4,6 +4,7 @@ from rest_framework.permissions import BasePermission
 from users_api.models import User
 from typing import List
 import time
+from django.utils import timezone
 import jwt
 
 from django.conf import settings
@@ -70,6 +71,8 @@ class CookieUserJWTAuthentication(BaseAuthentication):
 			raise AuthenticationFailed(f"Token verification failed: {e}")
 		try:
 			user = User.objects.get(username=data["username"])
+			user.last_visit = timezone.now()
+			user.save()
 			request.jwt_data = data
 		except:
 			return None
@@ -91,6 +94,8 @@ class HeaderUserJWTAuthentication(BaseAuthentication):
 			raise AuthenticationFailed(f"Token verification failed: {e}")
 		try:
 			user = User.objects.get(username=data["username"])
+			user.last_visit = timezone.now()
+			user.save()
 			request.jwt_data = data
 		except:
 			raise AuthenticationFailed('No such user')
