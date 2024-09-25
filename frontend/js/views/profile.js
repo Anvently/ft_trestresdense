@@ -189,7 +189,7 @@ export default class ProfileView extends BaseView {
 		console.log(authenticatedUser);
 		console.log(authenticatedUser.friends);
 		authenticatedUser.friends.forEach(async user => {
-			const friend = await userManager.getUserInfo(user);
+			const friend = new User(user, await userManager.getUserInfo(user));
 			console.log(friend);
 			const friendElement = document.createElement('div');
 			friendElement.classList.add('friend-element', 'col', `user-${user}`);

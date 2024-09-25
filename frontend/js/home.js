@@ -5,6 +5,27 @@ import { UserInfoManager } from './user-infos-manager.js';
 const router = new Router();
 const viewManager = new ViewManager(document.getElementById('content'));
 
+/**
+ * @note
+ * userInfo default structures returned by the userManager can be used as such.
+ 
+ * This class can be used to wrap those informations into an object allowing more
+ * methods.
+ 
+ * It is also usefull to translate an undefined userInfo into a default user
+ * that can be use to print missing informations (=> default value of the constructor can be used as such)
+ 
+ * @description
+ * Example : const user = new User("foo-user", undefined).valid_info => false 
+ * But it can be used to print transitionnal values when using userManager background updater.
+ 
+ * Example : const user = new User("herve", userManager.fetchUserInfo).valid_info => true
+ * @param {username} username you should always instantiate object for an existing user.
+ * Thus this parameter should always be defined
+ * @param {objToAssign} objToAssign an userInfo structure that will be assign at creation.
+ * If defined, the user object will always be considered as valid, and thus its informations
+ * can be trusted.
+*/
 export class User {
 	constructor(username, objToAssign = undefined) {
 		this.avatar = `https://${window.location.host}/avatars/__default__.jpg`;
@@ -109,8 +130,8 @@ function errorHandler(error, attemptReconnect = false) {
 		successPopup.style.display = 'none';
 	const errorPopup = document.getElementById('errorPopup');
 	errorPopup.style.display = 'block';
-	if (!attemptReconnect)
-		this.received_error = true;
+	// if (!attemptReconnect)
+	// 	this.received_error = true;
 	// Masquer le pop-up après quelques secondes (optionnel)
 	setTimeout(() => {
 		errorPopup.style.display = 'none';
@@ -186,7 +207,13 @@ viewManager.setSuccessHandler(successHandler);
 router.setErrorHandler(errorHandler);
 
 if (authenticatedUser.isAuthenticated) {
-	await authenticatedUser.getInfos();
+	try {
+		await authenticatedUser.getInfos();
+		if (!authenticatedUser.valid_info)
+			throw new Error("Failed to fetch your personnal informations");
+	} catch (error) {
+		errorHandler(error);
+	}
 }
 
 // Initialisation du routeur
