@@ -19,7 +19,6 @@ import copy
 
 def verify_jwt(token, is_ttl_based=False, ttl_key="exp"):
 	data = jwt.decode(token, settings.RSA_PUBLIC_KEY, algorithms=["RS512"])
-	print(data)
 	if is_ttl_based:
 		if data[ttl_key] < time.time():
 			raise ValueError("Token expired")
@@ -211,11 +210,12 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		if self._messageId != None:
 			content['id'] = self._messageId
 		self._messageId = None
-		print(content)
+		print(f"\n SENDING {content} \n")
 		return await super().send_json(content, close)
 
 	async def receive_json(self, content, **kwargs):
 		# perform some basic checks ?
+		print(f"\n RECEIVED : {content} \n")
 		try:
 			if 'id' in content:
 				self._messageId = content['id']
@@ -350,8 +350,6 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		await self.send_lobby_update(new_lobby.id)
 		await self.send_general_update()
 
-	async def be_invited(self, content):
-		pass
 
 # extract from content the necessary info to update the frontend of a given client :
 # if the client is in game or tournament => send him back to its ongoing activity => to be refined for the tournament
@@ -381,7 +379,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 			self.dispatch_players(self._lobby_id, True)
 			await self.send_general_update()
 		else:
-			self.dispatch_players(self._lobby_id, False)
+			self.send_lobby_update(self._lobby_id)
 
 ##########################################################################3
 
@@ -465,7 +463,8 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 
 	async def generate_invite_list(self):
 		data = {'type': 'invite_list', 'players' : []}
-		data['players'] = [player_id for player_id in online_players if online_players[player_id] in (PlayerStatus.NO_LOBBY, PlayerStatus.IN_LOBBY)]
+		player_list = copy.deepcopy(online_players)
+		data['players'] = [player_id for player_id in player_list if player_list[player_id]['status'] in (PlayerStatus.NO_LOBBY, PlayerStatus.IN_LOBBY) and player_id != self.username]
 		return data
 """
 actions from the front:

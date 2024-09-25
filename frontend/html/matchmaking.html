@@ -244,7 +244,7 @@
 				</div>
 				<div class="modal-body" style="max-height: 400px; overflow-y: auto;">
 					<form id="createLobbyForm">
-						
+
 						<div class="mb-3">
 							<label for="gameType" class="form-label">Choisir le type de jeu</label>
 							<select id="gameType" class="form-select">
@@ -252,7 +252,7 @@
 								<option value="pong3d">Pong 3D</option>
 							</select>
 						</div>
-						
+
 						<div class="mb-3">
 							<label for="matchType" class="form-label">Type de partie</label>
 							<select id="matchType" class="form-select">
@@ -339,6 +339,21 @@
 			</div>
 		</div>
 	</div>
+
+	<!-- Modale pour recevoir une invitation-->
+	 <div class="modal fade" id="receiveInvitation" tabindex="-1">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title"> You are invited!</h5>
+					<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+				</div>
+				<div class="modal-body" id="invitation">
+				<!--afficher le nom de l'inviteur et un bouton pour rejoindre et un pour decliner-->
+				</div>
+			</div>
+		</div>
+	 </div>
 
 	<!-- Modale pour changer les options du lobby -->
 	<div class="modal fade" id="lobbyOptionsModal" tabindex="-1">
