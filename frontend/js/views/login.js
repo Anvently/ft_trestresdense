@@ -34,7 +34,28 @@ export default class LoginView extends BaseView {
 			this.onPasswordChange();
 		});
 
+		this.signupForm.signupUsername.addEventListener('change', (e) => {
+			e.preventDefault();
+			e.target.setCustomValidity("");
+		})
+
+		this.signupForm.signupEmail.addEventListener('change', (e) => {
+			e.preventDefault();
+			e.target.setCustomValidity("");
+		})
+
     }
+
+	resetLoginForm(username = "") {
+		var loginTab = document.querySelector('#login-tab');
+		var tab = new bootstrap.Tab(loginTab);
+		tab.show();
+		this.loginForm.loginUsername.value = username;
+		this.loginForm.loginPassword.value = "";
+		const errorDiv = document.getElementById('errorLogin');
+		errorDiv.style.display = 'none';
+		errorDiv.innerHTML = "";
+	}
 
 	login () {
 		const username = document.getElementById('loginUsername').value;
@@ -73,15 +94,35 @@ export default class LoginView extends BaseView {
 	}
 
 	onPasswordChange() {
-		if (!this.signupForm.password.value) {
-			this.signupForm.password.setCustomValidity("Password must be non-empty.")
+		if (!this.signupForm.signupPassword.value) {
+			this.signupForm.signupPassword.setCustomValidity("Password must be non-empty.")
+			document.getElementById("feedback-password").textContent = "Mot de passe requis";
 		}
-		else if (this.signupForm.password.value !== this.signupForm.confirmPassword.value) {
-			this.signupForm.password.setCustomValidity("");
+		else if (this.signupForm.signupPassword.value !== this.signupForm.confirmPassword.value) {
+			this.signupForm.signupPassword.setCustomValidity("");
 			this.signupForm.confirmPassword.setCustomValidity("Passwords must match.")
 		} else {
-			this.signupForm.password.setCustomValidity("");
+			this.signupForm.signupPassword.setCustomValidity("");
 			this.signupForm.confirmPassword.setCustomValidity("");
+		}
+	}
+
+	showErrorRegister(errors) {
+		for (const error of errors) {
+			try {
+				const field = error[0].charAt(0).toUpperCase() + error[0].slice(1);
+				const detail = error[1][0];
+				console.log(field, detail);
+				const el = document.getElementById(`feedback-${error[0]}`);
+				if (el) {
+					el.textContent = detail;
+					document.getElementById(`signup${field}`).setCustomValidity(detail);
+				}
+			} catch (exception) {
+				const errorDiv = document.getElementById('errorRegister');
+				errorDiv.style.display = 'block';
+				errorDiv.innerHTML += `${error}\n`;
+			}
 		}
 	}
 
@@ -95,15 +136,18 @@ export default class LoginView extends BaseView {
 				body: JSON.stringify({
 					username: this.signupForm.signupUsername.value,
 					email: this.signupForm.signupEmail.value,
-					password: this.signupForm.password.value
+					password: this.signupForm.signupPassword.value
 				})
 			});
-			if (response.status === 400)
-				throw new Error(Object.entries(await response.json())[0]);
+			if (response.status === 400) {
+				this.showErrorRegister(Object.entries(await response.json()));
+				return;
+			}
 			if (!response.ok)
 				throw new Error("L'inscription a echouee.");
 			this.successHandler("Inscription reussie !");
 			errorDiv.style.display = 'none';
+			this.resetLoginForm();
 		} catch (error) {
 			errorDiv.style.display = 'block';
 			errorDiv.innerHTML = error;
