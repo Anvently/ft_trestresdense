@@ -8,17 +8,17 @@ const viewManager = new ViewManager(document.getElementById('content'));
 /**
  * @note
  * userInfo default structures returned by the userManager can be used as such.
- 
+
  * This class can be used to wrap those informations into an object allowing more
  * methods.
- 
+
  * It is also usefull to translate an undefined userInfo into a default user
  * that can be use to print missing informations (=> default value of the constructor can be used as such)
- 
+
  * @description
- * Example : const user = new User("foo-user", undefined).valid_info => false 
+ * Example : const user = new User("foo-user", undefined).valid_info => false
  * But it can be used to print transitionnal values when using userManager background updater.
- 
+
  * Example : const user = new User("herve", userManager.fetchUserInfo).valid_info => true
  * @param {username} username you should always instantiate object for an existing user.
  * Thus this parameter should always be defined
@@ -98,6 +98,14 @@ class AuthenticatedUser extends User {
 		document.cookie = 'auth-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
 		Object.assign(this, new AuthenticatedUser());
 		this.updateUserMenu();
+	}
+
+	is_friend(friend_id)
+	{
+		if (this.friends.includes(friend_id))
+			return true;
+		else
+			return false;
 	}
 
 }
