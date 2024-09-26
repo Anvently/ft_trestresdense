@@ -145,7 +145,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 	DISABLE_AUTH = False
 
 	def get_status(self):
-		return online_players[self.username]['status']
+		return copy.copy(online_players[self.username]['status'])
 
 	def get_lobby_id(self):
 		return online_players[self.username]['lobby_id']
@@ -379,7 +379,14 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 			self.dispatch_players(self._lobby_id, True)
 			await self.send_general_update()
 		else:
-			self.send_lobby_update(self._lobby_id)
+			await self.send_lobby_update(self._lobby_id)
+
+	async def player_unready(self, content):
+		if self.get_status() not in (PlayerStatus.IN_LOBBY, PlayerStatus.IN_TURNAMENT_LOBBY):
+			return
+		lobbies[self._lobby_id].player_not_ready(self.username)
+		await self.send_lobby_update(self._lobby_id)
+
 
 ##########################################################################3
 
@@ -407,7 +414,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		data['type'] = 'lobby_update'
 		await self.channel_layer.group_send(lobby_id, data)
 
-	async def get_player_list(self, content):
+	async def get_online_players(self, content):
 		data = await self.generate_player_list()
 		await self.send_json(data)
 
@@ -455,10 +462,18 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		return data
 
 	async def generate_player_list(self):
-		data = {'type' : 'player_list', 'players': [{}]}
+		data = {'type' : 'player_list'}
+		data['players'] = {}
 		async with MatchMakingConsumer.matchmaking_lock:
 			players_copy = copy.deepcopy(online_players)
-		data['players'] = [{player_id : jsonize_player(players_copy[player_id])} for player_id in players_copy]
+		for player_id in players_copy:
+			if players_copy[player_id]['status'] == PlayerStatus.NO_LOBBY:
+				data['players'][player_id] = {'status': 'online', 'lobby_id' : None}
+			elif players_copy[player_id]['status'] == PlayerStatus.IN_LOBBY and players_copy[player_id]['lobby_id'][1] == 'O':
+				data['players'][player_id] = {'status' : 'in_lobby', 'lobby_id' : players_copy[player_id]['lobby_id']}
+			elif players_copy[player_id]['status'] == PlayerStatus.IN_GAME and players_copy[player_id]['lobby_id'][2] == 'A':
+				data['players'][player_id] = {'status' : 'in_game', 'lobby_id' :  players_copy[player_id]['lobby_id']}
+		print(f"online players list {data}")
 		return data
 
 	async def generate_invite_list(self):

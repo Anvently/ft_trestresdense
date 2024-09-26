@@ -7,6 +7,7 @@ export default class MatchmakingView extends BaseView {
         this.socket = null;
 		this.isConnected = false;
 		this.isHost = false;
+		this.isReady = false;
 		this.lobbyId;
 		this.url = `wss://${location.host}/ws/matchmaking/`;
 		this.received_error = false;
@@ -367,7 +368,7 @@ export default class MatchmakingView extends BaseView {
 
 	lobby_canceled(content)
 	{
-		this.errorHandler("Lobby got cancelled");
+		// this.errorHandler("Lobby got cancelled");
 		this.lobbyId = undefined;
 		this.updateCurrentView();
 	}
@@ -456,8 +457,17 @@ export default class MatchmakingView extends BaseView {
 		} else if (authenticatedUser.username === playerId) {
 			const beReadyButton = document.createElement('button');
 			beReadyButton.className = 'btn btn-warning';
-			beReadyButton.textContent = 'Prêt';
-			beReadyButton.onclick = () => this.beReady(playerId);
+			beReadyButton.textContent = this.isReady ? 'Unready' : 'Ready-Up';
+			beReadyButton.onclick = () => {
+				if (this.isReady == false){
+					this.beReady(playerId);
+					this.isReady = true;
+				}
+				else{
+					this.unready(playerId);
+					this.isReady = false;
+				}
+				}
 			actionCell.appendChild(beReadyButton);
 		}
 		playerRow.appendChild(actionCell);
@@ -500,8 +510,6 @@ export default class MatchmakingView extends BaseView {
 	inviteFriends() {
 		this.sendMessage({'type' : 'get_invite_list'}, 1000)
 		.then ((message) => {
-			console.log(`got an answer ${message}`);
-			console.log(message);
 			const friends = message.players;
 			this.displayFriends(friends);
 		})
@@ -510,7 +518,12 @@ export default class MatchmakingView extends BaseView {
 
 	beReady(playerId)
 	{
-		this.sendMessage({'type'  : "player_ready"})
+		this.sendMessage({'type'  : "player_ready"});
+	}
+
+	unready(playerId)
+	{
+		this.sendMessage({'type' : 'player_unready'});
 	}
 
 	inviteFriend(friend_id)
@@ -520,7 +533,7 @@ export default class MatchmakingView extends BaseView {
 
 	be_invited(message)
 	{
-		let modal = new bootstrap.Modal(document.getElementById('receiveInvitation'));
+			let modal = new bootstrap.Modal(document.getElementById('receiveInvitation'));
             const invite = document.getElementById('invitation');
             const inviteText = document.getElementById('inviteText');
             const buttonContainer = document.getElementById('buttonContainer');
@@ -548,7 +561,7 @@ export default class MatchmakingView extends BaseView {
 
             modal.show();
         }
-		
+
 
 
 	appendFriendEntry(tableElement, player_id)
@@ -582,7 +595,7 @@ export default class MatchmakingView extends BaseView {
 		const buttonCell = document.createElement('td');
 		buttonCell.classList.add('right');
 		const inviteButton = document.createElement('button');
-		inviteButton.className = "btn btn-primary";
+		inviteButton.className = "btn btn-warning";
 		inviteButton.textContent = "Invite";
 		inviteButton.onclick = () => {this.inviteFriend(player_id);
 			inviteButton.textContent = "Invite sent";
@@ -627,35 +640,130 @@ export default class MatchmakingView extends BaseView {
 
 	showOnlinePlayers() {
 		// Demander la liste des joueurs en ligne via WebSocket
-		this.sendMessage({ type: 'getOnlinePlayers' }).catch((error) => this.errorHandler(error));
+		this.sendMessage({'type' : 'get_online_players'}, 1000)
+		.then ((message) => {
+			const players = message.players;
+			console.log(`online players`);
+			console.log(players);
+			this.displayOnlinePlayers(players);
+		})
+		.catch (error => this.errorHandler(error));
 	}
 
-	displayOnlinePlayers(players) {
-		const onlinePlayersList = document.getElementById('onlinePlayersList');
-		onlinePlayersList.innerHTML = '';
 
-		players.forEach(player => {
-			let actionButton = '';
-			switch (player.status) {
-				case 'in_game':
-					actionButton = `<button class="btn btn-sm btn-secondary" onclick="observeMatch('${player.matchId}')">Observer</button>`;
-					break;
-				case 'in_lobby':
-					actionButton = `<button class="btn btn-sm btn-primary" onclick="joinLobby('${player.lobbyId}')">Rejoindre</button>`;
-					break;
-			}
+	appendPLayerStatusEntry(tableElement, player_id, player_data, modal)
+	{
 
-			onlinePlayersList.innerHTML += `
-				<div class="player-item">
-					<p>${player.name} - Status: ${player.status}</p>
-					${actionButton}
-				</div>
-			`;
+		console.log('adding player');
+		console.log(player_id);
+		console.log(self.username);
+		if (player_id == authenticatedUser.username)
+		{
+			return ;
+		}
+		const playerRow = document.createElement('tr');
+
+		const nameCell = document.createElement('td');
+		nameCell.classList.add('left');
+		const linkBlock = document.createElement('a');
+		linkBlock.classList.add('user-link', 'd-flex', 'align-items-center', 'text-decoration-none');
+		const userAvatar = document.createElement('img');
+		userAvatar.classList.add('rounded-circle', 'me-2');
+		const userNameSpan = document.createElement('span');
+		userManager.getUserAttr(player_id, 'avatar', "/avatars/__default__.jpg").then(url =>
+		{
+			userAvatar.src = url;
 		});
+		userAvatar.classList.add = (`dynamicAvatarUrl`, `user-${player_id}`);
+		userNameSpan.classList.add(`dynamicDisplayName`, `user-${player_id}`);
+		userManager.getUserAttr(player_id, 'display_name', player_id).then(displayName => {
+			console.log(`display name is ${displayName}`);
+			userNameSpan.textContent = displayName;
+		});
+		linkBlock.href = `https://${window.location.host}/api/users/${player_id}/`;
+		linkBlock.appendChild(userAvatar);
+		linkBlock.appendChild(userNameSpan);
+		nameCell.appendChild(linkBlock);
+		playerRow.appendChild(nameCell);
 
-		// Afficher le modal
-		new bootstrap.Modal(document.getElementById('onlinePlayersModal')).show();
+		const statusCell = document.createElement('td');
+		statusCell.classList.add('center');
+		statusCell.textContent = player_data.status;
+		playerRow.appendChild(statusCell);
+
+		const buttonCell = document.createElement('td');
+		buttonCell.classList.add('right');
+		const actionButton = document.createElement('button');
+		actionButton.className = "btn btn-primary";
+		switch (player_data.status)
+		{
+			case 'in_game':
+				actionButton.textContent = "Spectate";
+				actionButton.onclick = () => {this.spectateLobby(player_data.lobby_id);}
+				break ;
+			case 'in_lobby':
+				actionButton.textContent = "Join";
+				actionButton.onclick = () => {
+					modal.hide();
+					this.joinLobby(player_data.lobby_id);
+				}
+				break ;
+			case 'online':
+				actionButton.textContent = "Let me chill !"
+		}
+		buttonCell.appendChild(actionButton);
+		playerRow.appendChild(buttonCell);
+
+		tableElement.appendChild(playerRow);
+
 	}
+
+	// placeholder(players) {
+	// 	const onlinePlayersList = document.getElementById('onlinePlayersList');
+	// 	onlinePlayersList.innerHTML = '';
+
+	// 	Object.entries(players).forEach(player_data => {
+	// 		console.log(`player data`);
+	// 		console.log(player_data);
+	// 		let actionButton = '';
+	// 		let description = '';
+	// 		switch (player_data[1].status) {
+	// 			case 'in_game':
+	// 				actionButton = `<button class="btn btn-sm btn-secondary" onclick="observeMatch('${player_data[1].lobby_id}')">Spectate</button>`;
+	// 				description = 'Playing';
+	// 				break;
+	// 			case 'in_lobby':
+	// 				actionButton = `<button class="btn btn-sm btn-primary" onclick="joinLobby('${player_data[1].lobby_id}')">Join</button>`;
+	// 				description = 'In lobby';
+	// 				break;
+	// 			case 'online':
+	// 				actionButton = `<button class="btn btn-sm btn-primary" >Let me chill!</button>`
+	// 				description = 'Chilling in the menu';
+	// 		}
+
+	// 		onlinePlayersList.innerHTML += `
+	// 			<div class="player-item">
+	// 				<p>${player_data[0]} - Status: ${description} ${actionButton}</p>
+
+	// 			</div>`;
+
+	// 	});
+
+		displayOnlinePlayers(players)
+		{
+			let modal = new bootstrap.Modal(document.getElementById('displayOnlinePlayersModal'));
+			const onlinePlayers = document.getElementById('onlinePlayers');
+			onlinePlayers.innerHTML = '';
+
+			Object.entries(players).forEach(player_data => {
+				this.appendPLayerStatusEntry(onlinePlayers, player_data[0], player_data[1], modal);
+			});
+			modal.show();
+		}
+
+
+
+
 
 	// Connecter le WebSocket au chargement de la page
 	dispatch(message) {

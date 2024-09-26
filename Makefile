@@ -67,6 +67,9 @@ $(DATA_DIR):
 root_rm:
 	docker run -v ./data:/$(DATA_DIR) -it --rm alpine rm "-rf" "/$(DATA_DIR)"
 
+populate:
+	./srcs/scripts/populate.sh $(shell cat ./data/keys/api-tokens/matchmaking)
+
 stop:
 	docker compose down
 
