@@ -26,7 +26,7 @@ export default class MatchmakingView extends BaseView {
 
 		this.showOnlinePLayersButton = document.getElementById('buttonShowOnlinePlayers');
 		this.openLobbyOptionsButton = document.getElementById('buttonOptionsLobby');
-		this.startGameButton = document.getElementById('startGameButton');
+		//this.startGameButton = document.getElementById('startGameButton');
 		this.inviteFriendsButton = document.getElementById('inviteFriendsButton');
 		this.beReadyButton = document.getElementById('beReadyButton');
 		this.leaveLobbyButton = document.getElementById('leaveLobbyButton');
@@ -500,7 +500,10 @@ export default class MatchmakingView extends BaseView {
 			const addBotButton = document.createElement('button');
 			addBotButton.className = 'btn btn-info';
 			addBotButton.textContent = 'Ajouter un bot';
-			addBotButton.onclick = () => this.addBot();
+			addBotButton.onclick = () => {
+				this.isReady = false;
+				this.addBot();
+			}
 			actionCell.appendChild(addBotButton);
 		}
 		emptySlotRow.appendChild(actionCell);
@@ -633,7 +636,7 @@ export default class MatchmakingView extends BaseView {
 	}
 
 	addBot() {
-		this.sendMessage({ type: 'addBot' }).catch((error) => this.errorHandler(error));
+		this.sendMessage({ type: 'add_bot' });
 	}
 
 	openLobbyOptions() {
@@ -755,7 +758,7 @@ export default class MatchmakingView extends BaseView {
 		{
 			const websocket_id = message.websocket_id;
 			const game_type = message.game_type;
-			window.location.hash = `${game_type}?id=${websocket_id}`;
+			window.location.hash = `#${game_type}?id=${websocket_id}`;
 		}
 
 	// Connecter le WebSocket au chargement de la page
@@ -789,7 +792,7 @@ export default class MatchmakingView extends BaseView {
 
 		this.showOnlinePLayersButton.removeEventListener('click', this.showOnlinePlayers);
 		this.openLobbyOptionsButton.removeEventListener('clck', this.openLobbyOptions);
-		this.startGameButton.removeEventListener('click', this.startGame);
+		//this.startGameButton.removeEventListener('click', this.startGame);
 		this.inviteFriendsButton.removeEventListener('click', this.inviteFriends);
 		this.leaveLobbyButton.removeEventListener('click', this.leaveLobby);
 		this.joinLobbyButton.removeEventListener('click', this.joinLobbyById);
