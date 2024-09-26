@@ -13,8 +13,8 @@ from channels.layers import get_channel_layer
 from matchmaking.common import online_players, lobbies, PlayerStatus
 from matchmaking.lobby import Lobby, LocalMatchLobby, SimpleMatchLobby, TurnamentInitialLobby
 import copy
-# from matchmaking.tournament import Tournament
 import copy
+from asgiref.sync import sync_to_async
 
 
 def verify_jwt(token, is_ttl_based=False, ttl_key="exp"):
@@ -287,6 +287,12 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		else:
 			await self._send_error(msg="Could not switch to the requested lobby", code=Errors.JOIN_ERROR, close=False)
 
+	async def add_bot(self, content):
+		if self.get_status() == PlayerStatus.IN_LOBBY and self._is_host:
+			lobbies[self._lobby_id].player_not_ready(self.username)
+			# await self.send_json("{'type' : 'self_unready'}")
+			lobbies[self._lobby_id].add_bot()
+			await self.send_lobby_update(self._lobby_id)
 
 
 	async def leave_lobby(self, content=None):
@@ -304,11 +310,9 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 			oldId = self._lobby_id
 			self._lobby_id = None
 			online_players[self.username] = copy.deepcopy(default_status)
-			print(f"status reset for {self.username}", online_players)
 			await self.send_lobby_update(oldId)
 			await self.channel_layer.group_add(MatchMakingConsumer.matchmaking_group, self.channel_name)
 			await self.send_general_update()
-			print(online_players)
 
 
 	async def create_lobby(self, data):
@@ -316,7 +320,6 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 			await self._send_error(msg='You can\t host at this moment', code=Errors.HOST_ERROR, close=False)
 			return
 		data.pop('type')
-		print(data)
 		data['hostname'] = self.username
 		try:
 			match data.pop('lobby_type'):
@@ -376,10 +379,13 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 			await self._send_error(msg="You are not in a lobby, ready up failed",code=4005, close=False)
 			return
 		if lobbies[self._lobby_id].player_ready(self.username):
-			self.dispatch_players(self._lobby_id, True)
+			await self.dispatch_players(self._lobby_id)
 			await self.send_general_update()
 		else:
 			await self.send_lobby_update(self._lobby_id)
+
+
+
 
 	async def player_unready(self, content):
 		if self.get_status() not in (PlayerStatus.IN_LOBBY, PlayerStatus.IN_TURNAMENT_LOBBY):
@@ -387,7 +393,16 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		lobbies[self._lobby_id].player_not_ready(self.username)
 		await self.send_lobby_update(self._lobby_id)
 
+	async def dispatch_players(self, lobby_id):
 
+		await self.send_general_update()
+		await self.channel_layer.group_send(lobby_id, {'type' : 'game_start', 'websocket_id' : lobby_id, 'game_type' : lobbies[lobby_id].game_type})
+
+	async def game_start(self, content):
+
+		await self.channel_layer.group_discard(self._lobby_id, self.channel_name)
+		await self.channel_layer.group_discard(self.username, self.channel_name)
+		await self.send_json(content)
 ##########################################################################3
 
 	#hosting lobby related func
@@ -401,7 +416,6 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 			del lobbies[self._lobby_id]
 		self._lobby_id = None
 		self._is_host = False
-		print(f'online player after cancel_lobby {online_players}')
 
 	async def send_general_update(self):
 		data = await self.generate_update_data()
@@ -421,6 +435,26 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 	async def get_invite_list(self, content):
 		data = await self.generate_invite_list()
 		await self.send_json(data)
+
+	async def kick_player(self, content):
+
+		if (self.get_status() != PlayerStatus.IN_LOBBY or not self._is_host):
+			return
+		player_target = content['player_target']
+		lobbies[self._lobby_id].remove_player(player_target)
+		if not player_target[0] == "!":
+			await self.channel_layer.group_send(player_target, {"type" : "be_kicked"})
+		await self.send_lobby_update(self._lobby_id)
+
+	async def be_kicked(self, content):
+
+		self._lobby_id = None
+		online_players[self.username] = copy.deepcopy(default_status)
+		await self.send_json(content)
+		await self.send_general_update()
+
+
+
 
 	async def invite_player(self, content):
 
@@ -473,7 +507,6 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 				data['players'][player_id] = {'status' : 'in_lobby', 'lobby_id' : players_copy[player_id]['lobby_id']}
 			elif players_copy[player_id]['status'] == PlayerStatus.IN_GAME and players_copy[player_id]['lobby_id'][2] == 'A':
 				data['players'][player_id] = {'status' : 'in_game', 'lobby_id' :  players_copy[player_id]['lobby_id']}
-		print(f"online players list {data}")
 		return data
 
 	async def generate_invite_list(self):

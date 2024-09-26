@@ -18,6 +18,7 @@ export default class MatchmakingView extends BaseView {
 		this.messageId = 0;
     }
 
+
     async initView() {
 
         // Initialiser la connexion WebSocket
@@ -25,7 +26,7 @@ export default class MatchmakingView extends BaseView {
 
 		this.showOnlinePLayersButton = document.getElementById('buttonShowOnlinePlayers');
 		this.openLobbyOptionsButton = document.getElementById('buttonOptionsLobby');
-		this.startGameButton = document.getElementById('startGameButton');
+		//this.startGameButton = document.getElementById('startGameButton');
 		this.inviteFriendsButton = document.getElementById('inviteFriendsButton');
 		this.beReadyButton = document.getElementById('beReadyButton');
 		this.leaveLobbyButton = document.getElementById('leaveLobbyButton');
@@ -350,7 +351,6 @@ export default class MatchmakingView extends BaseView {
 	}
 
 	joinLobby(lobbyId) {
-		console.log('Rejoindre le lobby:', lobbyId);
 		// Implémentez la logique pour rejoindre le lobby ici
 		this.sendMessage({ type: 'join_lobby', lobby_id: lobbyId }).catch((error) => this.errorHandler(error));
 		// this.lobbyId = lobbyId
@@ -358,7 +358,6 @@ export default class MatchmakingView extends BaseView {
 	}
 
 	leaveLobby() {
-		console.log('Quitter le lobby:', this.lobbyId);
 		// socket.sendMessage({ type: 'leave_lobby', lobbyId: lobbyId });
 		this.sendMessage({ type: 'leave_lobby' }).catch((error) => this.errorHandler(error));;
 		this.lobbyId = undefined;
@@ -369,6 +368,12 @@ export default class MatchmakingView extends BaseView {
 	lobby_canceled(content)
 	{
 		// this.errorHandler("Lobby got cancelled");
+		this.lobbyId = undefined;
+		this.updateCurrentView();
+	}
+
+	be_kicked(content)
+	{
 		this.lobbyId = undefined;
 		this.updateCurrentView();
 	}
@@ -486,7 +491,10 @@ export default class MatchmakingView extends BaseView {
 			const addBotButton = document.createElement('button');
 			addBotButton.className = 'btn btn-info';
 			addBotButton.textContent = 'Ajouter un bot';
-			addBotButton.onclick = () => this.addBot();
+			addBotButton.onclick = () => {
+				this.isReady = false;
+				this.addBot();
+			}
 			actionCell.appendChild(addBotButton);
 		}
 		emptySlotRow.appendChild(actionCell);
@@ -495,8 +503,13 @@ export default class MatchmakingView extends BaseView {
 	}
 
 	kickPlayer(playerId) {
-		// socket.sendMessage({ type: 'kickPlayer', playerId: playerId });
+
+		console.log('KIKC');
+		console.log(playerId);
+		this.sendMessage({"type" : "kick_player", "player_target" : playerId});
 	}
+
+
 
 	inviteFriends() {
 		this.sendMessage({'type' : 'get_invite_list'}, 1000)
@@ -571,7 +584,7 @@ export default class MatchmakingView extends BaseView {
 		{
 			userAvatar.src = url;
 		});
-		userAvatar.classList.add = (`dynamicAvatarUrl`, `user-${player_id}`);
+		userAvatar.classList.add(`dynamicAvatarUrl`, `user-${player_id}`);
 		userNameSpan.classList.add(`dynamicDisplayName`, `user-${player_id}`);
 		userManager.getUserAttr(player_id, 'display_name', player_id).then(displayName => {
 			console.log(`display name is ${displayName}`);
@@ -587,6 +600,9 @@ export default class MatchmakingView extends BaseView {
 		buttonCell.classList.add('right');
 		const inviteButton = document.createElement('button');
 		inviteButton.className = "btn btn-warning";
+		inviteButton.style.backgroundColor = "#a05618";
+		inviteButton.style.borderColor = "#a05618";
+    	inviteButton.style.color = "#000";
 		inviteButton.textContent = "Invite";
 		inviteButton.onclick = () => {this.inviteFriend(player_id);
 			inviteButton.textContent = "Invite sent";
@@ -604,13 +620,14 @@ export default class MatchmakingView extends BaseView {
 		friendList.innerHTML = '';
 
 		friends.forEach(friend_id => {
-			this.appendFriendEntry(friendList, friend_id);
+			if (authenticatedUser.is_friend(friend_id))
+				this.appendFriendEntry(friendList, friend_id);
 		});
 		new bootstrap.Modal(document.getElementById('inviteFriendsModal')).show();
 	}
 
 	addBot() {
-		this.sendMessage({ type: 'addBot' }).catch((error) => this.errorHandler(error));
+		this.sendMessage({ type: 'add_bot' });
 	}
 
 	openLobbyOptions() {
@@ -685,7 +702,10 @@ export default class MatchmakingView extends BaseView {
 		const buttonCell = document.createElement('td');
 		buttonCell.classList.add('right');
 		const actionButton = document.createElement('button');
-		actionButton.className = "btn btn-primary";
+		actionButton.className = "btn btn-warning";
+		actionButton.style.backgroundColor = "#a05618";
+		actionButton.style.borderColor = "#a05618";
+    	actionButton.style.color = "#000";
 		switch (player_data.status)
 		{
 			case 'in_game':
@@ -709,36 +729,7 @@ export default class MatchmakingView extends BaseView {
 
 	}
 
-	// placeholder(players) {
-	// 	const onlinePlayersList = document.getElementById('onlinePlayersList');
-	// 	onlinePlayersList.innerHTML = '';
 
-	// 	Object.entries(players).forEach(player_data => {
-	// 		console.log(`player data`);
-	// 		console.log(player_data);
-	// 		let actionButton = '';
-	// 		let description = '';
-	// 		switch (player_data[1].status) {
-	// 			case 'in_game':
-	// 				actionButton = `<button class="btn btn-sm btn-secondary" onclick="observeMatch('${player_data[1].lobby_id}')">Spectate</button>`;
-	// 				description = 'Playing';
-	// 				break;
-	// 			case 'in_lobby':
-	// 				actionButton = `<button class="btn btn-sm btn-primary" onclick="joinLobby('${player_data[1].lobby_id}')">Join</button>`;
-	// 				description = 'In lobby';
-	// 				break;
-	// 			case 'online':
-	// 				actionButton = `<button class="btn btn-sm btn-primary" >Let me chill!</button>`
-	// 				description = 'Chilling in the menu';
-	// 		}
-
-	// 		onlinePlayersList.innerHTML += `
-	// 			<div class="player-item">
-	// 				<p>${player_data[0]} - Status: ${description} ${actionButton}</p>
-
-	// 			</div>`;
-
-	// 	});
 
 		displayOnlinePlayers(players)
 		{
@@ -747,14 +738,19 @@ export default class MatchmakingView extends BaseView {
 			onlinePlayers.innerHTML = '';
 
 			Object.entries(players).forEach(player_data => {
-				this.appendPLayerStatusEntry(onlinePlayers, player_data[0], player_data[1], modal);
+				if (authenticatedUser.is_friend(player_data[0]))
+					this.appendPLayerStatusEntry(onlinePlayers, player_data[0], player_data[1], modal);
 			});
 			modal.show();
 		}
 
 
-
-
+		game_start(message)
+		{
+			const websocket_id = message.websocket_id;
+			const game_type = message.game_type;
+			window.location.hash = `#${game_type}?id=${websocket_id}`;
+		}
 
 	// Connecter le WebSocket au chargement de la page
 	dispatch(message) {
@@ -787,7 +783,7 @@ export default class MatchmakingView extends BaseView {
 
 		this.showOnlinePLayersButton.removeEventListener('click', this.showOnlinePlayers);
 		this.openLobbyOptionsButton.removeEventListener('clck', this.openLobbyOptions);
-		this.startGameButton.removeEventListener('click', this.startGame);
+		//this.startGameButton.removeEventListener('click', this.startGame);
 		this.inviteFriendsButton.removeEventListener('click', this.inviteFriends);
 		this.leaveLobbyButton.removeEventListener('click', this.leaveLobby);
 		this.joinLobbyButton.removeEventListener('click', this.joinLobbyById);
