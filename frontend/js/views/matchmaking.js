@@ -1,5 +1,5 @@
 import { BaseView } from '../view-manager.js';
-import { authenticatedUser, userManager } from '../home.js'
+import { authenticatedUser, userManager, User } from '../home.js'
 
 export default class MatchmakingView extends BaseView {
     constructor() {
@@ -401,7 +401,7 @@ export default class MatchmakingView extends BaseView {
 		}
 	}
 
-	appendPlayerEntry(tableElement, playerId, playerData, hostId) {
+	async appendPlayerEntry(tableElement, playerId, playerData, hostId) {
 		const playerRow = document.createElement('tr');
 		let playerState;
 		if (playerData.is_ready) {
@@ -414,28 +414,19 @@ export default class MatchmakingView extends BaseView {
 			playerRow.classList.add('text-muted');
 		}
 
+		const user = User(playerId, await userManager.getUserInfo(playerId));
+
 		const nameCell = document.createElement('td');
 		nameCell.classList.add('left');
 		const linkBlock = document.createElement('a');
 		linkBlock.classList.add('user-link', 'd-flex', 'align-items-center', 'text-decoration-none');
 		const userAvatar = document.createElement('img');
-		userAvatar.classList.add('rounded-circle', 'me-2');
+		userAvatar.classList.add('rounded-circle', 'me-2', 'dynamicAvatarUrl');
 		const userNameSpan = document.createElement('span');
-		if (playerId[0] === '!') {
-			userAvatar.src = "/avatars/__bot__.png";
-			userNameSpan.textContent = "Bot";
-			linkBlock.href =  "javascript:void(0)";
-		} else {
-			userManager.getUserAttr(playerId, 'avatar', "/avatars/__default__.jpg").then(url => {
-				userAvatar.src = url;
-			});
-			userAvatar.classList.add = (`dynamicAvatarUrl`, `user-${playerId}`);
-			userNameSpan.classList.add = (`dynamicDisplayName`, `user-${playerId}`);
-			userManager.getUserAttr(playerId, 'display_name', playerId).then(displayName => {
-				userNameSpan.textContent = displayName;
-			});
-			linkBlock.href = `https://${window.location.host}/#user?username=${playerId}`;
-		}
+		userNameSpan.classList.add('dynamicDisplayName');
+		userNameSpan.textContent = user.username;
+		userAvatar.src = user.avatar;
+		linkBlock.href = !user.is_bot ? `https://${window.location.host}/#user?username=${playerId}` : "javascript:void(0)";
 		linkBlock.appendChild(userAvatar);
 		linkBlock.appendChild(userNameSpan);
 		nameCell.appendChild(linkBlock);
