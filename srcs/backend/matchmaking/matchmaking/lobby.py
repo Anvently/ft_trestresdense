@@ -111,6 +111,7 @@ class Lobby():
 		return True
 
 	def player_not_ready(self, player_id):
+		print('pouet')
 		self.players[player_id]['is_ready'] = False
 
 	def player_joined(self, player_id):

@@ -359,19 +359,26 @@
 	</div>
 
 	<!-- Modal pour afficher les joueurs en ligne -->
-	<div class="modal fade" id="onlinePlayersModal" tabindex="-1">
-		<div class="modal-dialog">
-			<div class="modal-content">
-				<div class="modal-header">
-					<h5 class="modal-title">Joueurs en ligne</h5>
-					<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-				</div>
-				<div class="modal-body" id="onlinePlayersList">
-
-				</div>
-			</div>
-		</div>
-	</div>
+	<div class="modal fade" id="displayOnlinePlayersModal" tabindex="-1" aria-labelledby="displayOnlinePlayersModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="displayOnlinePlayersModalLabel"> Online players</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                </div>
+                <div class="modal-body">
+                    <table class="table table-hover" id="onlinePlayers">
+                        <tbody>
+                            <!-- La liste des amis sera générée ici par JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
 <!-- Modal pour inviter des amis -->
 	<div class="modal fade" id="inviteFriendsModal" tabindex="-1" aria-labelledby="inviteFriendsModalLabel" aria-hidden="true">
@@ -382,7 +389,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
                 </div>
                 <div class="modal-body">
-                    <table class="table" id="friendList">
+                    <table class="table table-hover" id="friendList">
                         <tbody>
                             <!-- La liste des amis sera générée ici par JavaScript -->
                         </tbody>
