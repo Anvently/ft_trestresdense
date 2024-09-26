@@ -29,8 +29,8 @@ SOUTH = 3
 
 START_POS = [{"x": -0.5 - PADDLE_THICKNESS / 2, 'y': 0, 'width': PADDLE_THICKNESS, 'height': PADDLE_LENGTH},
 			 {"x": 0.5 + PADDLE_THICKNESS / 2, "y": 0,"width": PADDLE_THICKNESS,"height": PADDLE_LENGTH,},
+			 {"x": 0, "y": 0.5 + PADDLE_THICKNESS / 2, "width": PADDLE_LENGTH,"height": PADDLE_THICKNESS},
 			 {"x": 0, "y": -0.5 - PADDLE_THICKNESS / 2,"width": PADDLE_LENGTH,"height": PADDLE_THICKNESS},
-			 {"x": 0, "y": 0.5 + PADDLE_THICKNESS / 2, "width": PADDLE_LENGTH,"height": PADDLE_THICKNESS}
 			 ]
 
 BALL_START = {"x": 0, "y": 0, "r": BALL_RADIUS, "speed": {"x": 0, "y": 0}}
@@ -65,7 +65,7 @@ class Player2D(Player):
 	
 	def calculate_destination(self, ballX, ballY, ballSpeedX, ballSpeedY):
 		self.destination = 0
-		if self.side == WEST and ballSpeedX < 0 or self.side == EAST and ballSpeedX > 0 or self.side == NORTH and ballSpeedY < 0 or self.side == SOUTH and ballSpeedY > 0:
+		if self.side == WEST and ballSpeedX < 0 or self.side == EAST and ballSpeedX > 0 or self.side == NORTH and ballSpeedY > 0 or self.side == SOUTH and ballSpeedY < 0:
 			self.destination = self.calculate_impact(ballX, ballY, ballSpeedX, ballSpeedY)
 
 		# make the ai hit the edges of the paddle
@@ -155,47 +155,28 @@ class PongLobby2D(PongLobby):
 		self.paddle_collision()
 
 	def wall_collision(self):
-		# if self.players[NORTH].type != "Player" and self.ball['y'] - BALL_RADIUS <= -0.5 and self.ball["speed"]['y'] < 0:
-		# 	self.ball["speed"]['y'] *= -1
-		# elif self.players[SOUTH].type != "Player" and self.ball['y'] + BALL_RADIUS >= 0.5 and self.ball["speed"]['y'] > 0:
-		# 	self.ball["speed"]['y'] *= -1
-		# elif self.players[WEST].type != "Player" and self.ball['x'] - BALL_RADIUS <= -0.5 and self.ball["speed"]['x'] < 0:
-		# 	self.ball["speed"]['x'] *= -1
-		# elif self.players[EAST].type != "Player" and self.ball['x'] + BALL_RADIUS >= 0.5 and self.ball["speed"]['x'] > 0:
-		# 	self.ball["speed"]['x'] *= -1
-
-		# print(f"ball x = {self.ball["x"]}, ball y = {self.ball["y"]}")
-
 		if self.ball["y"] <= 0 and abs(self.ball["y"]) >= abs(self.ball["x"]):
 			ball_position = SOUTH
-			# print("SOUTH")
 		elif self.ball["y"] > 0 and abs(self.ball["y"]) > abs(self.ball["x"]):
 			ball_position = NORTH
-			# print("NORTH")
 		elif self.ball["x"] < 0 and abs(self.ball["y"]) < abs(self.ball["x"]):
 			ball_position = EAST
-			# print("EAST")
 		elif self.ball["x"] > 0 and abs(self.ball["y"]) < abs(self.ball["x"]):
 			ball_position = WEST
-			# print("WEST")
 
 
 		if ball_position == NORTH or ball_position == SOUTH:
 			if not -0.5 + BALL_RADIUS < self.ball["y"] < 0.5 - BALL_RADIUS:
 				if self.players[ball_position].type != "Player":
 					self.ball["speed"]["y"] *= -1
-					print("A")
 				elif not -0.5 + BALL_RADIUS < self.ball["x"] < 0.5 - BALL_RADIUS:
 					self.ball["speed"]["x"] *= -1
-					print("B")
 		else:
 			if not -0.5 + BALL_RADIUS < self.ball["x"] < 0.5 - BALL_RADIUS:
 				if self.players[ball_position].type != "Player":
 					self.ball["speed"]["x"] *= -1
-					print("C")
 				elif not -0.5 + BALL_RADIUS < self.ball["y"] < 0.5 - BALL_RADIUS:
 					self.ball["speed"]["y"] *= -1
-					print("D")
 
 
 
@@ -236,7 +217,7 @@ class PongLobby2D(PongLobby):
 		# reverse direction of ball
 		if direction == EAST:
 			self.ball["speed"]["x"] *= -1
-		elif direction == SOUTH:
+		elif direction == NORTH:
 			self.ball["speed"]["y"] *= -1
 
 
@@ -253,19 +234,19 @@ class PongLobby2D(PongLobby):
 	def check_goals(self):
 		#meh, pue un peu la merde dans le cas des buts marques tres pres du bord
 		goal_scored = False
-		if self.ball['x'] < -1.5 and self.players[WEST].type == "Player":
+		if self.ball['x'] < -1.2 and self.players[WEST].type == "Player":
 			self.players[WEST].lives -= 1
 			print(f"WEST lost a life, {self.players[WEST].lives} remaining")
 			goal_scored = True
-		elif self.ball['x'] > 1.5 and self.players[EAST].type == "Player":
+		elif self.ball['x'] > 1.2 and self.players[EAST].type == "Player":
 			self.players[EAST].lives -= 1
 			print(f"EAST lost a life, {self.players[EAST].lives} remaining")
 			goal_scored = True
-		elif self.ball['y'] < -1.5 and self.players[NORTH].type == "Player":
+		elif self.ball['y'] > 1.2 and self.players[NORTH].type == "Player":
 			self.players[NORTH].lives -= 1
 			print(f"NORTH lost a life, {self.players[NORTH].lives} remaining")
 			goal_scored = True
-		elif self.ball['y'] > 1.5 and self.players[SOUTH].type == "Player":
+		elif self.ball['y'] < -1.2 and self.players[SOUTH].type == "Player":
 			self.players[SOUTH].lives -= 1
 			print(f"SOUTH lost a life, {self.players[SOUTH].lives} remaining")
 			goal_scored = True

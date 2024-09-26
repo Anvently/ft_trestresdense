@@ -1,13 +1,10 @@
-// import * as THREE from 'three';
-// import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js';
-// import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js';
 
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.168.0/build/three.module.js'
-// import { TextGeometry } from "https://cdn.jsdelivr.net/npm/three@0.168.0/examples/jsm/geometries/TextGeometry.js"
-// import { FontLoader } from "https://cdn.jsdelivr.net/npm/three@0.168.0/examples/jsm/loaders/FontLoader.js"
+import { TextGeometry } from "https://cdn.jsdelivr.net/npm/three@0.168.0/examples/jsm/geometries/TextGeometry.js"
+import { FontLoader } from "https://cdn.jsdelivr.net/npm/three@0.168.0/examples/jsm/loaders/FontLoader.js"
 
 import { BaseView } from '../view-manager.js';
-import { userInfo } from '../home.js';
+import { User, userManager } from '../home.js';
 
 
 
@@ -38,8 +35,6 @@ const WALL_POSITION = {
 };
 
 
-console.log(userInfo);
-
 // SOUND
 var ping_sound = new Audio("sound/ping_sound.mp3");
 var pong_sound = new Audio("sound/pong_sound.mp3");
@@ -50,15 +45,10 @@ const textureLoader = new THREE.TextureLoader();
 
 // Font Loader
 // const fontLoader = new FontLoader();
-
 // var FONT;
 // fontLoader.load('https://cdn.jsdelivr.net/npm/three@0.136.0/examples/fonts/droid/droid_sans_regular.typeface.json', (loadedFont) => {
 // 	FONT = loadedFont;
 // })
-
-
-
-
 
 export default class Pong3DView extends BaseView {
 	constructor() {
@@ -92,9 +82,11 @@ export default class Pong3DView extends BaseView {
 		this.my_direction = -1;
 		this.is_service = false;
 		this.intervalId = null;
+		this.font = null;
 	}
 
-	initView() {
+	async initView() {
+		await this.initFont();
 		this.createScene();
 		this.initWebSocket();
 		this.startGameLoop();
@@ -114,7 +106,7 @@ export default class Pong3DView extends BaseView {
 			}
 			if (msg["type"] == "ping") {
 				this.socket.send(
-					JSON.stringify({ type: "join_game", username: `${userInfo.username}` })
+					JSON.stringify({ type: "join_game", username: `${User.username}` })
 				);
 			} else if (msg["type"] === "send_game_state") {
 				this.updateGameState(msg);
@@ -134,13 +126,11 @@ export default class Pong3DView extends BaseView {
 
 		// Renderer
 		this.renderer = new THREE.WebGLRenderer();
-		// this.renderer.setSize(1200, 900);
 		this.resize();
 		this.renderer.shadowMap.enabled = true;
 		this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 		// document.body.appendChild(this.renderer.domElement)
 		document.getElementById('container-canva').appendChild(this.renderer.domElement);
-		;
 
 		// lights
 			// SpotLights
@@ -172,6 +162,9 @@ export default class Pong3DView extends BaseView {
 		// this.objects.score_board.push(createScoreBoard(0x0000f0, EAST, FONT));
 		// this.objects.score_board.forEach(score_board => this.scene.add(score_board))
 
+		this.createScoreBoard(-49, 0, 5, 0); // FIND A WAY TO DO THAT ONCE AND ONLY AFTER FIRST MESSAGE...
+		this.createScoreBoard(49, 0, 5, Math.PI); // FIND A WAY TO DO THAT ONCE AND ONLY AFTER FIRST MESSAGE...
+
 	}
 
 	updateGameState(msg) {
@@ -202,14 +195,13 @@ export default class Pong3DView extends BaseView {
 		console.log("startGameLoop");
 		this.intervalId = setInterval(() => {
 			if (this.pressKey.key_up === true)
-				this.socket.send(JSON.stringify({type: 'key_input', username:userInfo.username,  input: "up" }));
+				this.socket.send(JSON.stringify({type: 'key_input', username:User.username,  input: "up" }));
 			if (this.pressKey.key_down === true)
-				this.socket.send(JSON.stringify({type: 'key_input', username:userInfo.username,  input: "down" }));
+				this.socket.send(JSON.stringify({type: 'key_input', username:User.username,  input: "down" }));
 			if (this.pressKey.key_left === true)
-				this.socket.send(JSON.stringify({type: 'key_input', username:userInfo.username,  input: "left" }));
+				this.socket.send(JSON.stringify({type: 'key_input', username:User.username,  input: "left" }));
 			if (this.pressKey.key_right === true)
-				this.socket.send(JSON.stringify({type: 'key_input', username:userInfo.username,  input: "right" }));
-			
+				this.socket.send(JSON.stringify({type: 'key_input', username:User.username,  input: "right" }));
 
 			this.draw3D();
 
@@ -263,7 +255,6 @@ export default class Pong3DView extends BaseView {
 			newHeight = window.innerHeight;
 		}
 		this.renderer.setSize(newWidth, newHeight);
-			
 	}
 
 	handleKeyDown(e) {
@@ -289,7 +280,7 @@ export default class Pong3DView extends BaseView {
 	setCamera() {
 		// find my position // Find a better way to avoid recalculation ? eventOnFirstMessage ?
 		for (var i = 0; i < 2; i++) {
-			if (this.players[i].id == userInfo.username)
+			if (this.players[i].id == User.username)
 				this.my_direction = i;
 		}
 
@@ -302,7 +293,7 @@ export default class Pong3DView extends BaseView {
 	updateScoreBoard(side, score) {
 		if (this.objects.score_board[side]) {
 			const geometry = new TextGeometry(score.toString(), {
-				font: font,
+				font: this.font,
 				size: 1.5,
 				depth: 0.05,
 				curveSegments: 12,
@@ -414,17 +405,152 @@ export default class Pong3DView extends BaseView {
 			REBOUND_HEIGHT
 		);
 	}
+
+	async initFont() {
+		const fontLoader = new FontLoader();
+	
+		// Return a promise to be awaited
+		this.font = await new Promise((resolve, reject) => {
+			fontLoader.load(
+				'https://cdn.jsdelivr.net/npm/three@0.136.0/examples/fonts/droid/droid_sans_regular.typeface.json',
+				(loadedFont) => {
+					resolve(loadedFont); // Resolve the promise with the loaded font
+				},
+				undefined,
+				(error) => reject(error) // Reject if there's an error
+			);
+		});
+	}
+
+	createScoreBoard(x, y, z, rot) {
+		const group = new THREE.Group();
+
+		// support
+		{
+			const geometry = new THREE.BoxGeometry(1, 20, 14);
+			const material = new THREE.MeshStandardMaterial({color: 0x111111});
+			const mesh = new THREE.Mesh(geometry, material);
+			mesh.position.z += 0.5
+
+			group.add(mesh);
+		}
+
+		for (let i = 0; i < 2; i++)	{
+			const playerScoreGroup = new THREE.Group();
+			// names
+			// var name = console.log(userManager.getUserInfo(this.players[i].id));
+			var name = 'Cheval-Canard';
+			// truncate name
+			if (name.length > 13) {
+				name = name.substring(0, 12) + '.';  // Truncate to 11 characters and add a dot
+			}
+
+			{
+				var geometry = new TextGeometry(name, {
+					font: this.font,
+					size: 1,
+					depth: 0.05,
+					curveSegments: 12
+				});
+
+				// center the text
+				geometry = centerTextGeometry(geometry);
+
+				const material = new THREE.MeshStandardMaterial({ color: 0xffffff });
+				const mesh = new THREE.Mesh(geometry, material);
+				mesh.rotation.y = Math.PI /2;
+				mesh.rotation.z = Math.PI /2;
+				mesh.position.x += 0.5
+
+				playerScoreGroup.add(mesh);
+			}
+
+			// // avatar
+			var avatar_path = "/image/chevalCanard.png"
+			const texture = textureLoader.load(avatar_path);
+			texture.colorSpace = THREE.SRGBColorSpace;
+			{
+				const geometry = new THREE.PlaneGeometry(6, 6);
+				const material = new THREE.MeshStandardMaterial({map: texture, side: THREE.DoubleSide});
+				const mesh = new THREE.Mesh(geometry, material);
+				mesh.receiveShadow = true;
+				mesh.rotation.y = Math.PI / 2;
+				mesh.rotation.z = Math.PI / 2;
+				mesh.position.x += 0.51;
+				mesh.position.z += 4;
+
+				playerScoreGroup.add(mesh);
+			}
+
+			// score
+			{
+				var geometry = new TextGeometry('10', {
+					font: this.font,
+					size: 3.4,
+					depth: 0.05,
+					curveSegments: 12
+				});
+
+				// center the text
+				geometry = centerTextGeometry(geometry);
+				const material = new THREE.MeshStandardMaterial({ color: 0xff0000 });
+				const mesh = new THREE.Mesh(geometry, material);
+				mesh.rotation.y = Math.PI /2;
+				mesh.rotation.z = Math.PI /2;
+				mesh.position.x += 0.5
+				mesh.position.z -= 3
+				playerScoreGroup.add(mesh);
+			}
+
+
+			if (i == WEST) {
+				playerScoreGroup.position.y -= 5;
+			} else {
+				playerScoreGroup.position.y += 5;
+			}
+			group.add(playerScoreGroup);
+		}
+
+		// spotlight
+		{
+			const light = new THREE.SpotLight(0xffffff, 10, 0, Math.PI / 4, 0.5, 0.5);
+			light.position.set(-15, 0, 7);
+			light.target = group;
+			light.castShadow = true;
+			light.shadow.mapSize.width = 1024;
+			light.shadow.mapSize.height = 1024;
+			light.shadow.camera.near = 1;
+			light.shadow.camera.far = 500;
+			light.shadow.camera.fov = 60;
+
+			group.add(light);
+		}
+		group.position.set(x, y, z);
+		group.rotation.z = rot;
+		this.scene.add(group);
+	}
+
 }
 
 
+function centerTextGeometry(geometry) {
+	geometry.computeBoundingBox();
+	const boundingBox = geometry.boundingBox;
 
+	const xOffset = (boundingBox.max.x - boundingBox.min.x) / 2;
+	const yOffset = (boundingBox.max.y - boundingBox.min.y) / 2;
+	const zOffset = (boundingBox.max.z - boundingBox.min.z) / 2;
+
+	geometry.translate(-xOffset, -yOffset, -zOffset);
+
+	return geometry;
+}
 
 // start_button.addEventListener('click', () => {
 // 	// ping_sound.play();;
 // 	pong_sound.play()
 	
 // });
-
 
 
 
@@ -495,7 +621,7 @@ function createSpotLight(position)
 {
 	const light = new THREE.SpotLight(0xffffff, 10, 0, Math.PI / 4, 0.5, 0.5);
 	light.position.set(position.x, position.y, position.z);
-	light.lookAt(0,0,0)
+	light.lookAt(0, 0, 0)
 	light.castShadow = true;
 	light.shadow.mapSize.width = 1024;
 	light.shadow.mapSize.height = 1024;
@@ -673,27 +799,27 @@ function createPaddle(color) {
 	return group;
 }
 
-function createScoreBoard(color, side, font)
-{
-		const geometry = new TextGeometry('0', {
-			font: font,
-			size: 1.5,
-			depth: 0.05,
-			curveSegments: 12
-		});
-		const material = new THREE.MeshStandardMaterial({ color: color });
-		const textMesh = new THREE.Mesh(geometry, material);
+// function createScoreBoard(color, side, font)
+// {
+// 		const geometry = new TextGeometry('0', {
+// 			font: font,
+// 			size: 1.5,
+// 			depth: 0.05,
+// 			curveSegments: 12
+// 		});
+// 		const material = new THREE.MeshStandardMaterial({ color: color });
+// 		const textMesh = new THREE.Mesh(geometry, material);
 		
-		if (side == WEST)
-		{
-			textMesh.position.set(-3, 5, 0.2);  // Adjust position
-		}
-		else
-		{
-			textMesh.position.set(3, -5, 0.2);  // Adjust position
-			textMesh.rotation.y = Math.PI
-		}
+// 		if (side == WEST)
+// 		{
+// 			textMesh.position.set(-3, 5, 0.2);  // Adjust position
+// 		}
+// 		else
+// 		{
+// 			textMesh.position.set(3, -5, 0.2);  // Adjust position
+// 			textMesh.rotation.y = Math.PI
+// 		}
 		
-		textMesh.rotation.x = Math.PI/2
-		return(textMesh)
-}
+// 		textMesh.rotation.x = Math.PI/2
+// 		return(textMesh)
+// }
