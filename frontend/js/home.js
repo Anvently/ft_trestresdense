@@ -99,6 +99,30 @@ class AuthenticatedUser extends User {
 		Object.assign(this, new AuthenticatedUser());
 		this.updateUserMenu();
 	}
+	async addFriend(...usernames) {
+		const response = await fetch(`https://${document.location.host}/api/friends-update/`, {
+				method: 'POST',
+				headers: {'Content-Type': 'application/json'},
+				body: JSON.stringify({friends: usernames}),
+		});
+		if (!response.ok)
+			throw new Error('response from the api was not ok');
+		const data = await response.json();
+		this.friends = data.friends;
+	}
+	async removeFriend(...usernames) {
+		const response = await fetch(`https://${document.location.host}/api/friends-update/`, {
+			method: 'DELETE',
+			headers: {'Content-Type': 'application/json'},
+			body: JSON.stringify({friends: usernames}),
+		});
+		if (!response.ok)
+			throw new Error('response from the api was not ok');
+		const data = await response.json();
+		this.friends = data.friends;
+		console.log(data);
+		console.log(this);
+	}
 
 	is_friend(friend_id)
 	{

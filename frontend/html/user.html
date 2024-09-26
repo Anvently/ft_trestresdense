@@ -5,54 +5,90 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>User Profile</title>
     <style>
-        /* body {
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
+        body {
             min-height: 100vh;
-            margin: 0;
-            padding: 20px;
-        } */
-        .container {
-            max-width: 700px;
-            max-height: 80vh;
-            overflow: hidden;
+            display: flex;
+            flex-direction: column;
         }
-        .avatar {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            margin-right: 15px;
+        .container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 800px;
         }
         .user-header {
-            display: flex;
-            align-items: center;
-            margin-bottom: 20px;
+            text-align: center;
         }
-        .friend-link {
-            text-decoration: none;
-            color: inherit;
+        .user-header h3 {
+            font-size: 2.5em;;
         }
-        .friend-link:hover {
-            color: #007bff;
+        .content-wrapper {
+            flex-grow: 1;
+            justify-content: space-between;
         }
-        .lobby-link {
-            text-decoration: underline;
-            color: #007bff;
-            cursor: pointer;
-        }
-        .table-container {
-            max-height: calc(100vh - 600px);
+        .friends-column, .stats-column {
+            height: calc(70vh - 250px);
             overflow-y: auto;
+            overflow-x: hidden;
+        }
+        .friend-element {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+		}
+		.friend-avatar {
+			width: 80px;
+			height: 80px;
+			border-radius: 50%;
+			object-fit: cover;
+			cursor: pointer;
+		}
+		.friend-status {
+			width: 96px;
+			height: 96px;
+			border-radius: 50%;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			position: relative;
+			margin: 0 auto;
+		}
+		.online {
+			border: 3px solid green;
+		}
+		.offline {
+			border: 3px solid red;
+		}
+		.friend-name {
+			font-size: 0.8rem;
+			margin-top: 0.25rem;
+			text-align: center;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+			max-width: 100%;
+		}
+		.friend-tooltip {
+			display: none;
+		}
+        .user-status {
+            width: 106px;
+            height: 106px;
+            border-radius: 50%;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        #user-avatar {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
         }
         .table-responsive {
-            max-height: 500px;
-            overflow-y: auto;
+            height: 100%;
         }
-        .table-responsive table {
-            margin-bottom: 0;
-        }
-        .table-responsive thead th {
+        .table thead th {
             position: sticky;
             top: 0;
             background-color: #fff;
@@ -64,35 +100,88 @@
         td.has-lose {
             background-color: #f8d7da;
         }
+        @media (min-width: 768px) {
+            .left {
+                width: 34%;
+            }
+            .right {
+                width: auto;
+            }
+            .friend-avatar {
+                width: 60px;
+                height: 60px;
+            }
+            .friend-status {
+                width: 66px;
+                height: 66px;
+            }
+            .friend-name {
+                display: none;
+            }
+            .friend-tooltip {
+                display: block;
+                visibility: hidden;
+                width: 120px;
+                background-color: #555;
+                color: #fff;
+                text-align: center;
+                border-radius: 6px;
+                padding: 5px 0;
+                position: absolute;
+                z-index: 1;
+                bottom: 105%;
+                left: 50%;
+                margin-left: -60px;
+                opacity: 0;
+                transition: opacity 0.3s;
+            }
+            .friend-status:hover .friend-tooltip {
+                visibility: visible;
+                opacity: 1;
+            }
+        }
     </style>
 </head>
-<body>
-    <div class="container">
-        <div class="user-header">
-            <img id="user-avatar" class="avatar" src="">
-            <h3 id="user-display-name"></h3>
+    <body>
+        <div class="container py-4">
+            <div class="user-header">
+                <div class="user-status">
+                    <img id="user-avatar" class="rounded-circle" src="" alt="User Avatar">
+                </div>
+                <h3 id="user-display-name"></h3>
+            </div>
+            <hr>
+            <div class="content-wrapper row">
+                <div class="col-md-6 mb-4 mb-md-0 left">
+                    <h2>Liste d'amis</h2>
+                    <div class="friends-column">
+                        <div id="friends-list" class="row row-cols-4 row-cols-sm-3 row-cols-md-4 row-cols-lg-3 g-2">
+                            <!-- Les avatars des amis seront insérés ici par JavaScript -->
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 right">
+                    <h2>Statistiques</h2>
+                    <div class="stats-column">
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Lobby</th>
+                                        <th>Jeu</th>
+                                        <th>Score</th>
+                                        <th>Resultat</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="score-table">
+                                    <!-- Les scores seront insérés ici par JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <h2>Friends</h2>
-        <div class="table-container">
-            <ul id="friend-list" class="list-unstyled">
-            </ul>
-        </div>
-        <h2>Recent Scores</h2>
-        <div class="table-responsive">
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Lobby</th>
-                        <th>Game</th>
-                        <th>Score</th>
-                        <th>Result</th>
-                    </tr>
-                </thead>
-                <tbody id="score-table">
-                </tbody>
-            </table>
-        </div>
-    </div>
-</body>
+    </body>
 </html>

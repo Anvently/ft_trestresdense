@@ -7,7 +7,6 @@ export default class UserView extends BaseView {
 	}
 	
 	async initView() {
-		console.log(this.urlParams);
 		this.username = this.urlParams.get('username');
 		if (!this.username) {
 			this.errorHandler("No user specified !");
@@ -15,16 +14,16 @@ export default class UserView extends BaseView {
 			// May throw an error if we want to redirect user to the previous page
 		}
 		this.userInfo = new User(this.username, await userManager.fetchUserInfo(this.username));
-		console.log(this.userInfo);
 		if (!this.userInfo.valid_info) {
 			this.errorHandler("Failed to retrieve user informations");
 			throw new Error("Failed to retrieve user informations");
 			return;
 		}
 		this.displayUserInfo();
-		// this.displayFriends();
 		this.displayScores();
-
+		userManager.setDynamicUpdateHandler(this.updateUserInfos);
+		await this.updateFriendsList();
+		await userManager.forceUpdate();
 	}
 
 	async cleanupView() {
@@ -43,27 +42,30 @@ export default class UserView extends BaseView {
 	}
 
 	displayUserInfo() {
+		document.querySelector(".user-status").classList.add(this.userInfo.is_online ? 'online' : 'offline');
 		document.getElementById('user-avatar').src = this.userInfo.avatar;
 		document.getElementById('user-display-name').textContent = this.userInfo.display_name;
 	}
 
-	displayFriends() {
-		const friendList = document.getElementById('friend-list');
-		friends.forEach(friend => {
-			const friendItem = document.createElement('li');
-			const friendLink = document.createElement('a');
-			friendLink.classList.add('friend-link');
-			friendLink.href = `/users?userId=${friend.id}`;
-			friendLink.textContent = friend.displayName;
-			const friendAvatar = document.createElement('img');
-			friendAvatar.classList.add('avatar', 'mr-2');
-			friendAvatar.src = friend.avatarUrl;
-			friendItem.appendChild(friendAvatar);
-			friendItem.appendChild(friendLink);
-			friendList.appendChild(friendItem);
+	async updateFriendsList() {
+		const friendsList = document.getElementById('friends-list');
+		friendsList.innerHTML = ''; // Clear existing content
+		this.userInfo.friends.forEach(async user => {
+			const friend = new User(user, await userManager.getUserInfo(user));
+			const friendElement = document.createElement('div');
+			friendElement.classList.add('friend-element', 'col', `user-${user}`);
+			friendElement.innerHTML = `
+				<div class="friend-status ${friend.is_online ? 'online' : 'offline'}">
+					<img src="${friend.avatar}"
+						class="friend-avatar" 
+						onclick="window.location.href='#user?username=${user}'">
+						<span class="friend-tooltip">${friend.display_name}</span>
+				</div>
+				<div class="friend-name user-${user}">${friend.display_name}</div>
+			`;
+			friendsList.appendChild(friendElement);
 		});
 	}
-
 	convertDate(ugly_date) {
 		const date = new Date(ugly_date);
 		const jour = date.getDate().toString().padStart(2, '0'); // Jour avec deux chiffres
@@ -89,5 +91,19 @@ export default class UserView extends BaseView {
 				// row.classList.add(score.has_win ? 'has-win' : 'has-lose');
 				scoreTable.appendChild(row);
 			});
+	}
+
+	async updateUserInfos(username, data) {
+		const friend_el = document.querySelector(`.friend-element.user-${username}`);
+		const user = new User(username, data);
+		if (friend_el) {
+			const status_div = friend_el.querySelector('.friend-status');
+			status_div.classList.remove('online', 'offline');
+			status_div.classList.add(user.is_online ? 'online' : 'offline');
+			friend_el.querySelector('img').src = user.avatar;
+			friend_el.querySelector('span').innerText = user.display_name;
+			friend_el.querySelector(`.friend-name.user-${username}`).innerText = user.display_name;
 		}
+	}
+
 }

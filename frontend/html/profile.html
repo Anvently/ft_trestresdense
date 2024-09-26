@@ -8,7 +8,7 @@
 		#main-container {
 			max-width: 600px;
 		}
-		#main-container button {
+		#main-container form button {
 			width: 100%;
 		}
 		.avatar-preview {
@@ -45,21 +45,42 @@
 			display: none;
 			margin-bottom: 15px;
 		}
+		.input-group {
+			display: flex;
+			width: 100%;
+			margin-top: 40px;
+		}
+
+		.input-group .form-control {
+			flex: 1;
+			border-top-right-radius: 0;
+			border-bottom-right-radius: 0;
+		}
+		.input-group .btn {
+			border-top-left-radius: 0;
+			border-bottom-left-radius: 0;
+		}
+		.friend-element {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+		}
 		.friend-avatar {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            object-fit: cover;
-            cursor: pointer;
-        }
+			width: 80px;
+			height: 80px;
+			border-radius: 50%;
+			object-fit: cover;
+			cursor: pointer;
+		}
 		.friend-status {
-			width: 90px;
-			height: 90px;
+			width: 96px;
+			height: 96px;
 			border-radius: 50%;
 			display: flex;
 			justify-content: center;
 			align-items: center;
-			margin-bottom: 10px;
+			position: relative;
+			margin: 0 auto;
 		}
 		.online {
 			border: 3px solid green;
@@ -67,14 +88,86 @@
 		.offline {
 			border: 3px solid red;
 		}
+		.friend-name {
+			font-size: 0.8rem;
+			margin-top: 0.25rem;
+			text-align: center;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+			max-width: 100%;
+		}
+		.friend-tooltip {
+			display: none;
+		}
+		.remove-friend {
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+			background-color: rgba(255, 0, 0, 0.7);
+			color: white;
+			border-radius: 50%;
+			width: 30px;
+			height: 30px;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			cursor: pointer;
+			opacity: 0;
+			transition: opacity 0.3s;
+			}
+		.friend-status:hover .remove-friend {
+			opacity: 1;
+		}
+		@media (min-width: 768px) {
+			.friend-avatar {
+				width: 80px;
+				height: 80px;
+			}
+			.friend-status {
+				width: 86px;
+				height: 86px;
+			}
+			.friend-name {
+				display: none;
+			}
+			.friend-tooltip {
+				display: block;
+				visibility: hidden;
+				width: 120px;
+				background-color: #555;
+				color: #fff;
+				text-align: center;
+				border-radius: 6px;
+				padding: 5px 0;
+				position: absolute;
+				z-index: 1;
+				bottom: 105%;
+				left: 50%;
+				margin-left: -60px;
+				opacity: 0;
+				transition: opacity 0.3s;
+			}
+			.friend-status:hover .friend-tooltip {
+				visibility: visible;
+				opacity: 1;
+			}
+		}
 	</style> 
 </head>
 <body>
 	<div id="main-container" class="container mt-5">
 		<h1 class="mb-4">Liste d'amis</h2>
 		<div class="mb-3">
-			<div id="friends-list" class="row row-cols-2 row-cols-md-4 row-cols-lg-6 g-4">
+			<div id="friends-list" class="row row-cols-3 row-cols-sm-4 row-cols-md-6 row-cols-lg-8 g-2 g-md-3">
 				<!-- Les avatars des amis seront insérés ici par JavaScript -->
+			</div>
+		</div>
+		<div class="mb-3">
+			<div class="input-group">
+			  <input type="text" class="form-control" id="new-friend-input" placeholder="Nom d'utilisateur de l'ami">
+			  <button class="btn btn-primary" type="button" id="add-friend-btn">Ajouter un ami</button>
 			</div>
 		</div>
 		
@@ -103,8 +196,8 @@
 			</div>
 			
 			<button type="submit" class="btn btn-primary">Enregistrer les modifications</button>
+			<button id="resetFormButton" class="btn btn-primary">Annuler les changements</button>
 		</form>
-		<button id="resetFormButton" class="btn btn-primary">Annuler les changements</button>
 		
 		<hr class="my-5">
 		

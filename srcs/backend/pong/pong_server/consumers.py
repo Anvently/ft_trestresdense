@@ -182,10 +182,11 @@ lobbys_list : Dict[str, PongLobby] = dict()
 lobbys_list["10"] = PongLobby2D(
 	lobby_id="10",
 	# players_list=["P1", "P2", "P3", "P4"],
-	players_list=["P1", "!AI2", "!AI3", "!AI4"],
+	# players_list=["!AI1", "!AI2", "!AI3", "!AI4"],
+	players_list=["!AI1", "!AI2", "!AI3"],
 	# players_list=["P1", "P2"],
-	settings={'lives':1, 'nbr_players':4, 'allow_spectators':False},
 	# players_list=["P1", "!AI1"],
+	settings={'lives':100, 'nbr_players':3, 'allow_spectators':False},
 	tournId=None
 )
 
@@ -194,8 +195,8 @@ lobbys_list["11"] = PongLobby3D(
 	lobby_id="11",
 	# players_list=["P1", "P2"],
 	# players_list=["!AI1", "!AI2"],
-	players_list=["042164732", "!AI1"],
-	tournId=None,settings={'lives':1, 'nbr_players':2, 'allow_spectators':True},
+	players_list=["!AI0", "!AI1"],
+	tournId=None,settings={'lives':11, 'nbr_players':2, 'allow_spectators':True},
 )
 
 from daphne.server import twisted_loop

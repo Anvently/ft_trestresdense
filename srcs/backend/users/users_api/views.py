@@ -116,7 +116,7 @@ class FriendsUpdateView(APIView):
 		for friend in friends_to_add:
 			user.friends.add(friend)
 
-		return Response({"friends": [user.username for user in friends_to_add]}, status=status.HTTP_200_OK)
+		return Response({"friends": [user.username for user in user.friends.all()]}, status=status.HTTP_200_OK)
 
 	def delete(self, request):
 		"""Supprime des utilisateurs de la liste d'amis."""
@@ -128,4 +128,4 @@ class FriendsUpdateView(APIView):
 		for friend in friends_removed:
 			user.friends.remove(friend)
 
-		return Response({"friends_removed": [user.username for user in friends_removed]}, status=status.HTTP_200_OK)
+		return Response({"friends": [user.username for user in user.friends.all()]}, status=status.HTTP_200_OK)
