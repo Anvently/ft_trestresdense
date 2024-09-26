@@ -1,3 +1,6 @@
+// import { userInfo } from "./home";
+import { User } from "./home.js"
+
 export class UserInfoManager {
 	constructor(cacheExpiration = 3600000, refreshInterval = 300000, updateTimeout = 3000, userCache = new UserCache()) {
 		this.userCache = userCache;
@@ -6,29 +9,43 @@ export class UserInfoManager {
 	}
 
 	/**
-	 * Return userInfo either from the cache or from a request.
-	 * getUserAttr should be prefered as it allows for batch request with 
-	 * dynamic updates.
+	 * Return userInfo from a fetch request, even if user exists in the cache.
+	 * Update the cache with the received infos.
+	 * For page displaying multiple users, getUserAttr should be prefered
+	 * as it allows for batch request with dynamic updates.
+	 * If the request fails, return the cached information or default user if none.
 	 */
-	getUserInfo(username, dft = null, suscribe_changes = true) {
-		let userInfo = userCache.getUser(username);
+	async fetchUserInfo(username) {
+		const userInfo = await this.backgroundUpdater.fetchUserFromAPI(username);
+		if (!userInfo) {
+			return this.userCache.getUser(username);
+		}
+		this.userCache.setUser(username, userInfo);
+		return userInfo;
+	}
+
+	/**
+	 * Return userInfo either from the cache or undefined.
+	 * Users absent from the cache will be fetched in the background.
+	 * Set a callback handler to have the view updated dynamically.
+	 */
+	getUserInfo(username, suscribe_changes = true) {
+		let userInfo = this.userCache.getUser(username);
 		if (suscribe_changes)
 			this.backgroundUpdater.addActiveUser(username);
 		if (userInfo) {
-			return Promise.resolve(userInfo);
+			return Promise.resolve(userInfo);	
 		} else {
 			this.backgroundUpdater.registerUserToUpdate(username);
-			return Promise.resolve(dft);
+			return Promise.resolve(undefined);
 		}
 	}
 	
 	/**
 	 * Does stuff
 	 * @param {attr} attr user attribute to retrieve. Example: 'display_name' => return user.display_name
-	 * @param {dft} dft transitory value that will be return from if user could not be resolve
-	 * @param {suscribe_changes} suscribe_changes change in userInfo will be followed and updated
-	 * immediately. User will be consequently updated in the next batch request, and associated content
-	 * dynamically updated also (provided that it's been added to the backgroundUpdate registerd properties).
+	 * @param {dft} dft transitory value that will be return from if user could not be resolved immediatly
+	 * @param {suscribe_changes} suscribe_changes enable by default. disable to prevent user info to be refreshed at a set interval.
 	*/
 	getUserAttr(username, attr, dft = 'unknown', suscribe_changes = true) {
 		let userInfo = this.userCache.getUser(username);
@@ -48,10 +65,21 @@ export class UserInfoManager {
 		this.backgroundUpdater.userChangeHandler = handler;
 	}
 
+	/**
+	 * Trigger an immediate batch request for every user that needs to be updated.
+	 * Reset the timeout. The dynamicUpdateHandler will be called. Make sure to call this
+	 * function when you have added every user to be displayed to the DOM.
+	*/
 	forceUpdate() {
 		this.backgroundUpdater.forceUpdate();
 	}
 
+	/**
+	 * The background refresher refresh current userInfo at a set interval.
+	 * The interval should coincide with the cache expiration time.
+	 * It is independant from the update timeout which is used when one or more
+	 * specific user informations are missing from the cache. 
+	 */
 	startBackgroundRefresh() {
 		this.backgroundUpdater.startResfreshUpdates();
 	}
@@ -60,8 +88,9 @@ export class UserInfoManager {
 		this.backgroundUpdater.stopRefreshUpdates();
 	}
 
-	//Clear active users of the view
-	//Should be called when cleaning a view
+	// Clear active users of the view.
+	// They will stop being refreshed by the backgroundRefresher.
+	// Should be called when cleaning a view
 	clearUsers() {
 		this.backgroundUpdater.clearActiveUsers();
 	}
@@ -202,7 +231,6 @@ class BackgroundUpdater {
 			});
 		}
 		if (users.length === 0) return;
-		console.log("updating users:", users);
 		try {
 			const receivedInfo = await this.fetchUsersBatch(users);
 			for (const userInfo of receivedInfo) {

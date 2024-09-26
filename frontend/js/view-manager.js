@@ -85,6 +85,7 @@ export class BaseView {
         this.element.id = name;
         this.errorHandler = this.defautErrorHandler;
         this.successHandler = this.defautSuccessHandler;
+        this.urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
     }
 
     defautErrorHandler() {
@@ -104,6 +105,7 @@ export class BaseView {
     }
 
     async initView() {
+
         // À implémenter dans les classes filles
     }
 

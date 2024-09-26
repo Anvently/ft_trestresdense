@@ -1,10 +1,10 @@
 import { BaseView } from '../view-manager.js';
-import { userInfo, userManager } from '../home.js';
+import { authenticatedUser, User, userManager } from '../home.js';
 
 export default class ProfileView extends BaseView {
     constructor() {
         super('profile-view');
-		this.patchProfileUrl = `https://${window.location.host}/api/users/${userInfo.username}/`;
+		this.patchProfileUrl = `https://${window.location.host}/api/users/${authenticatedUser.username}/`;
 		this.patchCredentialsUrl = `https://${window.location.host}/api/auth/me/`;
 		this.isValidUrlAvatar = false;
 		this.defaultAvatarUrl = '/avatars/__default__.jpg';
@@ -50,20 +50,24 @@ export default class ProfileView extends BaseView {
 		});
 
 		this.resetForm();
-		if (userInfo.username.startsWith('042'))
+		if (authenticatedUser.username.startsWith('042'))
 			this.disableSecurityForm();
 		else {
 			this.enableSeciurityForm();
 			this.onPasswordChange();
 		}
+
+		userManager.setDynamicUpdateHandler(this.updateUserInfos);
+		this.createFriendsList();
+		userManager.forceUpdate();
 		
 	}
 
 	resetForm() {
 		this.avatarFile.value = "";
 		this.avatarUrl.value = "";
-		this.avatarPreview.src = userInfo.avatar + "#" + new Date().getTime();
-		this.profileForm.displayName.value = userInfo.display_name;
+		this.avatarPreview.src = authenticatedUser.avatar + "#" + new Date().getTime();
+		this.profileForm.displayName.value = authenticatedUser.display_name;
 	}
 
 	onPasswordChange() {
@@ -148,7 +152,7 @@ export default class ProfileView extends BaseView {
 				throw new Error(Object.entries(await response.json())[0]);
 			if (!response.ok)
 				throw new Error("Failed to updated informations.");
-			Object.assign(userInfo, await response.json());
+			Object.assign(authenticatedUser, await response.json());
 			this.resetForm();
 			this.successHandler("Information mises a jour !");
 		} catch (error) {
@@ -164,7 +168,7 @@ export default class ProfileView extends BaseView {
 				method: 'PATCH',
 				headers: {'Content-Type': 'application/json',},
 				body: JSON.stringify({
-					username: userInfo.username,
+					username: authenticatedUser.username,
 					email: this.securityForm.email.value,
 					password: this.securityForm.password.value
 				})
@@ -176,6 +180,42 @@ export default class ProfileView extends BaseView {
 			this.successHandler("Informations de connexion mises a jour !");
 		} catch (error) {
 			this.errorHandler(error);
+		}
+	}
+
+	async createFriendsList() {
+		const friendsList = document.getElementById('friends-list');
+		
+		console.log(authenticatedUser);
+		console.log(authenticatedUser.friends);
+		authenticatedUser.friends.forEach(async user => {
+			const friend = new User(user, await userManager.getUserInfo(user));
+			console.log(friend);
+			const friendElement = document.createElement('div');
+			friendElement.classList.add('friend-element', 'col', `user-${user}`);
+			friendElement.innerHTML = `
+				<div class="friend-status ${friend.is_online ? 'online' : 'offline'}">
+					<img src="${friend.avatar}"
+						class="friend-avatar" 
+						onclick="window.location.href='#user-${user}'">
+				</div>
+				<p class="text-center">${friend.display_name}</p>
+			`;
+			
+			friendsList.appendChild(friendElement);
+		});
+	}
+
+	updateUserInfos(username, data) {
+		const friend_el = document.querySelector(`.friend-element.user-${username}`);
+		const user = new User(username, data);
+
+		if (friend_el) {
+			const status_div = friend_el.querySelector('.friend-status');
+			status_div.classList.remove('online', 'offline');
+			status_div.classList.add(user.is_online ? 'online' : 'offline');
+			friend_el.querySelector('img').src = user.avatar;
+			friend_el.querySelector('p').textContent = user.display_name;
 		}
 	}
 

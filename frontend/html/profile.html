@@ -45,10 +45,41 @@
 			display: none;
 			margin-bottom: 15px;
 		}
+		.friend-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+            cursor: pointer;
+        }
+		.friend-status {
+			width: 90px;
+			height: 90px;
+			border-radius: 50%;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			margin-bottom: 10px;
+		}
+		.online {
+			border: 3px solid green;
+		}
+		.offline {
+			border: 3px solid red;
+		}
 	</style> 
 </head>
 <body>
 	<div id="main-container" class="container mt-5">
+		<h1 class="mb-4">Liste d'amis</h2>
+		<div class="mb-3">
+			<div id="friends-list" class="row row-cols-2 row-cols-md-4 row-cols-lg-6 g-4">
+				<!-- Les avatars des amis seront insérés ici par JavaScript -->
+			</div>
+		</div>
+		
+		<hr class="my-5">
+
 		<h1 class="mb-4">Édition du profil</h1>
 		
 		<form id="profileForm" class="needs-validation was-validated">
