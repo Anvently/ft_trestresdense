@@ -125,6 +125,54 @@
 		background-color: #d3d9df;  /* Gris encore plus foncé au survol */
 		}
 
+		#invitation {
+            position: relative;
+            height: 300px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+            overflow: hidden;
+        }
+        #invitation::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: url('/assets/duel.jpg');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            opacity: 0.7;
+            z-index: 1;
+        }
+        #inviteText, #buttonContainer {
+            position: relative;
+            z-index: 2;
+        }
+        #inviteText {
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-size: 1.1em;
+            font-weight: bold;
+            max-width: 80%;
+        }
+        #buttonContainer .btn {
+            font-size: 1em;
+            padding: 0.375rem 0.75rem;
+            background-color: rgba(25, 135, 84, 0.9);
+            border-color: rgba(25, 135, 84, 0.9);
+        }
+        #buttonContainer .btn:hover {
+            background-color: rgba(21, 115, 71, 1);
+            border-color: rgba(21, 115, 71, 1);
+        }
 
 	</style>
 </head>
@@ -325,35 +373,45 @@
 		</div>
 	</div>
 
-	<!-- Modale pour inviter des amis -->
-	<div class="modal fade" id="inviteFriendsModal" tabindex="-1">
-		<div class="modal-dialog">
-			<div class="modal-content">
-				<div class="modal-header">
-					<h5 class="modal-title">Inviter des amis</h5>
-					<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-				</div>
-				<div class="modal-body" id="friendList">
-					<!-- Liste des amis à inviter générée ici -->
-				</div>
-			</div>
-		</div>
-	</div>
+<!-- Modal pour inviter des amis -->
+	<div class="modal fade" id="inviteFriendsModal" tabindex="-1" aria-labelledby="inviteFriendsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="inviteFriendsModalLabel">Inviter des amis</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                </div>
+                <div class="modal-body">
+                    <table class="table" id="friendList">
+                        <tbody>
+                            <!-- La liste des amis sera générée ici par JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-	<!-- Modale pour recevoir une invitation-->
-	 <div class="modal fade" id="receiveInvitation" tabindex="-1">
-		<div class="modal-dialog">
-			<div class="modal-content">
-				<div class="modal-header">
-					<h5 class="modal-title"> You are invited!</h5>
-					<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-				</div>
-				<div class="modal-body" id="invitation">
-				<!--afficher le nom de l'inviteur et un bouton pour rejoindre et un pour decliner-->
-				</div>
-			</div>
-		</div>
-	 </div>
+	<!--Modal pour recevoir une invitation-->
+	<div class="modal fade" id="receiveInvitation" tabindex="-1" aria-labelledby="receiveInvitationLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="receiveInvitationLabel">Invitation de jeu</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <div id="invitation">
+                        <p id="inviteText"></p>
+                        <div id="buttonContainer"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
 	<!-- Modale pour changer les options du lobby -->
 	<div class="modal fade" id="lobbyOptionsModal" tabindex="-1">

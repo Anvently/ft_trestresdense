@@ -520,39 +520,36 @@ export default class MatchmakingView extends BaseView {
 
 	be_invited(message)
 	{
-		// TODO ITS UGLY!!!
-		console.log(message);
 		let modal = new bootstrap.Modal(document.getElementById('receiveInvitation'));
-		const invite = document.getElementById('invitation');
-		invite.innerHTML = "";
-		let inviting_player = message.invite_from;
-		const lobby_id = message.lobby_id;
-		const invitation = document.createElement('div');
-		invitation.style.backgroundImage = "url('/assets/duel.jpg')";
-		invitation.style.backgroundSize = 'contain'
-		invitation.style.backgroundRepeat = "no-repeat";
-		invitation.style.backgroundPosition = 'center';
-		const inviteText = document.createElement('p');
-		inviteText.style.textAlign = "center";
-		userManager.getUserAttr(inviting_player, 'display_name', inviting_player).then(displayName =>{
-			inviting_player = displayName;
-		})
-		inviteText.textContent = `${inviting_player} wants to challenge you!`;
-		invitation.appendChild(inviteText);
+            const invite = document.getElementById('invitation');
+            const inviteText = document.getElementById('inviteText');
+            const buttonContainer = document.getElementById('buttonContainer');
 
+            let inviting_player = message.invite_from;
+            const lobby_id = message.lobby_id;
 
-		const joinButton = document.createElement('button');
-		joinButton.style.position = "center";
-		joinButton.className = "btn btn-success";
-		joinButton.textContent = "Join Game";
-		joinButton.onclick = () => {
-			modal.hide();
-			this.joinLobby(lobby_id);};
-		invitation.appendChild(joinButton);
-		invite.appendChild(invitation);
-		// new bootstrap.Modal(document.getElementById('receiveInvitation')).show();
-		modal.show();
-	}
+            userManager.getUserAttr(inviting_player, 'display_name', inviting_player).then(displayName => {
+                inviting_player = displayName;
+                inviteText.textContent = `${inviting_player} wants to challenge you!`;
+            });
+
+            // Clear existing content
+            buttonContainer.innerHTML = '';
+
+            // Create and append the join button
+            const joinButton = document.createElement('button');
+            joinButton.className = "btn btn-success btn-lg";
+            joinButton.textContent = "Join Game";
+            joinButton.onclick = () => {
+                modal.hide();
+                this.joinLobby(lobby_id);
+            };
+            buttonContainer.appendChild(joinButton);
+
+            modal.show();
+        }
+		
+
 
 	appendFriendEntry(tableElement, player_id)
 	{
