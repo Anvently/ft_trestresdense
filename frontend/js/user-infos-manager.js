@@ -70,8 +70,8 @@ export class UserInfoManager {
 	 * Reset the timeout. The dynamicUpdateHandler will be called. Make sure to call this
 	 * function when you have added every user to be displayed to the DOM.
 	*/
-	forceUpdate() {
-		this.backgroundUpdater.forceUpdate();
+	async forceUpdate() {
+		await this.backgroundUpdater.forceUpdate();
 	}
 
 	/**
@@ -154,8 +154,8 @@ class BackgroundUpdater {
 	registerUserToUpdate(username) {
 		this.usersToUpdate.add(username);
 		if (this.updateTimeoutId === null) {
-			this.updateTimeoutId = setTimeout(() => {
-				this.forceUpdate(), this.updateTimeout}
+			this.updateTimeoutId = setTimeout(async () => {
+				await this.forceUpdate(), this.updateTimeout}
 			);
 		}
 	}
@@ -179,9 +179,9 @@ class BackgroundUpdater {
 		this.updateTimeoutId = null;
 	}
 
-	forceUpdate() {
+	async forceUpdate() {
 		if (this.usersToUpdate.size == 0) return;
-		this.updateUsers(this.usersToUpdate);
+		await this.updateUsers(this.usersToUpdate);
 		if (this.updateTimeoutId) {
 			clearTimeout(this.updateTimeoutId);
 			this.updateTimeoutId = null;

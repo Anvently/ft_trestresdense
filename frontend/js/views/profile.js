@@ -19,7 +19,9 @@ export default class ProfileView extends BaseView {
 		this.resetFormButon = document.getElementById('resetFormButton');
 		this.password = document.getElementById('password');
 		this.confirmPassword = document.getElementById('confirmPassword');
-
+		this.addFriendBtn = document.getElementById('add-friend-btn');
+		this.friendInput = document.getElementById('new-friend-input');
+	
 		this.avatarFile.addEventListener('change', (e) => {
 			e.preventDefault();
 			this.onAvatarFileChange(e.target.files[0])
@@ -48,6 +50,10 @@ export default class ProfileView extends BaseView {
 			e.preventDefault();
 			this.onPasswordChange();
 		});
+		this.addFriendBtn.addEventListener('click', (e) => {
+			e.preventDefault();
+			this.addFriend();
+		});
 
 		this.resetForm();
 		if (authenticatedUser.username.startsWith('042'))
@@ -58,7 +64,7 @@ export default class ProfileView extends BaseView {
 		}
 
 		userManager.setDynamicUpdateHandler(this.updateUserInfos);
-		this.createFriendsList();
+		this.updateFriendsList();
 		userManager.forceUpdate();
 		
 	}
@@ -183,27 +189,61 @@ export default class ProfileView extends BaseView {
 		}
 	}
 
-	async createFriendsList() {
+	async updateFriendsList() {
 		const friendsList = document.getElementById('friends-list');
 		
-		console.log(authenticatedUser);
+		friendsList.innerHTML = '';
 		console.log(authenticatedUser.friends);
 		authenticatedUser.friends.forEach(async user => {
 			const friend = new User(user, await userManager.getUserInfo(user));
-			console.log(friend);
+			// console.log(friend);
 			const friendElement = document.createElement('div');
 			friendElement.classList.add('friend-element', 'col', `user-${user}`);
 			friendElement.innerHTML = `
 				<div class="friend-status ${friend.is_online ? 'online' : 'offline'}">
 					<img src="${friend.avatar}"
 						class="friend-avatar" 
-						onclick="window.location.href='#user-${user}'">
+						onclick="window.location.href='#user?username=${user}'">
+						<span class="friend-tooltip">${friend.display_name}</span>
+						<div class="remove-friend user-${user}">✕</div>
 				</div>
-				<p class="text-center">${friend.display_name}</p>
+				<div class="friend-name user-${user}">${friend.display_name}</div>
 			`;
+			friendElement.querySelector(`.remove-friend.user-${user}`).addEventListener('click', async () => {
+				this.removeFriend(user);
+			});
 			
 			friendsList.appendChild(friendElement);
 		});
+	}
+
+	async removeFriend(userId) {
+		try {
+			await authenticatedUser.removeFriend(userId);
+		} catch (error) {
+			this.errorHandler('Impossible de retirer un ami:' + error);
+			return;
+		}
+		this.successHandler(`${userId} n'est plus votre ami :-/`);
+
+		await this.updateFriendsList();
+	}
+	
+	async addFriend() {
+		const newFriendName = this.friendInput.value.trim();
+		if (newFriendName) {
+			try {
+				await authenticatedUser.addFriend(newFriendName);
+				if (!authenticatedUser.friends.includes(newFriendName))
+					throw new Error("");
+			} catch (error) {
+				this.errorHandler(`Impossible d'ajouter ${newFriendName} a la liste d'ami: ${error.message}`);
+				return;
+			}
+			this.friendInput.value = '';
+			this.successHandler(`${newFriendName} est desormais votre ami.`);
+			await this.updateFriendsList();
+		}
 	}
 
 	updateUserInfos(username, data) {
@@ -215,7 +255,8 @@ export default class ProfileView extends BaseView {
 			status_div.classList.remove('online', 'offline');
 			status_div.classList.add(user.is_online ? 'online' : 'offline');
 			friend_el.querySelector('img').src = user.avatar;
-			friend_el.querySelector('p').textContent = user.display_name;
+			friend_el.querySelector('span').innerText = user.display_name;
+			friend_el.querySelector(`.friend-name.user-${username}`).innerText = user.display_name;
 		}
 	}
 
