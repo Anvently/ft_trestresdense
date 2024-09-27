@@ -62,7 +62,7 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 		self.username = None
 		self.lobby_id = None
 		self.users = set()
-		self.is_spectator = False
+		self.is_spectator = True
 		super().__init__(*args, **kwargs)
 
 	def _auth_client(self) -> bool:
@@ -105,7 +105,6 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 	async def connect(self):
 		await self.accept()
 		if self._is_valid_client():
-			print(f"subscribing to channel {self.lobby_id}")
 			await self.channel_layer.group_add(self.lobby_id, self.channel_name)
 		else:
 			await self._send_error(self.scope['error'], self.scope['error_code'], True)
@@ -114,7 +113,7 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 		await self.send_json({'type':'ping'})
 
 	async def disconnect(self, close_code):
-		if self.is_spectator:
+		if not self.is_spectator:
 			for user in self.users:
 				lobbys_list[self.lobby_id].player_leave(user)
 			await self.channel_layer.group_send(
@@ -122,6 +121,7 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 					"type": "info_message",
 					"data": "{users} left the game.".format(users=",".join(self.users))
 				})
+			print(f"user {self.username} disconnected")
 			await self.channel_layer.group_discard(self.lobby_id, self.channel_name)
 
 	async def receive_json(self, content, **kwargs):
@@ -139,6 +139,8 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 			await self.close(code, msg)
 
 	async def join_game(self, content):
+		if self.is_spectator:
+			return
 		if not PongConsumer.DISABLE_AUTH and content['username'].split('.')[0] != self.username:
 			await self._send_error('You are not who you pretend to be')
 			return
@@ -179,18 +181,11 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 
 lobbys_list : Dict[str, PongLobby] = dict()
 
-lobbys_list["10"] = PongLobby3D(
-	lobby_id="10",
-	players_list=["boris", "emma"],
-	# players_list=["P1", "P2"],
-	# players_list=["P1", "!AI1"],
-	settings={'lives':100, 'nbr_players':2, 'allow_spectators':True},
-	tournId=None
-)
+
 
 from daphne.server import twisted_loop
 
-twisted_loop.create_task(lobbys_list["10"].start_game_loop())
+
 
 # lobbys_list["11"] = PongLobby3D(
 # 	lobby_id="11",

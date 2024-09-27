@@ -171,7 +171,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 	async def check_infos(self):
 		if self.username in online_players:
 			self._lobby_id = online_players[self.username]['lobby_id']
-			await self.send_json({"type": "in_game", "game_id": self._lobby_id})
+			await self.send_json({"type": "in_game", "lobby_id": self._lobby_id, 'game_type' : lobbies[self._lobby_id].game_type})
 		else:
 			online_players[self.username] = copy.deepcopy(default_status)
 			await self.channel_layer.group_add(self.username, self.channel_name)
@@ -295,6 +295,14 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 			lobbies[self._lobby_id].add_bot()
 			await self.send_lobby_update(self._lobby_id)
 
+	async def spectate_game(self, content):
+		target_lobby = content['lobby_id']
+		if target_lobby not in lobbies or not lobbies[target_lobby].started or target_lobby[2] != 'A':
+			await self._send_error(msg='This game cannot be watched', code=Errors.JOIN_ERROR, close=False)
+			return
+		game_type = lobbies[target_lobby].game_type
+		await self.send_json({'type' : 'observe_game', 'lobby_id' : target_lobby, 'game_type' : game_type})
+
 
 	async def leave_lobby(self, content=None):
 		if not self._lobby_id:
@@ -384,6 +392,11 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		else:
 			await self.send_lobby_update(self._lobby_id)
 
+	async def concede_game(self, content):
+		online_players[self.username] = copy.deepcopy(default_status)
+		await self.channel_layer.group_add(MatchMakingConsumer.matchmaking_group, self.channel_name)
+		await self.channel_layer.group_add(self.username, self.channel_name)
+		await self.send_general_update()
 
 
 
