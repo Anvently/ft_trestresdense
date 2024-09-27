@@ -389,15 +389,15 @@ export default class MatchmakingView extends BaseView {
 		this.updateCurrentView();
 	}
 
-	lobby_update(message) {
+	async lobby_update(message) {
 		const lobbyNameEl = document.getElementById('lobbyName');
 		const playerListEl = document.getElementById('playerList');
 
 		lobbyNameEl.textContent = message.lobbyName;
 		playerListEl.innerHTML = '';  // Vider la liste avant mise à jour
 
-		Object.entries(message.players).forEach(([playerId, playerData]) => {
-		  this.appendPlayerEntry(playerListEl, playerId, playerData, message.host);
+		await Object.entries(message.players).forEach(async ([playerId, playerData]) => {
+		  await this.appendPlayerEntry(playerListEl, playerId, playerData, message.host);
 		});
 
 		// Gérer les slots libres
@@ -430,7 +430,7 @@ export default class MatchmakingView extends BaseView {
 		userAvatar.classList.add('rounded-circle', 'me-2', 'dynamicAvatarUrl');
 		const userNameSpan = document.createElement('span');
 		userNameSpan.classList.add('dynamicDisplayName');
-		userNameSpan.textContent = user.username;
+		userNameSpan.textContent = user.display_name;
 		userAvatar.src = user.avatar;
 		linkBlock.href = !user.is_bot ? `https://${window.location.host}/#user?username=${playerId}` : "javascript:void(0)";
 		linkBlock.appendChild(userAvatar);
