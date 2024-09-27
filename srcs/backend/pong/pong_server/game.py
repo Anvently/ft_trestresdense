@@ -102,12 +102,11 @@ class PongLobby:
 			self.loop.cancel()
 
 	async def start_game_loop(self):
-		self.loop = await asyncio.create_task(self.game_loop())
+		self.loop = await self.game_loop()
 
 
 	async def player_join(self, player_id: str) -> bool:
 		""" Template of player_list: ["user1", "user1_guest"] """
-		print(f"player {player_id} joined, {self.waiting_for} remaining")
 		if not self.check_user(player_id):
 			return False
 		if self.players[self.match_id_pos[player_id]].has_joined:
@@ -115,8 +114,6 @@ class PongLobby:
 		self.players[self.match_id_pos[player_id]].has_joined = True
 		self.waiting_for -= 1
 		print(f"player {player_id} joined, {self.waiting_for} remaining")
-		if not self.loop:
-			await self.start_game_loop()
 		return True
 
 	def player_leave(self, player_id: str):

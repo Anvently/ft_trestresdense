@@ -172,7 +172,6 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 		await self.close(4000, "game finished")
 
 	async def send_game_state(self, content):
-		print("general update consumer side")
 		await self.send_json(content)
 
 	async def info_message(self, content):
@@ -180,17 +179,18 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 
 lobbys_list : Dict[str, PongLobby] = dict()
 
-# lobbys_list["10"] = PongLobby2D(
-# 	lobby_id="10",
-# 	# players_list=["P1", "P2", "P3", "P4"],
-# 	# players_list=["!AI1", "!AI2", "!AI3", "!AI4"],
-# 	players_list=["!AI1", "!AI2", "!AI3"],
-# 	# players_list=["P1", "P2"],
-# 	# players_list=["P1", "!AI1"],
-# 	settings={'lives':100, 'nbr_players':3, 'allow_spectators':False},
-# 	tournId=None
-# )
+lobbys_list["10"] = PongLobby3D(
+	lobby_id="10",
+	players_list=["boris", "emma"],
+	# players_list=["P1", "P2"],
+	# players_list=["P1", "!AI1"],
+	settings={'lives':100, 'nbr_players':2, 'allow_spectators':True},
+	tournId=None
+)
 
+from daphne.server import twisted_loop
+
+twisted_loop.create_task(lobbys_list["10"].start_game_loop())
 
 # lobbys_list["11"] = PongLobby3D(
 # 	lobby_id="11",
@@ -200,7 +200,6 @@ lobbys_list : Dict[str, PongLobby] = dict()
 # 	tournId=None,settings={'lives':11, 'nbr_players':2, 'allow_spectators':True},
 # )
 
-from daphne.server import twisted_loop
 
 for lobby_id in lobbys_list:
 	if lobbys_list[lobby_id].check_game_start():

@@ -20,9 +20,8 @@ class PostGameView(APIView):
 		if not serializer.is_valid():
 			return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 		serializer.save() #Init the game
-		if lobbys_list[serializer.validated_data['game_id']].check_game_start():
-			# game_queue.append(serializer.validated_data['game_id'])
-			twisted_loop.create_task(lobbys_list[serializer.validated_data['game_id']].start_game_loop())
+		print(f"GAme loop should have started: {serializer.validated_data['game_id']}")
+		twisted_loop.create_task(lobbys_list[serializer.validated_data['game_id']].start_game_loop())
 		return Response(serializer.validated_data, status=status.HTTP_201_CREATED)
 
 class RetrieveLobbyView(APIView):

@@ -292,7 +292,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		if self.get_status() == PlayerStatus.IN_LOBBY and self._is_host:
 			lobbies[self._lobby_id].player_not_ready(self.username)
 			# await self.send_json("{'type' : 'self_unready'}")
-			lobbies[self._lobby_id].add_zbot()
+			lobbies[self._lobby_id].add_bot()
 			await self.send_lobby_update(self._lobby_id)
 
 
