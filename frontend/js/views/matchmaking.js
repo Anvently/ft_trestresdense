@@ -372,6 +372,30 @@ export default class MatchmakingView extends BaseView {
 		this.updateCurrentView();
 	}
 
+	in_game(content)
+	{
+		console.log(content);
+		const lobby_id = content.lobby_id;
+
+		let modal = new bootstrap.Modal(document.getElementById('inGame'));
+		const rejoinButton = document.getElementById('rejoinButton');
+		const concedeButton = document.getElementById('concedeButton');
+
+		rejoinButton.onclick = () => {
+			this.lobbyId = lobby_id;
+			modal.hide();
+			window.location.hash = `#${content.game_type}?id=${lobby_id}`;
+		};
+		concedeButton.onclick = () => {
+			this.lobbyId = undefined;
+			this.isReady = false;
+			this.isHost = false;
+			modal.hide();
+			this.sendMessage({type : 'concede_game'})
+		};
+		modal.show();
+	}
+
 	be_kicked(content)
 	{
 		this.isReady = false ;
@@ -730,27 +754,34 @@ export default class MatchmakingView extends BaseView {
 	}
 
 
+	displayOnlinePlayers(players)
+	{
+		let modal = new bootstrap.Modal(document.getElementById('displayOnlinePlayersModal'));
+		const onlinePlayers = document.getElementById('onlinePlayers');
+		onlinePlayers.innerHTML = '';
+		Object.entries(players).forEach(player_data => {
+			if (authenticatedUser.is_friend(player_data[0]))
+				this.appendPLayerStatusEntry(onlinePlayers, player_data[0], player_data[1], modal);
+		});
+		modal.show();
+	}
 
-		displayOnlinePlayers(players)
-		{
-			let modal = new bootstrap.Modal(document.getElementById('displayOnlinePlayersModal'));
-			const onlinePlayers = document.getElementById('onlinePlayers');
-			onlinePlayers.innerHTML = '';
-
-			Object.entries(players).forEach(player_data => {
-				if (authenticatedUser.is_friend(player_data[0]))
-					this.appendPLayerStatusEntry(onlinePlayers, player_data[0], player_data[1], modal);
-			});
-			modal.show();
-		}
-
-
-		game_start(message)
-		{
-			const websocket_id = message.websocket_id;
+	spectateLobby(lobby_id)
+	{
+		this.sendMessage({type : "spectate_game", lobby_id : lobby_id}, 500).then ((message) => {
 			const game_type = message.game_type;
-			window.location.hash = `#${game_type}?id=${websocket_id}`;
-		}
+			window.location.hash = `#${game_type}?id=${message.lobby_id}`;
+		})
+		.catch (error => this.errorHandler(error));
+	}
+
+
+	game_start(message)
+	{
+		const websocket_id = message.websocket_id;
+		const game_type = message.game_type;
+		window.location.hash = `#${game_type}?id=${websocket_id}`;
+	}
 
 	// Connecter le WebSocket au chargement de la page
 	dispatch(message) {
@@ -793,3 +824,4 @@ export default class MatchmakingView extends BaseView {
         // this.startButton.removeEventListener('click', this.startMatchmaking);
     }
 }
+
