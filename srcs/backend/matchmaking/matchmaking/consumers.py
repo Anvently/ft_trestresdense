@@ -75,7 +75,7 @@ Status:
 		"payer_1": {
 			'status': int,
 			'lobby_id': str,
-			'turnament_id': str
+			'tournament_id': str
 		}
 	}
  """

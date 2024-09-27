@@ -23,7 +23,7 @@ class GameSerializer(serializers.Serializer):
 
 	game_id = serializers.CharField()
 	game_name = serializers.ChoiceField(choices=('pong2d', 'pong3d'))
-	turnament_id = serializers.CharField(allow_blank = True, required = False)
+	tournament_id = serializers.CharField(allow_blank = True, required = False)
 	player_list = serializers.ListField(child=serializers.CharField())
 	settings = GameSettingsSerializer()
 
@@ -34,14 +34,14 @@ class GameSerializer(serializers.Serializer):
 				lobby_id=self.validated_data['game_id'],
 				players_list=self.validated_data['player_list'],
 				settings=self.validated_data['settings'],
-				tournId=self.validated_data.get('turnament_id')
+				tournId=self.validated_data.get('tournament_id')
 			)
 		elif self.validated_data['game_name'] == 'pong3d':
 			lobbys_list[self.validated_data['game_id']] = PongLobby3D(
 				lobby_id=self.validated_data['game_id'],
 				players_list=self.validated_data['player_list'],
 				settings=self.validated_data['settings'],
-				tournId=self.validated_data.get('turnament_id')
+				tournId=self.validated_data.get('tournament_id')
 			)
 
 	def validate(self, data):
@@ -73,7 +73,7 @@ class GameSerializer(serializers.Serializer):
 	def to_representation(self, obj: PongLobby):
 		data = {
 			'game_id': obj.lobby_id,
-			'turnament_id': None,
+			'tournament_id': None,
 			'player_list': [{
 				'id': player.player_id,
 				'position': player.coordinates,
@@ -87,7 +87,7 @@ class GameSerializer(serializers.Serializer):
 			}
 		}
 		if hasattr(obj, 'tournId'):
-			data['turnament_id'] = obj.tournId
+			data['tournament_id'] = obj.tournId
 		return data
 
 
@@ -100,7 +100,7 @@ class ScoreSerializer(serializers.Serializer):
 class LobbyResultSerializer(serializers.Serializer):
 
 	id = serializers.CharField()
-	turnament_id = serializers.CharField(allow_blank=True, required=False)
+	tournament_id = serializers.CharField(allow_blank=True, required=False)
 	scores = serializers.ListField(child=ScoreSerializer())
 
 
