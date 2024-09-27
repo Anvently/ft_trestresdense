@@ -42,7 +42,6 @@ export class UserInfoManager {
 	}
 	
 	/**
-	 * Does stuff
 	 * @param {attr} attr user attribute to retrieve. Example: 'display_name' => return user.display_name
 	 * @param {dft} dft transitory value that will be return from if user could not be resolved immediatly
 	 * @param {suscribe_changes} suscribe_changes enable by default. disable to prevent user info to be refreshed at a set interval.
@@ -136,8 +135,8 @@ class BackgroundUpdater {
 		this.updateTimeout = updateTimeout;
 		this.activeUsers = new Set(); //List of active, ideally only displayed username, that needs to be updated
 		this.usersToUpdate = new Set(); //List of username that needs to be updated
-		this.refreshIntervalId;
-		this.updateTimeoutId;
+		this.refreshIntervalId = null;
+		this.updateTimeoutId = null;
 		this.userChangeHandler = (username, userInfo) => {
 			throw Error('You need to assign a handler taking (username, userInfo) to update user content');
 		};
@@ -155,8 +154,8 @@ class BackgroundUpdater {
 		this.usersToUpdate.add(username);
 		if (this.updateTimeoutId === null) {
 			this.updateTimeoutId = setTimeout(async () => {
-				await this.forceUpdate(), this.updateTimeout}
-			);
+				await this.forceUpdate();
+			}, this.updateTimeout);
 		}
 	}
 

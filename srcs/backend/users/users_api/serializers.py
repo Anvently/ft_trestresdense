@@ -67,8 +67,8 @@ class LobbySerializer(DynamicFieldsSerializer):
 
 	class Meta:
 		model = Lobby
-		fields = ('lobby_id', 'lobby_name', 'game_name', 'turnament_id', 'scores_set',)
-		read_only_fields = ('date',)
+		fields = ('lobby_id', 'lobby_name', 'game_name', 'turnament_id', 'date', 'scores_set',)
+		# read_only_fields = ('date',)
 
 	def create(self, validated_data):
 		lobby = Lobby(
