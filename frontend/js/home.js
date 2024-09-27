@@ -53,14 +53,13 @@ export class User {
 	}
 }
 
-class BotUser extends User {
+class BotUser {
 	constructor(username) {
-		super(username);
 		this.username = username;
 		this.display_name = "Bot";
 		this.avatar = `https://${window.location.host}/avatars/__bot__.png`;
 		this.valid_info = true;
-		this.last_visit = Date.getTime();
+		this.last_visit = Date.now();
 		this.friends = [];
 		this.scores_set = [];
 		this.is_bot = true;
