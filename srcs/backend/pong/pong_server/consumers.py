@@ -101,10 +101,11 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 
 	# ONLY FOR DEBUG, given username in sent content will be used
 	DISABLE_AUTH = True
-	
+
 	async def connect(self):
 		await self.accept()
 		if self._is_valid_client():
+			print(f"subscribing to channel {self.lobby_id}")
 			await self.channel_layer.group_add(self.lobby_id, self.channel_name)
 		else:
 			await self._send_error(self.scope['error'], self.scope['error_code'], True)
@@ -124,9 +125,9 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 			await self.channel_layer.group_discard(self.lobby_id, self.channel_name)
 
 	async def receive_json(self, content, **kwargs):
-		if not "username" in content:
-			await self._send_error('Missing username')
-			return
+		# if not "username" in content:
+		# 	await self._send_error('Missing username')
+		# 	return
 		try:
 			await self.dispatch(content)
 		except ValueError as e:
@@ -137,7 +138,6 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 		if close:
 			await self.close(code, msg)
 
-	# receive msg from chat
 	async def join_game(self, content):
 		if not PongConsumer.DISABLE_AUTH and content['username'].split('.')[0] != self.username:
 			await self._send_error('You are not who you pretend to be')
@@ -172,6 +172,7 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 		await self.close(4000, "game finished")
 
 	async def send_game_state(self, content):
+		print("general update consumer side")
 		await self.send_json(content)
 
 	async def info_message(self, content):
@@ -179,25 +180,25 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 
 lobbys_list : Dict[str, PongLobby] = dict()
 
-lobbys_list["10"] = PongLobby2D(
-	lobby_id="10",
-	# players_list=["P1", "P2", "P3", "P4"],
-	# players_list=["!AI1", "!AI2", "!AI3", "!AI4"],
-	players_list=["!AI1", "!AI2", "!AI3"],
-	# players_list=["P1", "P2"],
-	# players_list=["P1", "!AI1"],
-	settings={'lives':100, 'nbr_players':3, 'allow_spectators':False},
-	tournId=None
-)
+# lobbys_list["10"] = PongLobby2D(
+# 	lobby_id="10",
+# 	# players_list=["P1", "P2", "P3", "P4"],
+# 	# players_list=["!AI1", "!AI2", "!AI3", "!AI4"],
+# 	players_list=["!AI1", "!AI2", "!AI3"],
+# 	# players_list=["P1", "P2"],
+# 	# players_list=["P1", "!AI1"],
+# 	settings={'lives':100, 'nbr_players':3, 'allow_spectators':False},
+# 	tournId=None
+# )
 
 
-lobbys_list["11"] = PongLobby3D(
-	lobby_id="11",
-	# players_list=["P1", "P2"],
-	# players_list=["!AI1", "!AI2"],
-	players_list=["!AI0", "!AI1"],
-	tournId=None,settings={'lives':11, 'nbr_players':2, 'allow_spectators':True},
-)
+# lobbys_list["11"] = PongLobby3D(
+# 	lobby_id="11",
+# 	# players_list=["P1", "P2"],
+# 	# players_list=["!AI1", "!AI2"],
+# 	players_list=["!AI0", "!AI1"],
+# 	tournId=None,settings={'lives':11, 'nbr_players':2, 'allow_spectators':True},
+# )
 
 from daphne.server import twisted_loop
 

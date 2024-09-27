@@ -48,12 +48,12 @@ class Player3D(Player):
 		self.destination = {"x": 0, "y": 0}
 		self.points = 0
 		self.coordinates = START_POS[position]
-		
+
 	def AI_behavior(self, ballX, ballY, ballSpeedX, ballSpeedY, is_service, service_direction) -> str:
 		if int(time.time()) != self.last_time:
 			self.calculate_destination(ballX, ballY, ballSpeedX, ballSpeedY, is_service, service_direction)
 			self.last_time = int(time.time())
-		
+
 		if self.destination["y"] < self.coordinates["y"] - PLAYER_SPEED:
 			if self.side == WEST:
 				return "right"
@@ -76,10 +76,10 @@ class Player3D(Player):
 				return "down"
 
 		return ""
-	
+
 	def calculate_destination(self, ballX, ballY, ballSpeedX, ballSpeedY, is_service, service_direction):
-		
-		
+
+
 		self.destination["x"] = PADDLE_LEFT_DIR[self.side] * 1.4
 		# rand = random.randint(0, 3)
 		# self.destination["x"] = PADDLE_LEFT_DIR[self.side] * (PADDLE_MIN_X[1] + ((PADDLE_MAX_X[1] - PADDLE_MIN_X[1]) * rand) / 3)
@@ -97,7 +97,7 @@ class Player3D(Player):
 		elif self.side == WEST and ballSpeedX < 0 or self.side == EAST and ballSpeedX > 0:
 			self.destination["y"] = self.calculate_impact(ballX, ballY, ballSpeedX, ballSpeedY)
 			self.destination["y"] *= 1.01
-		
+
 
 	def calculate_impact(self, ballX, ballY, ballSpeedX, ballSpeedY):
 		fpos_x = ballX
@@ -132,7 +132,7 @@ class PongLobby3D(PongLobby):
 		self.winner = None
 		self.game_type = 'pong3d'
 		self.points_to_win = settings['lives']
-		
+
 
 	def player_input(self, player_id, input):
 		if player_id not in self.match_id_pos:
@@ -168,13 +168,13 @@ class PongLobby3D(PongLobby):
 	def	collision_logic(self):
 		if self.ball["is_out"] == True:
 			return
-		if self.ball["x"] < PADDLE_MAX_X[0] + 0.1 and self.ball["last_hit"]["x"] >= 0: # -0.1 and + 0.1 si jamais la raquette est sur sa limite et un bout depasse du fait de l'angle de la raquette	
+		if self.ball["x"] < PADDLE_MAX_X[0] + 0.1 and self.ball["last_hit"]["x"] >= 0: # -0.1 and + 0.1 si jamais la raquette est sur sa limite et un bout depasse du fait de l'angle de la raquette
 			direction = WEST
 		elif self.ball["x"] > PADDLE_MIN_X[1] - 0.1 and self.ball["last_hit"]["x"] <= 0:
 			direction = EAST
 		else:
 			return
-		
+
 		if check_collision((self.players[direction].coordinates["x"], self.players[direction].coordinates["y"]),
 										self.players[direction].coordinates["width"],
 										self.players[direction].coordinates["height"],
@@ -189,7 +189,7 @@ class PongLobby3D(PongLobby):
 			self.collision_rebound()
 			# change speed
 			self.change_ball_speed()
-		
+
 	def	change_ball_speed(self):
 		# set speed depending on the value of player.x when hitting
 			# between 0 (close to the net) and 1 when far from the net
@@ -233,7 +233,7 @@ class PongLobby3D(PongLobby):
 		x2 = 2 * self.players[direction].coordinates["x"] - x1
 		y2 = 2 * self.players[direction].coordinates["y"] - y1
 		paddle_segment = ((x1, y1), (x2, y2))
-		
+
 		isIntersect, xInter, yInter = line_intersection(ball_trajectory, paddle_segment)
 
 		relative_intersect = 0.5 - ((y2 - yInter) / (y2 - y1))
@@ -370,14 +370,14 @@ def rectangle_vertices(center, width, height, angle):
 	""" Get the vertices of the rectangle in its local coordinate system. """
 	half_width = width / 2
 	half_height = height / 2
-	
+
 	vertices = [
 		(-half_width, -half_height),
 		(half_width, -half_height),
 		(half_width, half_height),
 		(-half_width, half_height)
 	]
-	
+
 	rotated_vertices = [rotate_point(x, y, angle) for x, y in vertices]
 	return [(center[0] + x, center[1] + y) for x, y in rotated_vertices]
 
@@ -390,7 +390,7 @@ def point_in_rectangle(px, py, rect_vertices):
 	b2 = sign(px, py, rect_vertices[1][0], rect_vertices[1][1], rect_vertices[2][0], rect_vertices[2][1]) < 0.0
 	b3 = sign(px, py, rect_vertices[2][0], rect_vertices[2][1], rect_vertices[3][0], rect_vertices[3][1]) < 0.0
 	b4 = sign(px, py, rect_vertices[3][0], rect_vertices[3][1], rect_vertices[0][0], rect_vertices[0][1]) < 0.0
-	
+
 	return b1 == b2 == b3 == b4
 
 def point_circle_distance(px, py, cx, cy):
@@ -409,14 +409,14 @@ def check_collision(rect_center, width, height, angle, circle_center, radius):
 	for i in range(len(rect_vertices)):
 		x1, y1 = rect_vertices[i]
 		x2, y2 = rect_vertices[(i + 1) % len(rect_vertices)]
-		
+
 		# Compute the closest point on the edge from the circle's center
 		dx = x2 - x1
 		dy = y2 - y1
 		t = max(0, min(1, ((cx - x1) * dx + (cy - y1) * dy) / (dx * dx + dy * dy)))
 		closest_x = x1 + t * dx
 		closest_y = y1 + t * dy
-		
+
 		if point_circle_distance(closest_x, closest_y, cx, cy) <= radius:
 			return True
 
