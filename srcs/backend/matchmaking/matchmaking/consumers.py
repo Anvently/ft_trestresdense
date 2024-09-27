@@ -201,7 +201,8 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 					await self.channel_layer.group_discard(self._lobby_id, self.channel_name)
 					await self.send_lobby_update(self._lobby_id)
 					self._lobby_id = None
-			del online_players[self.username]
+			if status not in (PlayerStatus.IN_GAME, PlayerStatus.IN_TURNAMENT_LOBBY):
+				del online_players[self.username]
 		await self.channel_layer.group_discard(self.username, self.channel_name)
 		await self.channel_layer.group_discard(MatchMakingConsumer.matchmaking_group, self.channel_name)
 		await self.send_general_update()
@@ -291,7 +292,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		if self.get_status() == PlayerStatus.IN_LOBBY and self._is_host:
 			lobbies[self._lobby_id].player_not_ready(self.username)
 			# await self.send_json("{'type' : 'self_unready'}")
-			lobbies[self._lobby_id].add_bot()
+			lobbies[self._lobby_id].add_zbot()
 			await self.send_lobby_update(self._lobby_id)
 
 
@@ -380,7 +381,6 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 			return
 		if lobbies[self._lobby_id].player_ready(self.username):
 			await self.dispatch_players(self._lobby_id)
-			await self.send_general_update()
 		else:
 			await self.send_lobby_update(self._lobby_id)
 

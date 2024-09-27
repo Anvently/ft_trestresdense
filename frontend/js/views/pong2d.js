@@ -2,7 +2,7 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.168.0/build/three.module.js'
 
 import { BaseView } from '../view-manager.js';
-import { User } from '../home.js';
+import { authenticatedUser, User } from '../home.js';
 
 
 // Constants
@@ -72,17 +72,17 @@ export default class Pong2DView extends BaseView {
 
 	initWebSocket() {
 		console.log("initWebSocket");
-		const hash = window.location.hash;
-		if (hash.includes('?'))
-		{
-			const queryString = hash.split('?')[1];
-			const params = new URLSearchParams(queryString);
-			const sockadd = params.get('id');
-			this.socket = new WebSocket(`wss://${location.hostname}:8083/ws/pong/${sockadd}/`);
-		}
-		else{
+		const sockAdd = this.urlParams.get('id');
+		if (sockAdd === undefined)
 			window.location.hash = '#';
-		}
+		this.socket = new WebSocket(`wss://${location.hostname}:8083/ws/pong/${sockAdd}/`);
+		// if (hash.includes('?'))
+		// {
+		// 	const queryString = hash.split('?')[1];
+		// 	const params = new URLSearchParams(queryString);
+		// 	const sockadd = params.get('id');
+		// }
+
 		//this.socket = new WebSocket(`wss://${location.hostname}:8083/ws/pong/10/`);
 
 		this.socket.onmessage = (e) => {
@@ -92,7 +92,7 @@ export default class Pong2DView extends BaseView {
 			}
 			if (msg["type"] == "ping") {
 				this.socket.send(
-					JSON.stringify({ type: "join_game", username: `${User.username}` })
+					JSON.stringify({ type: "join_game", username: `${authenticatedUser.username}` })
 				);
 			} else if (msg["type"] === "send_game_state") {
 				this.updateGameState(msg);
