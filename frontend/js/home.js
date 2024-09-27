@@ -171,6 +171,7 @@ router.addRoute('#user', './views/user.js', 'html/user.html');
 router.addRoute('#lobby', './views/lobby.js', 'html/lobby.html');
 router.addRoute('#pong2d', './views/pong2d.js', 'html/pong2d.html');
 router.addRoute('#pong3d', './views/pong3d.js', 'html/pong3d.html');
+router.addRoute('#tournament', './views/tournament.js', 'html/tournament.html');
 
 export const userManager = new UserInfoManager(3600000, 300000, 3000);
 

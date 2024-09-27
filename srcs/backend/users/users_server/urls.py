@@ -29,7 +29,7 @@ from rest_framework.authtoken import views
 router = SimpleRouter()
 router.register(r'users', UserViewSet, basename='users')
 router.register(r'lobbys', LobbyViewSet, basename='lobbys')
-router.register(r'turnaments', TurnamentViewSet, basename='turnaments')
+router.register(r'tournaments', TurnamentViewSet, basename='turnaments')
 nested_router = NestedSimpleRouter(router, r'users', lookup='user')
 nested_router.register(r'scores', ScoreViewSet, basename='user_scores')
 internal_router = SimpleRouter()

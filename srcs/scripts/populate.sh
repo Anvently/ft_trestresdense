@@ -176,7 +176,6 @@ send_tournament_results() {
       }
     ]
   }"
-  >> out echo "Sending JSON: $json_data"
 
     # Envoi de la requête POST via curl
     curl --request POST \
@@ -226,12 +225,12 @@ send_tournament_results() {
 # Liste des utilisateurs à enregistrer
 user_list=("herve" "john" "user2" "foo" "laura" "chloe" "bar" "ashley" "npirad" "akro" "lmahe" "boris" "emma" "julie")
 
-# # Appel des fonctions
-# register "${user_list[@]}"
-# login_add_friends "${user_list[@]}"
-# for i in {1..30}; do
-#   post_results "${user_list[@]}"
-# done
+# Appel des fonctions
+register "${user_list[@]}"
+login_add_friends "${user_list[@]}"
+for i in {1..30}; do
+  post_results "${user_list[@]}"
+done
 
 # Sélection aléatoire d'un nombre fixe d'utilisateurs (par exemple, 4 utilisateurs)
 select_random_users() {
@@ -239,7 +238,14 @@ select_random_users() {
   shuf -n "$user_count" -e "${user_list[@]}"
 }
 
-# Exécuter la fonction pour un tournoi à 4 joueurs aléatoirement choisis
 random_users=($(select_random_users 8))
 send_tournament_results 8 "${random_users[@]}"
+
+# Exécuter la fonction pour un tournoi à 4 joueurs aléatoirement choisis
+random_users=($(select_random_users 4))
+send_tournament_results 4 "${random_users[@]}"
+
+random_users=($(select_random_users 2))
+send_tournament_results 2 "${random_users[@]}"
+
 
