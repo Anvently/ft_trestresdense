@@ -7,19 +7,14 @@ TODO:
 
 	Backend:
 	- implement 2FA authentification
-	- friends in users_api
 
 	Devops:
 	- implement correct order for docker compose
 		- add healthcheck for django app
 		- filter healtcheck views in logs
-	- implement start scripts to make migrations
 	- dig into production server
 
 	Frontend:
-	- generalize errorHandler
-	- ....
-
-TOFIX:
-	- receiving batch user does not update userInfo at once 
-	- 404 return with avatars
+	- turnament tree
+	- implement 2FA 
+	- local turnament
