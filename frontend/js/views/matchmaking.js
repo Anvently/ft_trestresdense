@@ -36,7 +36,7 @@ export default class MatchmakingView extends BaseView {
 
 		this.showOnlinePLayersButton.addEventListener('click', () => this.showOnlinePlayers());
 		this.openLobbyOptionsButton.addEventListener('clck', (e) => this.openLobbyOptions());
-		this.startGameButton.addEventListener('click', () => this.startGame());
+		//this.startGameButton.addEventListener('click', () => this.startGame());
 		this.inviteFriendsButton.addEventListener('click', () => this.inviteFriends());
 		this.leaveLobbyButton.addEventListener('click', () => this.leaveLobby());
 		this.joinLobbyButton.addEventListener('click', () => this.joinLobbyById());
@@ -374,6 +374,7 @@ export default class MatchmakingView extends BaseView {
 
 	be_kicked(content)
 	{
+		this.isReady = false ;
 		this.lobbyId = undefined;
 		this.updateCurrentView();
 	}
@@ -419,7 +420,7 @@ export default class MatchmakingView extends BaseView {
 			playerRow.classList.add('text-muted');
 		}
 
-		const user = User(playerId, await userManager.getUserInfo(playerId));
+		const user = new User(playerId, await userManager.getUserInfo(playerId));
 
 		const nameCell = document.createElement('td');
 		nameCell.classList.add('left');
@@ -504,8 +505,7 @@ export default class MatchmakingView extends BaseView {
 
 	kickPlayer(playerId) {
 
-		console.log('KIKC');
-		console.log(playerId);
+
 		this.sendMessage({"type" : "kick_player", "player_target" : playerId});
 	}
 

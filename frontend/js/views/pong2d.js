@@ -78,11 +78,11 @@ export default class Pong2DView extends BaseView {
 			const queryString = hash.split('?')[1];
 			const params = new URLSearchParams(queryString);
 			const sockadd = params.get('id');
+			this.socket = new WebSocket(`wss://${location.hostname}:8083/ws/pong/${sockadd}/`);
 		}
 		else{
 			window.location.hash = '#';
 		}
-		this.socket = new WebSocket(`wss://${location.hostname}:8083/ws/pong/${sockadd}/`);
 		//this.socket = new WebSocket(`wss://${location.hostname}:8083/ws/pong/10/`);
 
 		this.socket.onmessage = (e) => {
