@@ -81,10 +81,11 @@ class PongLobby:
 		self.gameState = 0
 		self.mut_lock = asyncio.Lock()
 		self.loop = None
-		self.waiting_for = -1
+		self.waiting_for = len(players_list)
 		self.winner = None
 		self.game_type = None
-	
+		print(f"game {lobby_id} initialized, await players {players_list}")
+
 	def check_game_start(self) -> bool:
 		if self.waiting_for == 0:
 			return True
@@ -95,13 +96,14 @@ class PongLobby:
 		if username in [Player.player_id for Player in self.players]:
 			return True
 		return False
-	
-	async def start_game_loop(self):
-		self.loop = await asyncio.create_task(self.game_loop())
 
 	async def stop_game_loop(self):
 		if self.loop:
 			self.loop.cancel()
+
+	async def start_game_loop(self):
+		self.loop = await self.game_loop()
+
 
 	async def player_join(self, player_id: str) -> bool:
 		""" Template of player_list: ["user1", "user1_guest"] """
@@ -111,8 +113,7 @@ class PongLobby:
 			return True
 		self.players[self.match_id_pos[player_id]].has_joined = True
 		self.waiting_for -= 1
-		if not self.loop:
-			await self.start_game_loop()
+		print(f"player {player_id} joined, {self.waiting_for} remaining")
 		return True
 
 	def player_leave(self, player_id: str):
@@ -165,8 +166,7 @@ class PongLobby:
 			# pregame : check that all players are present
 			while time.time() - loop_start < 3600 and self.gameState == 0:
 				await asyncio.sleep(0.05)
-				async with self.mut_lock:
-					data = self.compute_game()
+				data = self.compute_game()
 				await player_channel.group_send(self.lobby_id, data)
 				if self.waiting_for == 0:
 					self.gameState = 1
@@ -182,8 +182,7 @@ class PongLobby:
 			print("game will start in 3 sec")
 			while time.time() - loop_start < 3:
 				await asyncio.sleep(0.05)
-				async with self.mut_lock:
-					data = self.compute_game()
+				data = self.compute_game()
 				await player_channel.group_send(self.lobby_id, data)
 			self.gameState = 2
 			# play !
@@ -192,8 +191,7 @@ class PongLobby:
 			print("game has started")
 			while self.gameState == 2:
 				await asyncio.sleep(0.016)	# 0.16 -> 60Hz
-				async with self.mut_lock:
-					data = self.compute_game()
+				data = self.compute_game()
 				await player_channel.group_send(self.lobby_id, data)
 			await player_channel.group_send(
 				self.lobby_id, {

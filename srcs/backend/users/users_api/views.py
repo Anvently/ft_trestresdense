@@ -45,7 +45,7 @@ class LobbyViewSet(viewsets.ReadOnlyModelViewSet):
 
 class TurnamentViewSet(viewsets.ReadOnlyModelViewSet):
 	serializer_class = TurnamentSerializer
-	lookup_field = "turnament_id"
+	lookup_field = "tournament_id"
 	queryset = Tournament.objects.all()
 
 class ScoreViewSet(viewsets.ReadOnlyModelViewSet):

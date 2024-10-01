@@ -42,11 +42,11 @@ class ScoreSerializer(DynamicFieldsSerializer):
 	lobby_id = serializers.CharField(source='lobby.lobby_id', read_only=True)
 	lobby_name = serializers.CharField(source='lobby.lobby_name', read_only=True)
 	game_name = serializers.CharField(source='lobby.game_name', read_only = True)
-	turnament_id = serializers.CharField(source='lobby.tournament.turnament_id', read_only=True, allow_blank=True, required=False)
+	tournament_id = serializers.CharField(source='lobby.tournament.tournament_id', read_only=True, allow_blank=True, required=False)
 
 	class Meta:
 		model = Score
-		fields = ['username', 'display_name', 'lobby_id', 'lobby_name', 'game_name', 'score', 'has_win', 'date', 'turnament_id',]
+		fields = ['username', 'display_name', 'lobby_id', 'lobby_name', 'game_name', 'score', 'has_win', 'date', 'tournament_id',]
 		list_serializer_class = ScoreListSerializer
 
 	def validate_username(self, value):
@@ -63,12 +63,12 @@ class ScoreSerializer(DynamicFieldsSerializer):
 
 class LobbySerializer(DynamicFieldsSerializer):
 	scores_set = ScoreSerializer(many=True, fields=['username', 'display_name', 'score', 'has_win',])
-	turnament_id = serializers.CharField(required=False, source='tournament.turnament_id', allow_blank=True)
+	tournament_id = serializers.CharField(required=False, source='tournament.tournament_id', allow_blank=True)
 
 	class Meta:
 		model = Lobby
-		fields = ('lobby_id', 'lobby_name', 'game_name', 'turnament_id', 'scores_set',)
-		read_only_fields = ('date',)
+		fields = ('lobby_id', 'lobby_name', 'game_name', 'tournament_id', 'date', 'scores_set',)
+		# read_only_fields = ('date',)
 
 	def create(self, validated_data):
 		lobby = Lobby(
@@ -76,12 +76,12 @@ class LobbySerializer(DynamicFieldsSerializer):
 			lobby_name = validated_data["lobby_name"],
 			game_name = validated_data["game_name"],
 		)
-		if 'tournament' in validated_data and 'turnament_id' in validated_data['tournament']:
+		if 'tournament' in validated_data and 'tournament_id' in validated_data['tournament']:
 				try:
-					lobby.tournament = Tournament.objects.get(turnament_id=validated_data['tournament']["turnament_id"])
+					lobby.tournament = Tournament.objects.get(tournament_id=validated_data['tournament']["tournament_id"])
 				except:
 					lobby.tournament = Tournament.objects.create(
-						turnament_id = validated_data['tournament']["turnament_id"],
+						tournament_id = validated_data['tournament']["tournament_id"],
 						game_name = validated_data["game_name"],
 						number_players = 0,
 					)
@@ -90,8 +90,12 @@ class LobbySerializer(DynamicFieldsSerializer):
 		
 		scores_list = validated_data.pop('scores_set')
 		for score_data in scores_list:
+			try:
+				user = User.objects.get(username=score_data['user']['username'])
+			except User.DoesNotExist:
+				raise serializers.ValidationError(f"User '{score_data['user']['username']}' does not exists.")
 			Score.objects.create(
-				user=User.objects.get(username=score_data['user']['username']),
+				user=user,
 				lobby=lobby,
 				score=score_data['score'],
 				has_win=score_data['has_win'],
@@ -103,11 +107,11 @@ class TurnamentSerializer(serializers.HyperlinkedModelSerializer):
 
 	class Meta:
 		model = Tournament
-		fields = ('turnament_id', 'game_name', 'date', 'number_players', 'lobbys_set',)
+		fields = ('tournament_id', 'game_name', 'date', 'number_players', 'lobbys_set',)
 
 class UserSerializer(serializers.HyperlinkedModelSerializer):
 	username = serializers.CharField(read_only=True)
-	scores_set = ScoreSerializer(many=True, read_only=True, fields=['lobby_id', 'lobby_name', 'game_name', 'turnament_id', 'score', 'has_win', 'date',], required=False)
+	scores_set = ScoreSerializer(many=True, read_only=True, fields=['lobby_id', 'lobby_name', 'game_name', 'tournament_id', 'score', 'has_win', 'date',], required=False)
 	avatar = serializers.SerializerMethodField(read_only=True)
 	uploaded_avatar = serializers.ImageField(required = False, write_only = True)
 	url_avatar = serializers.URLField(write_only=True, source='external_avatar', required=False)

@@ -8,17 +8,17 @@ const viewManager = new ViewManager(document.getElementById('content'));
 /**
  * @note
  * userInfo default structures returned by the userManager can be used as such.
- 
+
  * This class can be used to wrap those informations into an object allowing more
  * methods.
- 
+
  * It is also usefull to translate an undefined userInfo into a default user
  * that can be use to print missing informations (=> default value of the constructor can be used as such)
- 
+
  * @description
- * Example : const user = new User("foo-user", undefined).valid_info => false 
+ * Example : const user = new User("foo-user", undefined).valid_info => false
  * But it can be used to print transitionnal values when using userManager background updater.
- 
+
  * Example : const user = new User("herve", userManager.fetchUserInfo).valid_info => true
  * @param {username} username you should always instantiate object for an existing user.
  * Thus this parameter should always be defined
@@ -28,7 +28,9 @@ const viewManager = new ViewManager(document.getElementById('content'));
 */
 export class User {
 	constructor(username, objToAssign = undefined) {
-		this.avatar = `https://${window.location.host}/avatars/__default__.jpg`;
+		if (username.startsWith('!')) return new BotUser(username);
+		// this.avatar = `https://${window.location.host}/avatars/__default__.jpg`;
+		this.avatar = `https://robohash.org/${username}?set=set4&bgset=&size=80x80`;
 		this.friends = [];
 		this.last_visit = "2024-09-25T11:33:00.563109Z";
 		this.display_name = "UnknownName";
@@ -44,6 +46,31 @@ export class User {
 
 	get is_online() {
 		return (Date.now() - new Date(this.last_visit).getTime()) < 5 * 60 * 1000;
+	}
+
+	isFriendWith(username) {
+		return this.friends.includes(username);
+	}
+}
+
+class BotUser {
+	constructor(username) {
+		this.username = username;
+		this.display_name = "Bot";
+		this.avatar = `https://${window.location.host}/avatars/__bot__.png`;
+		this.valid_info = true;
+		this.last_visit = Date.now();
+		this.friends = [];
+		this.scores_set = [];
+		this.is_bot = true;
+	}
+
+	get is_online() {
+		return true;
+	}
+
+	isFriendWith(username) {
+		return false;
 	}
 }
 
@@ -120,8 +147,14 @@ class AuthenticatedUser extends User {
 			throw new Error('response from the api was not ok');
 		const data = await response.json();
 		this.friends = data.friends;
-		console.log(data);
-		console.log(this);
+	}
+
+	is_friend(friend_id)
+	{
+		if (this.friends.includes(friend_id))
+			return true;
+		else
+			return false;
 	}
 
 }
@@ -138,6 +171,7 @@ router.addRoute('#user', './views/user.js', 'html/user.html');
 router.addRoute('#lobby', './views/lobby.js', 'html/lobby.html');
 router.addRoute('#pong2d', './views/pong2d.js', 'html/pong2d.html');
 router.addRoute('#pong3d', './views/pong3d.js', 'html/pong3d.html');
+router.addRoute('#tournament', './views/tournament.js', 'html/tournament.html');
 
 export const userManager = new UserInfoManager(3600000, 300000, 3000);
 

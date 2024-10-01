@@ -123,6 +123,105 @@ post_results() {
 	# echo "$json_payload"  # Affichage du JSON généré pour inspection
 }
 
+#!/bin/bash
+
+send_tournament_results() {
+  local USERS=("${@:2}")  # On prend tous les paramètres à partir du 2ème
+  local NUM_USERS=$1
+  local GAME_NAME="pong2d"
+ 
+  # Génération d'un tournament_id aléatoire
+  local TOURNAMENT_ID=$(openssl rand -hex 12)
+  
+  # Sélection aléatoire d'un utilisateur pour nommer le tournoi
+  RANDOM_USER="${USERS[$((RANDOM % ${#USERS[@]}))]}"
+  local TOURNAMENT_NAME="${RANDOM_USER} tournament"
+  
+  # Fonction pour envoyer les résultats d'un match
+  send_match_result() {
+    local lobby_id=$1
+    local player1=$2
+    local player2=$3
+    local lobby_name=$4
+    local score1=$((RANDOM % 10))
+    local score2=$((RANDOM % 10))
+    
+    if [[ $score1 -gt $score2 ]]; then
+      winner=$player1
+      loser=$player2
+      win_score=$score1
+      lose_score=$score2
+    else
+      winner=$player2
+      loser=$player1
+      win_score=$score2
+      lose_score=$score1
+    fi
+
+	local json_data="{
+    \"lobby_id\": \"${lobby_id}\",
+    \"lobby_name\": \"${lobby_name}\",
+    \"game_name\": \"${GAME_NAME}\",
+    \"tournament_id\": \"${TOURNAMENT_ID}\",
+    \"scores_set\": [
+      {
+        \"username\": \"${winner}\",
+        \"score\": ${win_score},
+        \"has_win\": true
+      },
+      {
+        \"username\": \"${loser}\",
+        \"score\": ${lose_score},
+        \"has_win\": false
+      }
+    ]
+  }"
+
+    # Envoi de la requête POST via curl
+    curl --request POST \
+      --url http://localhost:8001/post-result/ \
+      --header "Authorization: Bearer ${MATCHMAKING_TOKEN}" \
+      --header 'Content-Type: application/json' \
+      --data "$json_data" > /dev/null
+
+    echo "$winner"  # Retourne le nom du gagnant
+  }
+
+  # Déroulement du tournoi en fonction du nombre de joueurs
+  if [[ $NUM_USERS -eq 2 ]]; then
+    # Finale directe
+    send_match_result "${TOURNAMENT_ID}.0" "${USERS[0]}" "${USERS[1]}" "${TOURNAMENT_NAME} final"
+    
+  elif [[ $NUM_USERS -eq 4 ]]; then
+    # Demi-finales
+    winner1=$(send_match_result "${TOURNAMENT_ID}.1.0" "${USERS[0]}" "${USERS[1]}" "${TOURNAMENT_NAME} 1st semi")
+    winner2=$(send_match_result "${TOURNAMENT_ID}.1.1" "${USERS[2]}" "${USERS[3]}" "${TOURNAMENT_NAME} 2nd semi")
+
+    # Finale
+    send_match_result "${TOURNAMENT_ID}.0" "$winner1" "$winner2" "${TOURNAMENT_NAME} final"
+    
+  elif [[ $NUM_USERS -eq 8 ]]; then
+    # Quarts de finale
+    winner1=$(send_match_result "${TOURNAMENT_ID}.2.0" "${USERS[0]}" "${USERS[1]}" "${TOURNAMENT_NAME} 1st quarter")
+    winner2=$(send_match_result "${TOURNAMENT_ID}.2.1" "${USERS[2]}" "${USERS[3]}" "${TOURNAMENT_NAME} 2nd quarter")
+    winner3=$(send_match_result "${TOURNAMENT_ID}.2.2" "${USERS[4]}" "${USERS[5]}" "${TOURNAMENT_NAME} 3rd quarter")
+    winner4=$(send_match_result "${TOURNAMENT_ID}.2.3" "${USERS[6]}" "${USERS[7]}" "${TOURNAMENT_NAME} 4th quarter")
+
+    # Demi-finales
+    winner_semi1=$(send_match_result "${TOURNAMENT_ID}.1.0" "$winner1" "$winner2" "${TOURNAMENT_NAME} 1st semi")
+    winner_semi2=$(send_match_result "${TOURNAMENT_ID}.1.1" "$winner3" "$winner4" "${TOURNAMENT_NAME} 2nd semi")
+
+    # Finale
+    send_match_result "${TOURNAMENT_ID}.0" "$winner_semi1" "$winner_semi2" "${TOURNAMENT_NAME} final"
+  else
+    echo "Le nombre de joueurs doit être 2, 4 ou 8."
+    return 1
+  fi
+}
+
+
+
+
 # Liste des utilisateurs à enregistrer
 user_list=("herve" "john" "user2" "foo" "laura" "chloe" "bar" "ashley" "npirad" "akro" "lmahe" "boris" "emma" "julie")
 
@@ -132,3 +231,21 @@ login_add_friends "${user_list[@]}"
 for i in {1..30}; do
   post_results "${user_list[@]}"
 done
+
+# Sélection aléatoire d'un nombre fixe d'utilisateurs (par exemple, 4 utilisateurs)
+select_random_users() {
+  local user_count=$1
+  shuf -n "$user_count" -e "${user_list[@]}"
+}
+
+random_users=($(select_random_users 8))
+send_tournament_results 8 "${random_users[@]}"
+
+# Exécuter la fonction pour un tournoi à 4 joueurs aléatoirement choisis
+random_users=($(select_random_users 4))
+send_tournament_results 4 "${random_users[@]}"
+
+random_users=($(select_random_users 2))
+send_tournament_results 2 "${random_users[@]}"
+
+

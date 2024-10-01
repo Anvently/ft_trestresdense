@@ -4,7 +4,7 @@ import { TextGeometry } from "https://cdn.jsdelivr.net/npm/three@0.168.0/example
 import { FontLoader } from "https://cdn.jsdelivr.net/npm/three@0.168.0/examples/jsm/loaders/FontLoader.js"
 
 import { BaseView } from '../view-manager.js';
-import { User, userManager } from '../home.js';
+import { authenticatedUser, User, userManager } from '../home.js';
 
 
 
@@ -40,7 +40,7 @@ var ping_sound = new Audio("sound/ping_sound.mp3");
 var pong_sound = new Audio("sound/pong_sound.mp3");
 // const start_button = document.getElementById("start_button");
 
-// Texture Loader 
+// Texture Loader
 const textureLoader = new THREE.TextureLoader();
 
 // Font Loader
@@ -55,7 +55,7 @@ export default class Pong3DView extends BaseView {
 		super("pong3d-view");
 
 		this.socket = null;
-
+		this.username = authenticatedUser.username;
 		this.scene = null;
 		this.camera = null;
 		this.renderer = null;
@@ -96,17 +96,21 @@ export default class Pong3DView extends BaseView {
 
 	initWebSocket() {
 		console.log("initWebSocket");
-		this.socket = new WebSocket(`wss://${location.hostname}:8083/ws/pong/11/`);
+		//this.socket = new WebSocket(`wss://${location.hostname}:8083/ws/pong/11/`);
 			// `wss://${location.host}:/ws/pong/11/`
-
+		const sockAdd = this.urlParams.get('id');
+		if (sockAdd === undefined)
+			window.location.hash = '#';
+		this.socket = new WebSocket(`wss://${location.hostname}:8083/ws/pong/${sockAdd}/`);
 		this.socket.onmessage = (e) => {
+			console.log(e);
 			const msg = JSON.parse(e.data);
 			if (!msg["type"]) {
 				return ;
 			}
 			if (msg["type"] == "ping") {
 				this.socket.send(
-					JSON.stringify({ type: "join_game", username: `${User.username}` })
+					JSON.stringify({ type: "join_game", username: `${authenticatedUser.username}` })
 				);
 			} else if (msg["type"] === "send_game_state") {
 				this.updateGameState(msg);
@@ -139,7 +143,7 @@ export default class Pong3DView extends BaseView {
 			// Ambient Light
 		const ambientLight = new THREE.AmbientLight( 0x404040 , 6);
 		this.scene.add( ambientLight );
-	
+
 		// Room
 			// create room
 		this.objects.environment.room = createRoom();
@@ -151,12 +155,12 @@ export default class Pong3DView extends BaseView {
 		// Ball
 		this.objects.ball = createBall();
 		this.scene.add(this.objects.ball);
-		
+
 		// Paddles
 		this.objects.paddle.push(createPaddle(0xf00000)); // West paddle
 		this.objects.paddle.push(createPaddle(0x0000f0)); // East paddle
 		this.objects.paddle.forEach(paddle => this.scene.add(paddle))
-		
+
 		// Score Board
 		// this.objects.score_board.push(createScoreBoard(0xf00000, WEST, FONT));
 		// this.objects.score_board.push(createScoreBoard(0x0000f0, EAST, FONT));
@@ -195,13 +199,13 @@ export default class Pong3DView extends BaseView {
 		console.log("startGameLoop");
 		this.intervalId = setInterval(() => {
 			if (this.pressKey.key_up === true)
-				this.socket.send(JSON.stringify({type: 'key_input', username:User.username,  input: "up" }));
+				this.socket.send(JSON.stringify({type: 'key_input', username: this.username,  input: "up" }));
 			if (this.pressKey.key_down === true)
-				this.socket.send(JSON.stringify({type: 'key_input', username:User.username,  input: "down" }));
+				this.socket.send(JSON.stringify({type: 'key_input', username: this.username,  input: "down" }));
 			if (this.pressKey.key_left === true)
-				this.socket.send(JSON.stringify({type: 'key_input', username:User.username,  input: "left" }));
+				this.socket.send(JSON.stringify({type: 'key_input', username: this.username,  input: "left" }));
 			if (this.pressKey.key_right === true)
-				this.socket.send(JSON.stringify({type: 'key_input', username:User.username,  input: "right" }));
+				this.socket.send(JSON.stringify({type: 'key_input', username: this.username,  input: "right" }));
 
 			this.draw3D();
 
@@ -234,7 +238,7 @@ export default class Pong3DView extends BaseView {
 		this.renderer.render(this.scene, this.camera);
 
 	}
-	
+
 	setupResizeListener() {
 		window.addEventListener('resize', () => {this.resize()});
 	}
@@ -247,7 +251,7 @@ export default class Pong3DView extends BaseView {
 
 	resize() {
 		var ratio = 4/3;
-		
+
 		var newWidth = window.innerWidth;
 		var newHeight = window.innerWidth * 3/4;
 		if ((window.innerHeight) < window.innerWidth * 3/4) {
@@ -305,7 +309,7 @@ export default class Pong3DView extends BaseView {
 
 	spectatorCamera() {
 		const radius = 20;
-	
+
 		this.angle += 0.005;
 		this.camera.position.x = radius * Math.cos(this.angle);
 		this.camera.position.y = radius * Math.sin(this.angle);
@@ -316,40 +320,40 @@ export default class Pong3DView extends BaseView {
 	setPOVCamera() {
 		// calculate camera destination
 		var camera_destination = {x: 0, y: 0, z: 0}
-	
+
 		var radius = 15;
 		var camera_angle = 0;
 		var player_angle = this.players[this.my_direction].angle;
 		var middle_angle = 0
-	
+
 		if (this.my_direction == WEST)
 			middle_angle = Math.PI
 		else if (this.my_direction == EAST)
 			player_angle += Math.PI;
-	
+
 		radius = Math.abs(this.players[this.my_direction].x**2 + this.players[this.my_direction].y**2) * 5 + 10
 		player_angle = normalizeAngle(player_angle);
 		camera_angle = middle_angle + player_angle / 2;
-	
+
 		camera_destination.x = radius * Math.cos(camera_angle);
 		camera_destination.y = radius * Math.sin(camera_angle);
-	
+
 		this.camera.position.z = 5;
-	
+
 		// Move camera + smoothness
 		if (this.camera.position.x < camera_destination.x)
 			this.camera.position.x += (camera_destination.x - this.camera.position.x) * CAMERA_SPEED
 		else if (this.camera.position.x > camera_destination.x)
 			this.camera.position.x -= (this.camera.position.x - camera_destination.x) * CAMERA_SPEED
-	
+
 		if (this.camera.position.y < camera_destination.y)
 			this.camera.position.y += (camera_destination.y - this.camera.position.y) * CAMERA_SPEED
 		else if (this.camera.position.y > camera_destination.y)
 			this.camera.position.y -= (this.camera.position.y - camera_destination.y) * CAMERA_SPEED
-	
+
 		this.camera.lookAt(0, 0, 0);
 	}
-	
+
 	setPaddleHeight(direction) {
 		if ((this.ball.x < 0 && direction == WEST) || (this.ball.x > 0 && direction == EAST) ) {
 			if (this.objects.paddle[direction].position.z > Math.max(this.objects.ball.position.z, 0.8))
@@ -363,13 +367,13 @@ export default class Pong3DView extends BaseView {
 				this.objects.paddle[direction].position.z += 0.01
 		}
 	}
-	
+
 	setBallHeight() {
 		var xStart, zStart, xEnd, zEnd;
-	
+
 		const isEast = this.ball.speed.x > 0;
 		const passedReboundLine = isEast ? this.ball.x > REBOUND_LINE_X : this.ball.x < -REBOUND_LINE_X;
-	
+
 		if (this.is_service)
 			return 1;
 		else if (passedReboundLine && !this.ball.is_out) {
@@ -395,7 +399,7 @@ export default class Pong3DView extends BaseView {
 				zStart = 1;
 			}
 		}
-	
+
 		return parabolic_z(
 			this.objects.ball.position.x,
 			xStart * 10,
@@ -408,7 +412,7 @@ export default class Pong3DView extends BaseView {
 
 	async initFont() {
 		const fontLoader = new FontLoader();
-	
+
 		// Return a promise to be awaited
 		this.font = await new Promise((resolve, reject) => {
 			fontLoader.load(
@@ -549,7 +553,7 @@ function centerTextGeometry(geometry) {
 // start_button.addEventListener('click', () => {
 // 	// ping_sound.play();;
 // 	pong_sound.play()
-	
+
 // });
 
 
@@ -557,7 +561,7 @@ function centerTextGeometry(geometry) {
 // var previous_hit_x = 0;
 // var sound_type = 1 // 1 is PONG, 0 is PING
 // function ball_sound() {
-	
+
 // 	if (sound_type == 0) { // PING when ball hit the table
 // 		if ((ball.speed.x > 0 && ball.x  > REBOUND_LINE_X) // ball is going EAST
 // 			|| ball.speed.x < 0 && ball.x < -REBOUND_LINE_X) {
@@ -727,7 +731,7 @@ function createTable()
 			group.add(mesh);
 		}
 	}
-	
+
 	return tableGroup
 }
 
@@ -741,7 +745,7 @@ function createRoom()
 		floorTexture.wrapS = THREE.RepeatWrapping;
 		floorTexture.wrapT = THREE.RepeatWrapping;
 		floorTexture.repeat.set(4, 4); // number of repetitions
-		
+
 		const geometry = new THREE.PlaneGeometry(100, 100);
 		const material = new THREE.MeshStandardMaterial({ map: floorTexture, side: THREE.DoubleSide });
 		const mesh = new THREE.Mesh(geometry, material);
@@ -756,7 +760,7 @@ function createRoom()
 		wallTexture.wrapS = THREE.RepeatWrapping;
 		wallTexture.wrapT = THREE.RepeatWrapping;
 		wallTexture.repeat.set(4, 2);
-		
+
 		for(var i = 0; i < 4; i++){
 			const geometry = new THREE.PlaneGeometry(100, 50);
 			const material = new THREE.MeshStandardMaterial({ map: wallTexture, side: THREE.DoubleSide });
@@ -782,8 +786,8 @@ function createPaddle(color) {
 	const handleMesh = new THREE.Mesh(handleGeometry, handleMaterial);
 	handleMesh.castShadow = true;
 	handleMesh.receiveShadow = true;
-	handleMesh.position.z = -0.6; 
-	handleMesh.position.x = -0.35; 
+	handleMesh.position.z = -0.6;
+	handleMesh.position.x = -0.35;
 	handleMesh.rotation.y = Math.PI/6;
 	group.add(handleMesh);
 	// CYLINDER
@@ -809,7 +813,7 @@ function createPaddle(color) {
 // 		});
 // 		const material = new THREE.MeshStandardMaterial({ color: color });
 // 		const textMesh = new THREE.Mesh(geometry, material);
-		
+
 // 		if (side == WEST)
 // 		{
 // 			textMesh.position.set(-3, 5, 0.2);  // Adjust position
@@ -819,7 +823,7 @@ function createPaddle(color) {
 // 			textMesh.position.set(3, -5, 0.2);  // Adjust position
 // 			textMesh.rotation.y = Math.PI
 // 		}
-		
+
 // 		textMesh.rotation.x = Math.PI/2
 // 		return(textMesh)
 // }

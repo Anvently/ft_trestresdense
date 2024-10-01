@@ -111,7 +111,6 @@ class Lobby():
 		return True
 
 	def player_not_ready(self, player_id):
-		print('pouet')
 		self.players[player_id]['is_ready'] = False
 
 	def player_joined(self, player_id):
@@ -120,10 +119,12 @@ class Lobby():
 		self.players[player_id]['has_joined'] = True
 
 	def remove_player(self, player_id):
+		print(f"before kick {self.players}")
 		if player_id in self.players:
 			del self.players[player_id]
 		if len(self.players) == 0:
 			self.delete()
+		print(f"after kick {self.players}")
 
 	def check_rules(self):
 		pass

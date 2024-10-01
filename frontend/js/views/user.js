@@ -1,5 +1,5 @@
 import { BaseView } from '../view-manager.js';
-import { userManager, User } from '../home.js'
+import { userManager, User, authenticatedUser } from '../home.js'
 
 export default class UserView extends BaseView {
 	constructor() {
@@ -19,6 +19,12 @@ export default class UserView extends BaseView {
 			throw new Error("Failed to retrieve user informations");
 			return;
 		}
+		this.editFriendButton = document.getElementById('edit-friend-button');
+		this.editFriendButton.addEventListener('click', async (e) => {
+			e.preventDefault();
+			this.switchFriendStatus();
+		})
+		this.updateEditFriendButton();
 		this.displayUserInfo();
 		this.displayScores();
 		userManager.setDynamicUpdateHandler(this.updateUserInfos);
@@ -28,6 +34,36 @@ export default class UserView extends BaseView {
 
 	async cleanupView() {
 		// Clean up any event listeners or other resources
+	}
+
+	async switchFriendStatus() {
+		try {
+			if (authenticatedUser.isFriendWith(this.userInfo.username)) {
+				await authenticatedUser.removeFriend(this.userInfo.username);
+			} else {
+				await authenticatedUser.addFriend(this.userInfo.username);
+			}
+		} catch (error) {
+			this.errorHandler("L'action a echouee.");
+			return;
+		}
+		this.successHandler("Action effectuee.");
+		this.updateEditFriendButton();
+	}
+
+	updateEditFriendButton() {
+		if (this.userInfo.username === authenticatedUser.username) {
+			this.editFriendButton.classList.add('d-none');
+			return;
+		}
+		this.editFriendButton.classList.remove('btn-danger', 'btn-success');
+		if (authenticatedUser.isFriendWith(this.userInfo.username)) {
+			this.editFriendButton.innerText = "Retirer des amis";
+			this.editFriendButton.classList.add('btn-danger');
+		} else {
+			this.editFriendButton.innerText = "Ajouter comme ami";
+			this.editFriendButton.classList.add('btn-success');
+		}
 	}
 
 	fetchUserData(userId) {
@@ -83,7 +119,7 @@ export default class UserView extends BaseView {
 				const row = document.createElement('tr');
 				row.innerHTML = `
 				<td>${this.convertDate(score.date)}</td>
-				<td><a class="lobby-link" href="/#lobby?id=${score.lobby_id}">${score.lobby_name}</a></td>
+				<td><a class="lobby-link" href="#lobby?id=${score.lobby_id}">${score.lobby_name}</a></td>
 				<td>${score.game_name}</td>
 				<td>${score.score}</td>
 				<td class="${score.has_win ? 'has-win' : 'has-lose'}">${score.has_win ? 'Won' : 'Lost'}</td>

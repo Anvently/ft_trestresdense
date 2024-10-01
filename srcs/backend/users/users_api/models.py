@@ -62,13 +62,13 @@ class	User(user_models.AbstractUser):
 		return super(User, self).save(*args, **kwargs)
 	
 class	Tournament(models.Model):
-	turnament_id = models.BigIntegerField(verbose_name="tournament unique id", unique=True)
+	tournament_id = models.CharField(max_length=64, verbose_name="tournament unique id", unique=True)
 	game_name = models.CharField(max_length=50)
 	date = models.DateTimeField(auto_now_add=True, editable=False)
 	number_players = models.SmallIntegerField()
 
 	def __str__(self) -> str:
-		return self.turnament_id.__str__()
+		return self.tournament_id.__str__()
 
 class	Lobby(models.Model):
 	""" 

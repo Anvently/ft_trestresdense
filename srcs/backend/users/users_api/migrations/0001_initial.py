@@ -31,7 +31,7 @@ class Migration(migrations.Migration):
             name='Tournament',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('turnament_id', models.BigIntegerField(unique=True, verbose_name='tournament unique id')),
+                ('tournament_id', models.BigIntegerField(unique=True, verbose_name='tournament unique id')),
                 ('game_name', models.CharField(max_length=50)),
                 ('date', models.DateTimeField(auto_now_add=True)),
                 ('number_players', models.SmallIntegerField()),

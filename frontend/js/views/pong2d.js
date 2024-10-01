@@ -2,7 +2,7 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.168.0/build/three.module.js'
 
 import { BaseView } from '../view-manager.js';
-import { User } from '../home.js';
+import { authenticatedUser, User } from '../home.js';
 
 
 // Constants
@@ -72,7 +72,18 @@ export default class Pong2DView extends BaseView {
 
 	initWebSocket() {
 		console.log("initWebSocket");
-		this.socket = new WebSocket(`wss://${location.hostname}:8083/ws/pong/10/`);
+		const sockAdd = this.urlParams.get('id');
+		if (sockAdd === undefined)
+			window.location.hash = '#';
+		this.socket = new WebSocket(`wss://${location.hostname}:8083/ws/pong/${sockAdd}/`);
+		// if (hash.includes('?'))
+		// {
+		// 	const queryString = hash.split('?')[1];
+		// 	const params = new URLSearchParams(queryString);
+		// 	const sockadd = params.get('id');
+		// }
+
+		//this.socket = new WebSocket(`wss://${location.hostname}:8083/ws/pong/10/`);
 
 		this.socket.onmessage = (e) => {
 			const msg = JSON.parse(e.data);
@@ -81,7 +92,7 @@ export default class Pong2DView extends BaseView {
 			}
 			if (msg["type"] == "ping") {
 				this.socket.send(
-					JSON.stringify({ type: "join_game", username: `${User.username}` })
+					JSON.stringify({ type: "join_game", username: `${authenticatedUser.username}` })
 				);
 			} else if (msg["type"] === "send_game_state") {
 				this.updateGameState(msg);
@@ -117,7 +128,7 @@ export default class Pong2DView extends BaseView {
 
 		// Room
 		this.createEnvironment(this.scene);
-		
+
 		// Ball
 		this.objects.ball = createBall();
 		this.scene.add(this.objects.ball);
@@ -141,7 +152,7 @@ export default class Pong2DView extends BaseView {
 		this.ball.r = parseFloat(msg.ball_r);
 		this.ball.speedX = parseFloat(msg.ball_speed_x);
 		this.ball.speedY = parseFloat(msg.ball_speed_y);
-	
+
 		for (var i = 0; i < 4; i++)
 		{
 			this.players[i] = {
@@ -162,7 +173,7 @@ export default class Pong2DView extends BaseView {
 				webSocket.send(JSON.stringify({type: 'key_input', username:user_id,  input: "up" }));
 			if (this.pressKey.key_down === true)
 				webSocket.send(JSON.stringify({type: 'key_input', username:user_id,  input: "down" }));
-	
+
 			this.draw3D();
 		}, 16);
 	}
@@ -188,9 +199,9 @@ export default class Pong2DView extends BaseView {
 				this.objects.environment.wall[dir].position.z = 0
 				this.objects.paddle[dir].position.z = -1;
 			}
-				
+
 		}
-	
+
 		this.renderer.render(this.scene, this.camera);
 	}
 
@@ -206,7 +217,7 @@ export default class Pong2DView extends BaseView {
 
 	resize() {
 		var ratio = 1;
-		
+
 		var newWidth = window.innerWidth;
 		var newHeight = window.innerWidth;
 		if (window.innerHeight < window.innerWidth) {
@@ -220,7 +231,7 @@ export default class Pong2DView extends BaseView {
 		if (e.key === "ArrowUp") this.pressKey.key_up = true;
 		else if (e.key === "ArrowDown") this.pressKey.key_down = true;
 	}
-	
+
 	handleKeyUp(e) {
 		if (e.key === "ArrowUp") this.pressKey.key_up = false;
 		else if (e.key === "ArrowDown") this.pressKey.key_down = false;
@@ -233,7 +244,7 @@ export default class Pong2DView extends BaseView {
 	}
 
 	createEnvironment() {
-	
+
 		const planeGeometry = new THREE.PlaneGeometry( 30, 30 );
 		const planeMaterial = new THREE.MeshStandardMaterial( {color: 0xA0A0A0} );
 		this.objects.environment.field = new THREE.Mesh(planeGeometry, planeMaterial);
@@ -241,7 +252,7 @@ export default class Pong2DView extends BaseView {
 		this.objects.environment.field.receiveShadow = true;
 		this.objects.environment.field.position.z -= 0.15; // minus ball radius
 		this.scene.add(this.objects.environment.field);
-	
+
 		for (var i = 0; i < 4; i++)
 		{
 			//corners
@@ -253,7 +264,7 @@ export default class Pong2DView extends BaseView {
 				this.objects.environment.corner.push(corner);
 				this.scene.add(corner);
 			}
-	
+
 			//walls
 			{
 				const geometry = new THREE.BoxGeometry( 10, 10, 0.5 );
@@ -267,7 +278,7 @@ export default class Pong2DView extends BaseView {
 	}
 }
 
-	
+
 
 // registerCleanup('pong2d', () => {
 // 	console.log("cleanup pong2d");
@@ -305,10 +316,10 @@ function createBall() {
 	const geometry = new THREE.SphereGeometry( BALL_RADIUS * 10, 32, 32 );
 	const material = new THREE.MeshStandardMaterial({ color: 0xf0f0f0, roughness: 0.7, metalness: 0.5 });
 	const sphere = new THREE.Mesh( geometry, material );
-	
+
 	sphere.castShadow = true;
 	sphere.receiveShadow = true;
-	
+
 	return sphere;
 }
 
@@ -319,7 +330,7 @@ function createPaddle(width, height, depth, color) {
 	const material = new THREE.MeshStandardMaterial({color: color, roughness: 0, metalness: 0});
 	const paddle = new THREE.Mesh(geometry, material);
 	paddle.position.z = -1;
-		
+
 	paddle.castShadow = true;
 	paddle.receiveShadow = true;
 	return paddle;
