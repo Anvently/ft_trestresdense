@@ -5,8 +5,7 @@ import { FontLoader } from "https://cdn.jsdelivr.net/npm/three@0.168.0/examples/
 
 import { BaseView } from '../view-manager.js';
 import { authenticatedUser, User, userManager } from '../home.js';
-
-
+import { UserInfoManager } from '../user-infos-manager.js';
 
 // Constants
 const TABLE_LENGTH = 9/5;
@@ -35,6 +34,8 @@ const WALL_POSITION = {
 };
 
 
+const MAX_WIDTH = 1200; // in pixels
+
 // SOUND
 var ping_sound = new Audio("sound/ping_sound.mp3");
 var pong_sound = new Audio("sound/pong_sound.mp3");
@@ -54,6 +55,8 @@ export default class Pong3DView extends BaseView {
 	constructor() {
 		super("pong3d-view");
 
+		this.start = false;
+
 		this.socket = null;
 		this.username = authenticatedUser.username;
 		this.scene = null;
@@ -62,7 +65,7 @@ export default class Pong3DView extends BaseView {
 		this.objects = {
 			ball: null,
 			paddle:[],
-			score_board:[],
+			scoreBoard:[[], []],
 			environment: {room: null, table: null}
 		};
 
@@ -103,7 +106,6 @@ export default class Pong3DView extends BaseView {
 			window.location.hash = '#';
 		this.socket = new WebSocket(`wss://${location.hostname}:8083/ws/pong/${sockAdd}/`);
 		this.socket.onmessage = (e) => {
-			console.log(e);
 			const msg = JSON.parse(e.data);
 			if (!msg["type"]) {
 				return ;
@@ -127,6 +129,7 @@ export default class Pong3DView extends BaseView {
 		// Camera
 		this.camera = new THREE.PerspectiveCamera( 60, 4/3, 0.1, 100);
 		this.camera.up.set(0, 0, 1); // Set Z as the up direction
+		this.camera.position.set(0, 0, 1);
 
 		// Renderer
 		this.renderer = new THREE.WebGLRenderer();
@@ -161,14 +164,6 @@ export default class Pong3DView extends BaseView {
 		this.objects.paddle.push(createPaddle(0x0000f0)); // East paddle
 		this.objects.paddle.forEach(paddle => this.scene.add(paddle))
 
-		// Score Board
-		// this.objects.score_board.push(createScoreBoard(0xf00000, WEST, FONT));
-		// this.objects.score_board.push(createScoreBoard(0x0000f0, EAST, FONT));
-		// this.objects.score_board.forEach(score_board => this.scene.add(score_board))
-
-		this.createScoreBoard(-49, 0, 5, 0); // FIND A WAY TO DO THAT ONCE AND ONLY AFTER FIRST MESSAGE...
-		this.createScoreBoard(49, 0, 5, Math.PI); // FIND A WAY TO DO THAT ONCE AND ONLY AFTER FIRST MESSAGE...
-
 	}
 
 	updateGameState(msg) {
@@ -192,6 +187,14 @@ export default class Pong3DView extends BaseView {
 				width: msg[`player${i}_width`],
 				height: msg[`player${i}_height`],
 			};
+			console.log("player ", i, " is ", this.players[i].id)
+		}
+
+		// create scoreBoard only once game started (bit janky)
+		if (this.start == false && this.players[0].id != '' && this.players[1].id != '') {
+			this.start = true;
+			this.createScoreBoard(-49, 0, 5, 0);
+			this.createScoreBoard(49, 0, 5, Math.PI);
 		}
 	}
 
@@ -229,8 +232,8 @@ export default class Pong3DView extends BaseView {
 		});
 
 		// Update scoreboards
-		this.updateScoreBoard(WEST, this.players[WEST].points);
-		this.updateScoreBoard(EAST, this.players[EAST].points);
+		this.updateScoreBoard();
+
 
 		// PLAY SOUND
 		///////////// here
@@ -258,6 +261,12 @@ export default class Pong3DView extends BaseView {
 			newWidth = window.innerHeight * 4/3;
 			newHeight = window.innerHeight;
 		}
+
+		// check max size
+		if (newWidth > MAX_WIDTH) {
+			newWidth = MAX_WIDTH
+			newHeight = MAX_WIDTH * 3/4;
+		}
 		this.renderer.setSize(newWidth, newHeight);
 	}
 
@@ -284,7 +293,7 @@ export default class Pong3DView extends BaseView {
 	setCamera() {
 		// find my position // Find a better way to avoid recalculation ? eventOnFirstMessage ?
 		for (var i = 0; i < 2; i++) {
-			if (this.players[i].id == User.username)
+			if (this.players[i].id == this.username)
 				this.my_direction = i;
 		}
 
@@ -294,18 +303,33 @@ export default class Pong3DView extends BaseView {
 			this.setPOVCamera()
 	}
 
-	updateScoreBoard(side, score) {
-		if (this.objects.score_board[side]) {
-			const geometry = new TextGeometry(score.toString(), {
-				font: this.font,
-				size: 1.5,
-				depth: 0.05,
-				curveSegments: 12,
-			});
-			this.objects.score_board[side].geometry.dispose(); // Clean up old geometry
-			this.objects.score_board[side].geometry = geometry; // Set new geometry
+	updateScoreBoard() {
+		for (let scoreBoardIndex = 0; scoreBoardIndex < 2; scoreBoardIndex++) {
+			for (let i = 0; i < 2; i++) {
+				if (this.objects.scoreBoard[i][scoreBoardIndex]) {
+					const score = this.players[i].points; // Access player score
+					const geometry = new TextGeometry(score.toString(), {
+						font: this.font,
+						size: 3.4,
+						depth: 0.05,
+						curveSegments: 12
+					});
+	
+					const centeredGeometry = centerTextGeometry(geometry);
+					const oldMesh = this.objects.scoreBoard[i][scoreBoardIndex];
+	
+					// Clean up old geometry
+					if (oldMesh.geometry) {
+						oldMesh.geometry.dispose();
+					}
+	
+					// Set new geometry
+					oldMesh.geometry = centeredGeometry;
+				}
+			}
 		}
 	}
+
 
 	spectatorCamera() {
 		const radius = 20;
@@ -426,7 +450,7 @@ export default class Pong3DView extends BaseView {
 		});
 	}
 
-	createScoreBoard(x, y, z, rot) {
+	async createScoreBoard(x, y, z, rot) {
 		const group = new THREE.Group();
 
 		// support
@@ -441,16 +465,26 @@ export default class Pong3DView extends BaseView {
 
 		for (let i = 0; i < 2; i++)	{
 			const playerScoreGroup = new THREE.Group();
-			// names
-			// var name = console.log(userManager.getUserInfo(this.players[i].id));
-			var name = 'Cheval';
+
+			// get user info
+			var userInfoManager = new UserInfoManager();
+			var userInfo = await userInfoManager.getUserInfo(this.players[i].id);
+
+			var displayName = "Cheval-Canard";
+			var avatarPath = "/image/chevalCanard.png";
+			if (userInfo !== undefined) {
+				if (userInfo.display_name)	displayName = userInfo.display_name;
+				if (userInfo.avatar)	avatarPath = userInfo.avatar;
+			}
+
+
 			// truncate name
-			if (name.length > 13) {
-				name = name.substring(0, 12) + '.';  // Truncate to 11 characters and add a dot
+			if (displayName.length > 13) {
+				displayName = displayName.substring(0, 12) + '.';  // Truncate to 11 characters and add a dot
 			}
 
 			{
-				var geometry = new TextGeometry(name, {
+				var geometry = new TextGeometry(displayName, {
 					font: this.font,
 					size: 1,
 					depth: 0.05,
@@ -459,7 +493,6 @@ export default class Pong3DView extends BaseView {
 
 				// center the text
 				geometry = centerTextGeometry(geometry);
-
 				const material = new THREE.MeshStandardMaterial({ color: 0xffffff });
 				const mesh = new THREE.Mesh(geometry, material);
 				mesh.rotation.y = Math.PI /2;
@@ -469,9 +502,8 @@ export default class Pong3DView extends BaseView {
 				playerScoreGroup.add(mesh);
 			}
 
-			// // avatar
-			var avatar_path = "/image/chevalCanard.png"
-			const texture = textureLoader.load(avatar_path);
+			// avatar
+			const texture = textureLoader.load(avatarPath);
 			texture.colorSpace = THREE.SRGBColorSpace;
 			{
 				const geometry = new THREE.PlaneGeometry(6, 6);
@@ -488,7 +520,7 @@ export default class Pong3DView extends BaseView {
 
 			// score
 			{
-				var geometry = new TextGeometry('10', {
+				var geometry = new TextGeometry('0', {
 					font: this.font,
 					size: 3.4,
 					depth: 0.05,
@@ -497,12 +529,17 @@ export default class Pong3DView extends BaseView {
 
 				// center the text
 				geometry = centerTextGeometry(geometry);
+
 				const material = new THREE.MeshStandardMaterial({ color: 0xff0000 });
 				const mesh = new THREE.Mesh(geometry, material);
 				mesh.rotation.y = Math.PI /2;
 				mesh.rotation.z = Math.PI /2;
 				mesh.position.x += 0.5
 				mesh.position.z -= 3
+
+				// save the object
+				this.objects.scoreBoard[i].push(mesh);
+
 				playerScoreGroup.add(mesh);
 			}
 

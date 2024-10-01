@@ -223,7 +223,7 @@ class PongLobby:
 
 	def compute_AI(self):
 		for i in range(self.player_num):
-			if self.players[i].player_id.startswith("!AI"):
+			if self.players[i].player_id.startswith("!"):
 				input = self.players[i].AI_behavior(self.ball["x"], self.ball["y"], self.ball["speed"]["x"], self.ball["speed"]["y"])
 				self.player_input(self.players[i].player_id, input)
 

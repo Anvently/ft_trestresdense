@@ -28,7 +28,7 @@ BALL_RADIUS = 0.013
 MIN_SPEED = 0.02
 MAX_SPEED = 0.04		#must be less than BALL_RADIUS + PADDLE_THICKNESS to avoid the ball passing through
 
-PADDLE_REBOUND_ANGLE = (math.pi / 180) * 40
+PADDLE_REBOUND_ANGLE = (math.pi / 180) * 35
 PLAYING_FIELD_RADIUS = 2.5 #centered on the middle of the table (0,0)
 REBOUND_LINE_X = 0.4
 
@@ -156,7 +156,7 @@ class PongLobby3D(PongLobby):
 
 	def compute_AI(self):
 		for i in range(self.player_num):
-			if self.players[i].player_id.startswith("!AI"):
+			if self.players[i].player_id.startswith("!"):
 				input = self.players[i].AI_behavior(self.ball["x"], self.ball["y"], self.ball["speed"]["x"], self.ball["speed"]["y"], self.is_service, self.service_direction)
 				self.player_input(self.players[i].player_id, input)
 
