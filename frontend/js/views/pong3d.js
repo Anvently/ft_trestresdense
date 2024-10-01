@@ -439,7 +439,7 @@ export default class Pong3DView extends BaseView {
 			const playerScoreGroup = new THREE.Group();
 			// names
 			// var name = console.log(userManager.getUserInfo(this.players[i].id));
-			var name = 'Cheval-Canard';
+			var name = 'Cheval';
 			// truncate name
 			if (name.length > 13) {
 				name = name.substring(0, 12) + '.';  // Truncate to 11 characters and add a dot
