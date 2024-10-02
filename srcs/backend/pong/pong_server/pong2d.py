@@ -33,12 +33,13 @@ START_POS = [{"x": -0.5 - PADDLE_THICKNESS / 2, 'y': 0, 'width': PADDLE_THICKNES
 			 {"x": 0, "y": -0.5 - PADDLE_THICKNESS / 2,"width": PADDLE_LENGTH,"height": PADDLE_THICKNESS},
 			 ]
 
-BALL_START = {"x": 0, "y": 0, "r": BALL_RADIUS, "speed": {"x": 0, "y": 0}}
+BALL_START = {"x": 0, "y": 0, "r": BALL_RADIUS, "speed": {"x": 0, "y": 0}, "last_hit": -1}
 
 class Player2D(Player):
 
 	def __init__(self, player_id, side, lives=0, type='wall'):
 		super().__init__(player_id, side, lives)
+		print("player constructor")
 		self.type = type
 		self.destination = 0
 		self.coordinates = START_POS[side]
@@ -113,19 +114,13 @@ class PongLobby2D(PongLobby):
 		for i in range(self.player_num, 4):
 			self.players.append(Player2D('!wall', i))
 		self.game_type = 'pong2d'
+		self.ball = BALL_START
 			##### AI TEST
-		# self.last_time = int(time.time())
-		# self.destination = 0.5
 
 	# init variables
-	def init_game(self):
-		# ball initialization
-		self.ball = {
-			"x": 0,
-			"y": 0,
-			"r": BALL_RADIUS,
-			"speed": {"x": 0, "y": 0}
-		}
+	# def init_game(self):
+	# 	# ball initialization
+	# 	self.ball = BALL_START
 	
 	def player_input(self, player_id, input):
 		position = self.match_id_pos[player_id]
@@ -190,6 +185,7 @@ class PongLobby2D(PongLobby):
 										self.ball['x'],
 										self.ball['y'],
 										self.ball["r"]):
+					self.ball["last_hit"] = direction
 					self.paddle_rebound(direction)
 
 	def paddle_rebound(self, direction):
@@ -259,6 +255,7 @@ class PongLobby2D(PongLobby):
 		self.ball['x'] = 0
 		self.ball['y'] = 0
 		speed = BALL_SERVICE_SPEED
+		self.ball["last_hit"] = -1
 
 		self.update_service_direction()
 
@@ -312,6 +309,7 @@ class PongLobby2D(PongLobby):
 			'ball_r': self.ball['r'],
 			'ball_speed_x': self.ball["speed"]['x'],
 			'ball_speed_y': self.ball["speed"]['y'],
+			'ball_last_hit': self.ball["last_hit"]
 		}
 
 		for index in range(4):

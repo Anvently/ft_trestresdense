@@ -34,7 +34,7 @@ const WALL_POSITION = {
 };
 
 
-const MAX_WIDTH = 1200; // in pixels
+const MAX_WIDTH = 1000; // in pixels
 
 // SOUND
 var ping_sound = new Audio("sound/ping_sound.mp3");
@@ -86,7 +86,13 @@ export default class Pong3DView extends BaseView {
 		this.is_service = false;
 		this.intervalId = null;
 		this.font = null;
+
+
+		this.previous_hit_x = 0;
+		this.sound_type = 1; // 1 is PONG, 0 is PING
 	}
+
+
 
 	async initView() {
 		await this.initFont();
@@ -187,7 +193,6 @@ export default class Pong3DView extends BaseView {
 				width: msg[`player${i}_width`],
 				height: msg[`player${i}_height`],
 			};
-			console.log("player ", i, " is ", this.players[i].id)
 		}
 
 		// create scoreBoard only once game started (bit janky)
@@ -211,6 +216,7 @@ export default class Pong3DView extends BaseView {
 				this.socket.send(JSON.stringify({type: 'key_input', username: this.username,  input: "right" }));
 
 			this.draw3D();
+			this.audio();
 
 		}, 16);
 	}
@@ -234,13 +240,29 @@ export default class Pong3DView extends BaseView {
 		// Update scoreboards
 		this.updateScoreBoard();
 
-
-		// PLAY SOUND
-		///////////// here
-
 		this.renderer.render(this.scene, this.camera);
 
 	}
+
+
+	audio() {
+		if (this.sound_type == 0) { // PING when ball hit the table
+			if ((this.ball.speed.x > 0 && this.ball.x  > REBOUND_LINE_X) // ball is going EAST
+				|| this.ball.speed.x < 0 && this.ball.x < -REBOUND_LINE_X) {
+				if (!this.ball.is_out) {
+					ping_sound.play();
+				}
+				this.sound_type = !this.sound_type
+			}
+		} else { // PONG when ball hit the paddle
+			if (this.previous_hit_x != this.ball.last_hit.x) {
+				this.previous_hit_x = this.ball.last_hit.x
+				pong_sound.play();
+				this.sound_type = !this.sound_type
+			}
+		}
+	}
+
 
 	setupResizeListener() {
 		window.addEventListener('resize', () => {this.resize()});
@@ -261,7 +283,6 @@ export default class Pong3DView extends BaseView {
 			newWidth = window.innerHeight * 4/3;
 			newHeight = window.innerHeight;
 		}
-
 		// check max size
 		if (newWidth > MAX_WIDTH) {
 			newWidth = MAX_WIDTH
@@ -587,13 +608,6 @@ function centerTextGeometry(geometry) {
 	return geometry;
 }
 
-// start_button.addEventListener('click', () => {
-// 	// ping_sound.play();;
-// 	pong_sound.play()
-
-// });
-
-
 
 // var previous_hit_x = 0;
 // var sound_type = 1 // 1 is PONG, 0 is PING
@@ -840,6 +854,8 @@ function createPaddle(color) {
 	return group;
 }
 
+
+///// OLD SCORE BOARD
 // function createScoreBoard(color, side, font)
 // {
 // 		const geometry = new TextGeometry('0', {

@@ -37,10 +37,6 @@ START_POS = [{"x": -0.5 - PADDLE_THICKNESS / 2, 'y': 0, 'width': PADDLE_THICKNES
 BALL_START = {"x": 0, "y": 0, "r": BALL_RADIUS, "speed": {"x": 0, "y": 0}}
 
 
-# test AI
-# ai_direction = EAST
-
-
 class Player:
 	def __init__(self, player_id, side, lives=0):
 		self.player_id = player_id

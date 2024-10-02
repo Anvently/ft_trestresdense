@@ -18,3 +18,15 @@ TODO:
 	- turnament tree
 	- implement 2FA 
 	- local turnament
+
+
+
+BUGS:
+- Erreur lorsqu'on demarre une nouvelle partie apres en avoir terminee une
+	(L'erreur vient du calcul de la collision qui fait une div par 0 car les position des joueurs ne sont pas initialisees...
+	pourquoi??)
+
+- Erreur lorsqu'on abandonne une partie en cours et en on en reherberge une : on revient quelques secondes sur la partie precedente
+	meme probleme d initialisation...
+
+- Quand le joueur est elimine face a des bots, la balle n'est pas relancee

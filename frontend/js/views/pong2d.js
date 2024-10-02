@@ -19,8 +19,7 @@ const PADDLE_INIT = {
 	WIDTH: [PADDLE_THICKNESS * 10, PADDLE_THICKNESS * 10, PADDLE_LENGTH * 10, PADDLE_LENGTH * 10],
 	HEIGHT: [PADDLE_LENGTH * 10, PADDLE_LENGTH * 10, PADDLE_THICKNESS * 10, PADDLE_THICKNESS * 10],
 	// Blue, Red, Green, Yellow
-	// COLOR: [0x0000ff, 0xff0000, 0x00ff00, 0xffff00]
-	COLOR: [0xffff00, 0xffff00, 0xffff00, 0xffff00]
+	COLOR: [0x0000ff, 0xff0000, 0x00ff00, 0xffff00]
 };
 
 const CORNER_POSITION = {
@@ -32,7 +31,6 @@ const WALL_POSITION = {
 	X: [-10, 10, 0, 0],
 	Y: [0, 0, 10, -10]
 };
-
 
 export default class Pong2DView extends BaseView {
 	constructor() {
@@ -55,7 +53,7 @@ export default class Pong2DView extends BaseView {
 			{type: "wall", lives: 0, x: 0, y: 0, width: 0, height: 0},
 			{type: "wall", lives: 0, x: 0, y: 0, width: 0, height: 0}
 		];
-		this.ball = {x: 0, y: 0, r: 0, speedX: 0, speedY: 0};
+		this.ball = {x: 0, y: 0, r: 0, speedX: 0, speedY: 0, last_hit: -1};
 		this.number_of_players;
 		this.username = authenticatedUser.username;
 		this.pressKey = { key_up: false, key_down: false};
@@ -76,14 +74,6 @@ export default class Pong2DView extends BaseView {
 		if (sockAdd === undefined)
 			window.location.hash = '#';
 		this.socket = new WebSocket(`wss://${location.hostname}:8083/ws/pong/${sockAdd}/`);
-		// if (hash.includes('?'))
-		// {
-		// 	const queryString = hash.split('?')[1];
-		// 	const params = new URLSearchParams(queryString);
-		// 	const sockadd = params.get('id');
-		// }
-
-		//this.socket = new WebSocket(`wss://${location.hostname}:8083/ws/pong/10/`);
 
 		this.socket.onmessage = (e) => {
 			const msg = JSON.parse(e.data);
@@ -142,7 +132,6 @@ export default class Pong2DView extends BaseView {
 			this.scene.add(this.objects.paddle[i]);
 		}
 
-		// Score
 	}
 
 	updateGameState(msg) {
@@ -152,9 +141,9 @@ export default class Pong2DView extends BaseView {
 		this.ball.r = parseFloat(msg.ball_r);
 		this.ball.speedX = parseFloat(msg.ball_speed_x);
 		this.ball.speedY = parseFloat(msg.ball_speed_y);
+		this.ball.last_hit = parseInt(msg.ball_last_hit);
 
-		for (var i = 0; i < 4; i++)
-		{
+		for (var i = 0; i < 4; i++) {
 			this.players[i] = {
 				type: msg[`player${i}_type`],
 				lives: msg[`player${i}_lives`],
@@ -185,22 +174,35 @@ export default class Pong2DView extends BaseView {
 		// update ball position
 		this.objects.ball.position.x = this.ball.x * 10;
 		this.objects.ball.position.y = this.ball.y * 10;
-		// update paddles position
 
-		for (var dir = 0; dir < 4; dir++)
-		{
-			if (this.players[dir].type == "Player")
-			{
+		//update ball color
+		var color = 0xffffff;
+		if (this.ball.last_hit !== -1)
+			color = PADDLE_INIT.COLOR[this.ball.last_hit];
+		this.objects.ball.traverse((child) => {
+			if (child.isMesh) {
+				// Change the color of the material
+				child.material.color.set(color);
+			}
+			// Optionally handle lights if you want to change their color
+			else if (child.isLight) {
+				// Change the color of the light (if applicable)
+				child.color.set(color); // This would change the light color
+			}
+		});
+
+
+		// update paddles position
+		for (var dir = 0; dir < 4; dir++) {
+			if (this.players[dir].type == "Player") {
 				this.objects.paddle[dir].position.x = this.players[dir].x * 10;
 				this.objects.paddle[dir].position.y = this.players[dir].y * 10;
 				this.objects.paddle[dir].position.z = 0;
 				this.objects.environment.wall[dir].position.z = -0.5
-			}
-			else {
+			} else {
 				this.objects.environment.wall[dir].position.z = 0
 				this.objects.paddle[dir].position.z = -1;
 			}
-
 		}
 
 		this.renderer.render(this.scene, this.camera);
@@ -247,15 +249,14 @@ export default class Pong2DView extends BaseView {
 	createEnvironment() {
 
 		const planeGeometry = new THREE.PlaneGeometry( 30, 30 );
-		const planeMaterial = new THREE.MeshStandardMaterial( {color: 0x999999, roughness: 0.4, metalness: 0.3 } );
+		const planeMaterial = new THREE.MeshStandardMaterial( {color: 0x666666, roughness: 0.7, metalness: 0.5 } );
 		this.objects.environment.field = new THREE.Mesh(planeGeometry, planeMaterial);
 		this.objects.environment.field.castShadow = true;
 		this.objects.environment.field.receiveShadow = true;
 		this.objects.environment.field.position.z -= 0.15; // minus ball radius
 		this.scene.add(this.objects.environment.field);
 
-		for (var i = 0; i < 4; i++)
-		{
+		for (var i = 0; i < 4; i++) {
 			//corners
 			{
 				const geometry = new THREE.BoxGeometry( 10, 10, 0.5 );
@@ -297,9 +298,8 @@ export default class Pong2DView extends BaseView {
 
 // MESH CREATORS ///////////////////////////////////////////////////////////////
 
-function createSpotLight(position)
-{
-	const light = new THREE.SpotLight(0xffffff, 0, 0, Math.PI / 3, 0.5, 0.5);
+function createSpotLight(position) {
+	const light = new THREE.SpotLight(0xffffff, 4, 0, Math.PI / 3, 0.5, 0.5);
 	light.position.set(position.x, position.y, position.z);
 	light.lookAt(0,0,0)
 	light.castShadow = true;
@@ -317,7 +317,7 @@ function createBall() {
 	const group = new THREE.Group();
 
 	// create ball
-	const geometry = new THREE.SphereGeometry( BALL_RADIUS * 10, 32, 32 );
+	const geometry = new THREE.SphereGeometry( BALL_RADIUS * 10, 48, 48 );
 	// const material = new THREE.MeshStandardMaterial({ color: 0xff0000, roughness: 0.7, metalness: 0.5 });
 	const material = new THREE.MeshBasicMaterial({ color: 0xff0000});
 	const sphere = new THREE.Mesh( geometry, material );
@@ -327,28 +327,17 @@ function createBall() {
 	group.add(sphere);
 
 	//create light
-	const light = new THREE.PointLight( 0xff0000, 10, 100, 0.5 ); 
+	const light = new THREE.PointLight( 0xffff00, 5, 0, 1 ); 
 	light.position.z = BALL_RADIUS*10;
 	group.add(light);
 	return group;
 }
 
 
-// function createBall() {
-// 	const geometry = new THREE.SphereGeometry( BALL_RADIUS * 10, 32, 32 );
-// 	const material = new THREE.MeshStandardMaterial({ color: 0xf0f0f0, roughness: 0.7, metalness: 0.5 });
-// 	const sphere = new THREE.Mesh( geometry, material );
-
-// 	sphere.castShadow = true;
-// 	sphere.receiveShadow = true;
-
-// 	return sphere;
-// }
-
 
 function createPaddle(width, height, depth, color) {
 	const geometry = new THREE.BoxGeometry(width, height, depth);
-	const material = new THREE.MeshStandardMaterial({color: color});
+	const material = new THREE.MeshStandardMaterial({color: color, roughness: 1, metalness: 0.2});
 	// const material = new THREE.MeshStandardMaterial({color: color, roughness: 0, metalness: 0});
 	const paddle = new THREE.Mesh(geometry, material);
 	paddle.position.z = -1;
