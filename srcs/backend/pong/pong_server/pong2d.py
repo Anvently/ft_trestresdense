@@ -155,9 +155,9 @@ class PongLobby2D(PongLobby):
 		elif self.ball["y"] > 0 and abs(self.ball["y"]) > abs(self.ball["x"]):
 			ball_position = NORTH
 		elif self.ball["x"] < 0 and abs(self.ball["y"]) < abs(self.ball["x"]):
-			ball_position = EAST
-		elif self.ball["x"] > 0 and abs(self.ball["y"]) < abs(self.ball["x"]):
 			ball_position = WEST
+		elif self.ball["x"] > 0 and abs(self.ball["y"]) < abs(self.ball["x"]):
+			ball_position = EAST
 
 
 		if ball_position == NORTH or ball_position == SOUTH:

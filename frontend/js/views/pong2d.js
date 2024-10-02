@@ -1,8 +1,11 @@
 
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.168.0/build/three.module.js'
+import { TextGeometry } from "https://cdn.jsdelivr.net/npm/three@0.168.0/examples/jsm/geometries/TextGeometry.js"
+import { FontLoader } from "https://cdn.jsdelivr.net/npm/three@0.168.0/examples/jsm/loaders/FontLoader.js"
 
 import { BaseView } from '../view-manager.js';
-import { authenticatedUser, User } from '../home.js';
+import { authenticatedUser, User, userManager } from '../home.js';
+import { UserInfoManager } from '../user-infos-manager.js';
 
 
 // Constants
@@ -32,10 +35,19 @@ const WALL_POSITION = {
 	Y: [0, 0, 10, -10]
 };
 
+
+const SCORE_POSITION = [
+	{X: -6.5, Y: 0},
+	{X: 6.5, Y: 0},
+	{X: 0, Y: 6.5},
+	{X: 0, Y: -6.5},
+];
+
 export default class Pong2DView extends BaseView {
 	constructor() {
 		super("pong2d-view");
 
+		this.start = false;
 		this.socket = null;
 		this.scene = null;
 		this.camera = null;
@@ -43,7 +55,12 @@ export default class Pong2DView extends BaseView {
 		this.objects = {
 			ball: null,
 			paddle:[],
-			score_board:[],
+			scoreBoard:[
+				{name: null, lives: null},
+				{name: null, lives: null},
+				{name: null, lives: null},
+				{name: null, lives: null},
+			],
 			environment: {field: null, corner: [], wall: []}
 		};
 
@@ -58,9 +75,11 @@ export default class Pong2DView extends BaseView {
 		this.username = authenticatedUser.username;
 		this.pressKey = { key_up: false, key_down: false};
 		this.intervalId;
+		this.font = null;
 	}
 
-	initView() {
+	async initView() {
+		await this.initFont();
 		this.createScene();
 		this.initWebSocket();
 		this.startGameLoop();
@@ -89,6 +108,22 @@ export default class Pong2DView extends BaseView {
 				this.draw3D();
 			}
 		};
+	}
+
+	async initFont() {
+		const fontLoader = new FontLoader();
+
+		// Return a promise to be awaited
+		this.font = await new Promise((resolve, reject) => {
+			fontLoader.load(
+				'https://cdn.jsdelivr.net/npm/three@0.136.0/examples/fonts/droid/droid_sans_regular.typeface.json',
+				(loadedFont) => {
+					resolve(loadedFont); // Resolve the promise with the loaded font
+				},
+				undefined,
+				(error) => reject(error) // Reject if there's an error
+			);
+		});
 	}
 
 	createScene() {
@@ -130,7 +165,18 @@ export default class Pong2DView extends BaseView {
 												0.5,
 												PADDLE_INIT.COLOR[i]));
 			this.scene.add(this.objects.paddle[i]);
+
+
+
+			//ScoreBoard
+				// names
+	
+				// lives
+
+
 		}
+
+
 
 	}
 
@@ -153,13 +199,79 @@ export default class Pong2DView extends BaseView {
 				height: msg[`player${i}_height`]
 			};
 		}
+
+
+		// create scoreBoard only once game started (bit janky)
+
+		if (this.start == false) {
+			for (let i = 0; i < this.number_of_players; i++) {
+				if (this.players[i].id == '')
+					return;
+				this.start = true;
+				//create scoreBoard
+				this.createScoreBoard();
+			}
+		}
 	}
+
+
+
+	createScoreBoard() {
+		for (let i = 0; i < this.number_of_players; i++) {
+				var geometry = new TextGeometry('', {
+					font: this.font,
+					size: 0.5,
+					depth: 0,
+					curveSegments: 12
+				});
+
+				// center the text
+				geometry = centerTextGeometry(geometry);
+
+				const material = new THREE.MeshBasicMaterial({ color: PADDLE_INIT.COLOR[i] });
+				const mesh = new THREE.Mesh(geometry, material);
+				// mesh.rotation.y = Math.PI /2;
+				// mesh.rotation.z = Math.PI /2;
+
+				// save the object
+				this.objects.scoreBoard[i].lives = mesh;
+
+				// mesh.position.set(0, -7, 0);
+				console.log(SCORE_POSITION[i]);
+				mesh.position.set(SCORE_POSITION[i].X, SCORE_POSITION[i].Y, 0);
+				this.scene.add(mesh);
+		}
+	}
+
+	// PUE LA MERDE CETTE FUNCTION WALLA
+	// updateScoreBoard() {
+		// for (let i = 0; i < this.number_of_players; i++) {
+
+		// 	const score = this.players[i].lives; // Access player score
+
+		// 	const geometry = new TextGeometry(score.toString(), {
+		// 		font: this.font,
+		// 		size: 0.5,
+		// 		depth: 0,
+		// 		curveSegments: 12
+		// 	});
+
+		// 	const centeredGeometry = centerTextGeometry(geometry);
+		// 	const oldMesh = this.objects.scoreBoard[i].lives;
+
+		// 	// Clean up old geometry
+		// 	if (oldMesh.geometry) {
+		// 		oldMesh.geometry.dispose();
+		// 	}
+
+		// 	// Set new geometry
+		// 	oldMesh.geometry = centeredGeometry;
+		// }
+	// }
 
 	startGameLoop() {
 		console.log("startGameLoop");
 		this.intervalId = setInterval(() => {
-			console.log("key_up = ", this.pressKey.key_up)
-			console.log("key_down = ", this.pressKey.key_down)
 			if (this.pressKey.key_up === true)
 				this.socket.send(JSON.stringify({type: 'key_input', username:this.username,  input: "up" }));
 			if (this.pressKey.key_down === true)
@@ -205,8 +317,13 @@ export default class Pong2DView extends BaseView {
 			}
 		}
 
+		// update scoreBoard
+		// this.updateScoreBoard();
+
 		this.renderer.render(this.scene, this.camera);
 	}
+
+
 
 	setupResizeListener() {
 		window.addEventListener('resize', () => {this.resize()});
@@ -227,7 +344,7 @@ export default class Pong2DView extends BaseView {
 			newWidth = window.innerHeight;
 			newHeight = window.innerHeight;
 		}
-		this.renderer.setSize(newWidth, newHeight);
+		this.renderer.setSize(newWidth * 0.9, newHeight * 0.9);
 	}
 
 	handleKeyDown(e) {
@@ -294,7 +411,18 @@ export default class Pong2DView extends BaseView {
 // 	initGame();
 // });
 
+function centerTextGeometry(geometry) {
+	geometry.computeBoundingBox();
+	const boundingBox = geometry.boundingBox;
 
+	const xOffset = (boundingBox.max.x - boundingBox.min.x) / 2;
+	const yOffset = (boundingBox.max.y - boundingBox.min.y) / 2;
+	const zOffset = (boundingBox.max.z - boundingBox.min.z) / 2;
+
+	geometry.translate(-xOffset, -yOffset, -zOffset);
+
+	return geometry;
+}
 
 // MESH CREATORS ///////////////////////////////////////////////////////////////
 
