@@ -35,7 +35,6 @@ const WALL_POSITION = {
 	Y: [0, 0, 10, -10]
 };
 
-
 const SCORE_POSITION = [
 	{X: -6.5, Y: 0},
 	{X: 6.5, Y: 0},
@@ -55,6 +54,7 @@ export default class Pong2DView extends BaseView {
 		this.objects = {
 			ball: null,
 			paddle:[],
+			paddleLight:[],
 			scoreBoard:[
 				{name: null, lives: null},
 				{name: null, lives: null},
@@ -166,6 +166,11 @@ export default class Pong2DView extends BaseView {
 												PADDLE_INIT.COLOR[i]));
 			this.scene.add(this.objects.paddle[i]);
 
+			this.objects.paddleLight.push(createPaddleLight(PADDLE_INIT.WIDTH[i],
+				PADDLE_INIT.HEIGHT[i],
+				0.5,
+				PADDLE_INIT.COLOR[i]));
+			this.scene.add(this.objects.paddleLight[i]);
 
 
 			//ScoreBoard
@@ -221,7 +226,7 @@ export default class Pong2DView extends BaseView {
 				var geometry = new TextGeometry('', {
 					font: this.font,
 					size: 0.5,
-					depth: 0,
+					depth: 2,
 					curveSegments: 12
 				});
 
@@ -311,9 +316,14 @@ export default class Pong2DView extends BaseView {
 				this.objects.paddle[dir].position.y = this.players[dir].y * 10;
 				this.objects.paddle[dir].position.z = 0;
 				this.objects.environment.wall[dir].position.z = -0.5
+
+				this.objects.paddleLight[dir].position.x = this.players[dir].x * 10;
+				this.objects.paddleLight[dir].position.y = this.players[dir].y * 10;
+				this.objects.paddleLight[dir].position.z = 0.5;
 			} else {
 				this.objects.environment.wall[dir].position.z = 0
 				this.objects.paddle[dir].position.z = -1;
+				// this.objects.paddleLight[dir].position.z = -1;
 			}
 		}
 
@@ -427,7 +437,7 @@ function centerTextGeometry(geometry) {
 // MESH CREATORS ///////////////////////////////////////////////////////////////
 
 function createSpotLight(position) {
-	const light = new THREE.SpotLight(0xffffff, 4, 0, Math.PI / 3, 0.5, 0.5);
+	const light = new THREE.SpotLight(0xffffff, 0, 0, Math.PI / 3, 0.5, 0.5);
 	light.position.set(position.x, position.y, position.z);
 	light.lookAt(0,0,0)
 	light.castShadow = true;
@@ -463,6 +473,12 @@ function createBall() {
 
 
 
+function createPaddleLight(width, height, depth, color) {
+	const pointLight = new THREE.PointLight( color, 10, 100, 1 );
+	// pointLight.lookAt( 0, 0, 0 );
+	return pointLight;
+}
+
 function createPaddle(width, height, depth, color) {
 	const geometry = new THREE.BoxGeometry(width, height, depth);
 	const material = new THREE.MeshStandardMaterial({color: color, roughness: 1, metalness: 0.2});
@@ -472,5 +488,6 @@ function createPaddle(width, height, depth, color) {
 
 	paddle.castShadow = true;
 	// paddle.receiveShadow = true;
+
 	return paddle;
 }

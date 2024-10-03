@@ -35,7 +35,7 @@ REBOUND_LINE_X = 0.4
 WEST = 0
 EAST = 1
 
-START_POS = [{"x": -TABLE_LENGHT / 2 + PADDLE_THICKNESS / 2, "y": 0, "angle": math.pi, 'width': PADDLE_THICKNESS, 'height': PADDLE_LENGTH},
+START_POS_3D = [{"x": -TABLE_LENGHT / 2 + PADDLE_THICKNESS / 2, "y": 0, "angle": math.pi, 'width': PADDLE_THICKNESS, 'height': PADDLE_LENGTH},
 			{"x": TABLE_LENGHT / 2 - PADDLE_THICKNESS / 2, "y": 0, "angle": 0,"width": PADDLE_THICKNESS,"height": PADDLE_LENGTH,},
 			]
 
@@ -47,7 +47,7 @@ class Player3D(Player):
 		super().__init__(player_id, position, lives)
 		self.destination = {"x": 0, "y": 0}
 		self.points = 0
-		self.coordinates = START_POS[position]
+		self.coordinates = START_POS_3D[position]
 
 	def AI_behavior(self, ballX, ballY, ballSpeedX, ballSpeedY, is_service, service_direction) -> str:
 		if int(time.time()) != self.last_time:
@@ -138,6 +138,9 @@ class PongLobby3D(PongLobby):
 		if player_id not in self.match_id_pos:
 			return
 		side = self.match_id_pos[player_id]
+
+		if side == WEST:
+			print(input)
 
 		if (input == "left" and side == WEST) or (input == "right" and side == EAST):
 			self.players[side].coordinates['y'] = min(PADDLE_MAX_Y[side], self.players[side].coordinates['y'] + PLAYER_SPEED)

@@ -27,7 +27,7 @@ NORTH = 2
 SOUTH = 3
 
 
-START_POS = [{"x": -0.5 - PADDLE_THICKNESS / 2, 'y': 0, 'width': PADDLE_THICKNESS, 'height': PADDLE_LENGTH},
+START_POS_2D = [{"x": -0.5 - PADDLE_THICKNESS / 2, 'y': 0, 'width': PADDLE_THICKNESS, 'height': PADDLE_LENGTH},
 			 {"x": 0.5 + PADDLE_THICKNESS / 2, "y": 0,"width": PADDLE_THICKNESS,"height": PADDLE_LENGTH,},
 			 {"x": 0, "y": 0.5 + PADDLE_THICKNESS / 2, "width": PADDLE_LENGTH,"height": PADDLE_THICKNESS},
 			 {"x": 0, "y": -0.5 - PADDLE_THICKNESS / 2,"width": PADDLE_LENGTH,"height": PADDLE_THICKNESS},
@@ -39,10 +39,12 @@ class Player2D(Player):
 
 	def __init__(self, player_id, side, lives=0, type='wall'):
 		super().__init__(player_id, side, lives)
-		print("player constructor")
+		print("Player2D constructor")
 		self.type = type
 		self.destination = 0
-		self.coordinates = START_POS[side]
+		print("Accessing START_POS_2D[{}]: {}".format(side, START_POS_2D[side]))  # Debug print
+		self.coordinates = START_POS_2D[side]  # Ensure this accesses correctly
+		print("Coordinates:", self.coordinates)
 
 
 	def AI_behavior(self, ballX, ballY, ballSpeedX, ballSpeedY) -> str:
@@ -273,13 +275,26 @@ class PongLobby2D(PongLobby):
 		self.ball["speed"]["x"] = speed * math.cos(service_angle)
 		self.ball["speed"]["y"] = speed * math.sin(service_angle)
 
-	def check_winning_condition(self) -> bool:
-		count = 0
+	# def check_winning_condition(self) -> bool:
+	# 	count = 0
+	# 	for direction in range(0, self.player_num):
+	# 		if self.players[direction].type == "Player":
+	# 			count += 1
+	# 	return count == 1
+	
+	def check_winner(self) -> str:
+		winner = ''
+		alive_players = 0
 		for direction in range(0, self.player_num):
 			if self.players[direction].type == "Player":
-				count += 1
-		return count == 1
-	
+				winner = self.players[direction].player_id
+				alive_players += 1
+		if alive_players == 1:
+			return winner
+		return ''
+
+
+
 	# change service direction to next live Player
 	def update_service_direction(self):
 		while True:
@@ -294,10 +309,10 @@ class PongLobby2D(PongLobby):
 			if self.players[direction].lives == 0 and self.players[direction].type != "eliminated_player":
 				# eliminate Player
 				self.players[direction].type = "eliminated_player"
-				self.players[direction].coordinates["x"] = 0
-				self.players[direction].coordinates["y"] = 0
-				self.players[direction].coordinates["width"] = 0
-				self.players[direction].coordinates["height"] = 0
+				# self.players[direction].coordinates["x"] = 0
+				# self.players[direction].coordinates["y"] = 0
+				# self.players[direction].coordinates["width"] = 0
+				# self.players[direction].coordinates["height"] = 0
 				print(f"Player {self.players[direction].player_id} has been eliminated")
 
 	def generate_JSON(self) -> Dict[str, Any]:

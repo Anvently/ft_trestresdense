@@ -28,22 +28,24 @@ EAST = 1
 NORTH = 2
 SOUTH = 3
 
-START_POS = [{"x": -0.5 - PADDLE_THICKNESS / 2, 'y': 0, 'width': PADDLE_THICKNESS, 'height': PADDLE_LENGTH},
-			 {"x": 0.5 + PADDLE_THICKNESS / 2, "y": 0,"width": PADDLE_THICKNESS,"height": PADDLE_LENGTH,},
-			 {"x": 0, "y": -0.5 - PADDLE_THICKNESS / 2,"width": PADDLE_LENGTH,"height": PADDLE_THICKNESS},
-			 {"x": 0, "y": 0.5 + PADDLE_THICKNESS / 2, "width": PADDLE_LENGTH,"height": PADDLE_THICKNESS}
-			 ]
+# START_POS = [{"x": -0.5 - PADDLE_THICKNESS / 2, 'y': 0, 'width': PADDLE_THICKNESS, 'height': PADDLE_LENGTH},
+# 			 {"x": 0.5 + PADDLE_THICKNESS / 2, "y": 0,"width": PADDLE_THICKNESS,"height": PADDLE_LENGTH,},
+# 			 {"x": 0, "y": -0.5 - PADDLE_THICKNESS / 2,"width": PADDLE_LENGTH,"height": PADDLE_THICKNESS},
+# 			 {"x": 0, "y": 0.5 + PADDLE_THICKNESS / 2, "width": PADDLE_LENGTH,"height": PADDLE_THICKNESS}
+# 			 ]
 
 BALL_START = {"x": 0, "y": 0, "r": BALL_RADIUS, "speed": {"x": 0, "y": 0}}
 
 
 class Player:
 	def __init__(self, player_id, side, lives=0):
+		print("Player constructor")
 		self.player_id = player_id
 		self.is_bot = self.player_id[0] == '!'
 		self.side = side
 		self.lives = lives
-		self.coordinates = START_POS[side]
+		# self.coordinates = START_POS[side]
+		# self.coordinates = 0
 		self.has_joined = 0
 		# AI specific variables
 		self.last_time = int(time.time())
@@ -161,7 +163,7 @@ class PongLobby:
 			player_channel = get_channel_layer()
 			# pregame : check that all players are present
 			while time.time() - loop_start < 3600 and self.gameState == 0:
-				await asyncio.sleep(0.05)
+				await asyncio.sleep(0.016)
 				data = self.compute_game()
 				await player_channel.group_send(self.lobby_id, data)
 				if self.waiting_for == 0:
@@ -177,7 +179,7 @@ class PongLobby:
 			loop_start = time.time()
 			print("game will start in 3 sec")
 			while time.time() - loop_start < 3:
-				await asyncio.sleep(0.05)
+				await asyncio.sleep(0.016)
 				data = self.compute_game()
 				await player_channel.group_send(self.lobby_id, data)
 			self.gameState = 2
@@ -212,9 +214,16 @@ class PongLobby:
 		self.collision_logic()
 		self.check_goals()
 		self.compute_AI()
-		if self.check_winning_condition():
+
+		# if self.check_winning_condition():
+		# 	self.gameState = 3
+		# 	self.winner = self.get_winner()
+
+		winner = self.check_winner()
+		if winner:
+			print(f"{winner} won the game")
 			self.gameState = 3
-			self.winner = self.get_winner()
+
 		return self.generate_JSON()
 
 	def compute_AI(self):
@@ -239,8 +248,12 @@ class PongLobby:
 	def	reset_ball(self):
 		pass
 
+	# @abstractmethod
+	# def check_winning_condition(self) -> bool:
+	# 	pass
+
 	@abstractmethod
-	def check_winning_condition(self) -> bool:
+	def check_winner(self) -> str:
 		pass
 
 	@abstractmethod

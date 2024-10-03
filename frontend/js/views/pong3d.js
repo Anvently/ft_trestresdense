@@ -203,6 +203,9 @@ export default class Pong3DView extends BaseView {
 		}
 	}
 
+
+
+
 	startGameLoop() {
 		console.log("startGameLoop");
 		this.intervalId = setInterval(() => {
@@ -215,11 +218,52 @@ export default class Pong3DView extends BaseView {
 			if (this.pressKey.key_right === true)
 				this.socket.send(JSON.stringify({type: 'key_input', username: this.username,  input: "right" }));
 
-			this.draw3D();
+			this.draw3D(); 
 			this.audio();
 
-		}, 16);
+			trackFrequency()
+
+		}, 8);
 	}
+
+	// startGameLoop() {
+	// 	console.log("startGameLoop");
+	// 	let lastTimestamp = performance.now();
+		
+	// 	const gameLoop = () => {
+	// 		const currentTimestamp = performance.now();
+	// 		const deltaTime = currentTimestamp - lastTimestamp;
+	// 		lastTimestamp = currentTimestamp;
+	
+	// 		// Handle key inputs
+	// 		if (this.pressKey.key_up) {
+	// 			this.socket.send(JSON.stringify({type: 'key_input', username: this.username, input: "up" }));
+	// 		}
+	// 		if (this.pressKey.key_down) {
+	// 			this.socket.send(JSON.stringify({type: 'key_input', username: this.username, input: "down" }));
+	// 		}
+	// 		if (this.pressKey.key_left) {
+	// 			this.socket.send(JSON.stringify({type: 'key_input', username: this.username, input: "left" }));
+	// 		}
+	// 		if (this.pressKey.key_right) {
+	// 			this.socket.send(JSON.stringify({type: 'key_input', username: this.username, input: "right" }));
+	// 		}
+	
+	// 		// Call the drawing and audio functions
+	// 		this.draw3D(); 
+	// 		this.audio();
+	
+	// 		// Call trackFrequency here if needed for frequency measurement
+	// 		trackFrequency();
+	
+	// 		// Request the next frame
+	// 		requestAnimationFrame(gameLoop);
+	// 	};
+	
+	// 	// Start the loop
+	// 	requestAnimationFrame(gameLoop);
+	// }
+	
 
 	draw3D() {
 		this.setCamera();
@@ -302,7 +346,7 @@ export default class Pong3DView extends BaseView {
 		if (e.key === "ArrowUp") this.pressKey.key_up = false;
 		else if (e.key === "ArrowDown") this.pressKey.key_down = false;
 		else if (e.key === "ArrowLeft") this.pressKey.key_left = false;
-		else if (e.key === "ArrowRight") this.pressKey.key_right = false;
+		else if (e.key === "ArrowRight") this.pressKey.key_right = false;	
 	}
 
 	cleanup() {
@@ -880,3 +924,20 @@ function createPaddle(color) {
 // 		textMesh.rotation.x = Math.PI/2
 // 		return(textMesh)
 // }
+
+
+let callCount = 0;
+let lastTimestamp = performance.now();
+
+function trackFrequency() {
+    callCount++;
+    const currentTime = performance.now();
+    const elapsedTime = currentTime - lastTimestamp;
+
+    // Check if one second has passed
+    if (elapsedTime >= 1000) {
+        console.log(`Function called ${callCount} times in the last second`);
+        callCount = 0; // Reset call count
+        lastTimestamp = currentTime; // Reset the timestamp
+    }
+}
