@@ -139,9 +139,6 @@ class PongLobby3D(PongLobby):
 			return
 		side = self.match_id_pos[player_id]
 
-		if side == WEST:
-			print(input)
-
 		if (input == "left" and side == WEST) or (input == "right" and side == EAST):
 			self.players[side].coordinates['y'] = min(PADDLE_MAX_Y[side], self.players[side].coordinates['y'] + PLAYER_SPEED)
 		elif (input == "right" and side == WEST) or (input == "left" and side == EAST):
@@ -273,25 +270,32 @@ class PongLobby3D(PongLobby):
 				# point for attacking player
 				self.players[attacker].points += 1
 				point_scored = True
-				print(f"Lobby {self.lobby_id}: {self.players[attacker].player_id} marked a point !")
 			else:
 				# point for defending player
 				self.players[not attacker].points += 1
 				point_scored = True
-				print(f"Lobby {self.lobby_id}: {self.players[not attacker].player_id} marked a point !")
 		# if point scored reset ball
 		if point_scored == True:
-			print(f"Lobby {self.lobby_id}: score is {self.players[WEST].points} to {self.players[EAST].points}")
 			self.reset_ball()
 
-	def check_winning_condition(self):
+	# def check_winning_condition(self):
+	# 	if self.players[0].points >= self.points_to_win and self.players[0].points >= self.players[1].points + 2:
+	# 		print(f"Lobby {self.lobby_id}: Winner is :", self.players[0].player_id)
+	# 		return True
+	# 	elif self.players[1].points >= self.points_to_win and self.players[1].points >= self.players[0].points + 2:
+	# 		print(f"Lobby {self.lobby_id}: Winner is:", self.players[1].player_id)
+	# 		return True
+	# 	return False
+
+	def check_winner(self) -> str:
 		if self.players[0].points >= self.points_to_win and self.players[0].points >= self.players[1].points + 2:
 			print(f"Lobby {self.lobby_id}: Winner is :", self.players[0].player_id)
-			return True
+			return self.players[0].player_id
 		elif self.players[1].points >= self.points_to_win and self.players[1].points >= self.players[0].points + 2:
 			print(f"Lobby {self.lobby_id}: Winner is:", self.players[1].player_id)
-			return True
-		return False
+			return self.players[1].player_id
+		return ''
+
 
 	def ball_rebound_on_table(self, defender):
 		rebound_line_x = REBOUND_LINE_X
@@ -345,7 +349,8 @@ class PongLobby3D(PongLobby):
 			"ball_last_hit_x": self.ball["last_hit"]["x"],
 			"ball_last_hit_y": self.ball["last_hit"]["y"],
 			"ball_is_out": self.ball["is_out"],
-			"is_service": self.is_service
+			"is_service": self.is_service,
+			"game_state": self.gameState
 		}
 
 		for index in range(2):

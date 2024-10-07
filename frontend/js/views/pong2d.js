@@ -21,8 +21,7 @@ const BALL_RADIUS = 0.015
 const PADDLE_INIT = {
 	WIDTH: [PADDLE_THICKNESS * 10, PADDLE_THICKNESS * 10, PADDLE_LENGTH * 10, PADDLE_LENGTH * 10],
 	HEIGHT: [PADDLE_LENGTH * 10, PADDLE_LENGTH * 10, PADDLE_THICKNESS * 10, PADDLE_THICKNESS * 10],
-	// Blue, Red, Green, Yellow
-	// COLOR: [0x0000ff, 0xff0000, 0x00ff00, 0xffff00]
+	// Blue, Red, Green, Magenta
 	COLOR: [0x0000ff, 0xff0000, 0x00ff00, 0xff00ff]
 };
 
@@ -42,6 +41,7 @@ const SCORE_POSITION = [
 	{X: 0, Y: 6.5},
 	{X: 0, Y: -6.5},
 ];
+
 
 export default class Pong2DView extends BaseView {
 	constructor() {
@@ -73,6 +73,7 @@ export default class Pong2DView extends BaseView {
 		];
 		this.ball = {x: 0, y: 0, r: 0, speedX: 0, speedY: 0, last_hit: -1};
 		this.number_of_players;
+		this.game_state;
 		this.previous_score = [0, 0, 0, 0];
 		this.username = authenticatedUser.username;
 		this.pressKey = { key_up: false, key_down: false};
@@ -130,15 +131,12 @@ export default class Pong2DView extends BaseView {
 
 	createScene() {
 		console.log("createScene");
-		// Scene
 		this.scene = new THREE.Scene();
 
-		// Camera
 		this.camera = new THREE.PerspectiveCamera( 75, 1, 0.1, 1000);
 		this.camera.position.z = 10;
 		this.camera.lookAt(0, 0, 0);
 
-		// Renderer
 		this.renderer = new THREE.WebGLRenderer();
 		this.renderer.setSize(1200, 1200);
 		this.renderer.shadowMap.enabled = true;
@@ -147,44 +145,22 @@ export default class Pong2DView extends BaseView {
 
 		this.resize();
 
-		// renderer = new THREE.WebGLRenderer({ canvas: document.querySelector('#gameCanvas') });
-		// this.canvasRef.nativeElement.appendChild(renderer.domElement);
-
-		// Lights
 		this.scene.add(createSpotLight({x: 0, y: 0, z: 10}));
 
-		// Room
 		this.createEnvironment(this.scene);
 
-		// Ball
 		this.objects.ball = createBall();
 		this.scene.add(this.objects.ball);
 
-		// Paddles
 		for (let i = 0; i < 4; i++) {
 			this.objects.paddle.push(createPaddle(PADDLE_INIT.WIDTH[i],
 												PADDLE_INIT.HEIGHT[i],
 												0.5,
 												PADDLE_INIT.COLOR[i]));
 			this.scene.add(this.objects.paddle[i]);
-
-			this.objects.paddleLight.push(createPaddleLight(PADDLE_INIT.WIDTH[i],
-				PADDLE_INIT.HEIGHT[i],
-				0.5,
-				PADDLE_INIT.COLOR[i]));
+			this.objects.paddleLight.push(createPaddleLight(PADDLE_INIT.COLOR[i]));
 			this.scene.add(this.objects.paddleLight[i]);
-
-
-			//ScoreBoard
-				// names
-	
-				// lives
-
-
 		}
-
-
-
 	}
 
 	updateGameState(msg) {
@@ -195,6 +171,8 @@ export default class Pong2DView extends BaseView {
 		this.ball.speedX = parseFloat(msg.ball_speed_x);
 		this.ball.speedY = parseFloat(msg.ball_speed_y);
 		this.ball.last_hit = parseInt(msg.ball_last_hit);
+		this.game_state  = msg['game_state'];
+		console.log("gameState = ", this.game_state);
 
 		for (var i = 0; i < 4; i++) {
 			this.players[i] = {
@@ -207,9 +185,7 @@ export default class Pong2DView extends BaseView {
 			};
 		}
 
-
 		// create scoreBoard only once game started (bit janky)
-
 		if (this.start == false) {
 			for (let i = 0; i < this.number_of_players; i++) {
 				if (this.players[i].id == '')
@@ -221,8 +197,6 @@ export default class Pong2DView extends BaseView {
 		}
 	}
 
-
-
 	createScoreBoard() {
 		for (let i = 0; i < this.number_of_players; i++) {
 				var geometry = new TextGeometry('', {
@@ -232,25 +206,17 @@ export default class Pong2DView extends BaseView {
 					curveSegments: 12
 				});
 
-				// center the text
 				geometry = centerTextGeometry(geometry);
 
 				const material = new THREE.MeshBasicMaterial({ color: PADDLE_INIT.COLOR[i] });
 				const mesh = new THREE.Mesh(geometry, material);
-				// mesh.rotation.y = Math.PI /2;
-				// mesh.rotation.z = Math.PI /2;
 
-				// save the object
 				this.objects.scoreBoard[i].lives = mesh;
-
-				// mesh.position.set(0, -7, 0);
-				console.log(SCORE_POSITION[i]);
 				mesh.position.set(SCORE_POSITION[i].X, SCORE_POSITION[i].Y, 0);
 				this.scene.add(mesh);
 		}
 	}
 
-	// PUE LA MERDE CETTE FUNCTION WALLA
 	updateScoreBoard() {
 		for (let i = 0; i < this.number_of_players; i++) {
 			const score = this.players[i].lives; // Access player score
@@ -261,16 +227,11 @@ export default class Pong2DView extends BaseView {
 					depth: 0,
 					curveSegments: 12
 				});
-	
 				const centeredGeometry = centerTextGeometry(geometry);
 				const oldMesh = this.objects.scoreBoard[i].lives;
-	
-				// Clean up old geometry
 				if (oldMesh.geometry) {
 					oldMesh.geometry.dispose();
 				}
-	
-				// Set new geometry
 				oldMesh.geometry = centeredGeometry;
 			}
 		}
@@ -300,16 +261,11 @@ export default class Pong2DView extends BaseView {
 			color = PADDLE_INIT.COLOR[this.ball.last_hit];
 		this.objects.ball.traverse((child) => {
 			if (child.isMesh) {
-				// Change the color of the material
 				child.material.color.set(color);
-			}
-			// Optionally handle lights if you want to change their color
-			else if (child.isLight) {
-				// Change the color of the light (if applicable)
-				child.color.set(color); // This would change the light color
+			} else if (child.isLight) {
+				child.color.set(color);
 			}
 		});
-
 
 		// update paddles position
 		for (var dir = 0; dir < 4; dir++) {
@@ -325,7 +281,8 @@ export default class Pong2DView extends BaseView {
 			} else {
 				this.objects.environment.wall[dir].position.z = 0
 				this.objects.paddle[dir].position.z = -1;
-				// this.objects.paddleLight[dir].position.z = -1;
+
+				this.objects.paddleLight[dir].position.z = -1;
 			}
 		}
 
@@ -451,8 +408,6 @@ function createSpotLight(position) {
 	return light
 }
 
-
-
 function createBall() {
 	const group = new THREE.Group();
 
@@ -475,9 +430,10 @@ function createBall() {
 
 
 
-function createPaddleLight(width, height, depth, color) {
+function createPaddleLight(color) {
 	const pointLight = new THREE.PointLight( color, 10, 100, 1 );
 	// pointLight.lookAt( 0, 0, 0 );
+
 	return pointLight;
 }
 

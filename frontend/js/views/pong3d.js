@@ -33,7 +33,6 @@ const WALL_POSITION = {
 	rotY: [Math.PI/2, 0, Math.PI/2, 0]
 };
 
-
 const MAX_WIDTH = 1000; // in pixels
 
 // SOUND
@@ -82,14 +81,17 @@ export default class Pong3DView extends BaseView {
 		];
 		this.ball = {x: 0.5, y: 0.5, r: 0, speed: {x: 0, y: 0}, last_hit: {x: 0, y: 0}};
 		this.angle = 0; // spectator camera angle
+		this.game_state;
 		this.my_direction = -1;
 		this.is_service = false;
 		this.intervalId = null;
 		this.font = null;
 
-
 		this.previous_hit_x = 0;
 		this.sound_type = 1; // 1 is PONG, 0 is PING
+
+
+		this.interaction = null;
 	}
 
 
@@ -105,8 +107,6 @@ export default class Pong3DView extends BaseView {
 
 	initWebSocket() {
 		console.log("initWebSocket");
-		//this.socket = new WebSocket(`wss://${location.hostname}:8083/ws/pong/11/`);
-			// `wss://${location.host}:/ws/pong/11/`
 		const sockAdd = this.urlParams.get('id');
 		if (sockAdd === undefined)
 			window.location.hash = '#';
@@ -129,47 +129,41 @@ export default class Pong3DView extends BaseView {
 
 	createScene() {
 		console.log("createScene");
-		// Scene
 		this.scene = new THREE.Scene();
 
-		// Camera
 		this.camera = new THREE.PerspectiveCamera( 60, 4/3, 0.1, 100);
 		this.camera.up.set(0, 0, 1); // Set Z as the up direction
 		this.camera.position.set(0, 0, 1);
 
-		// Renderer
 		this.renderer = new THREE.WebGLRenderer();
 		this.resize();
 		this.renderer.shadowMap.enabled = true;
 		this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-		// document.body.appendChild(this.renderer.domElement)
 		document.getElementById('container-canva').appendChild(this.renderer.domElement);
 
-		// lights
-			// SpotLights
 		this.scene.add(createSpotLight({x: -5, y: 2, z: 15}));
 		this.scene.add(createSpotLight({x: 7, y: -10, z: 5}));
-			// Ambient Light
+
 		const ambientLight = new THREE.AmbientLight( 0x404040 , 6);
 		this.scene.add( ambientLight );
 
-		// Room
-			// create room
 		this.objects.environment.room = createRoom();
 		this.scene.add(this.objects.environment.room);
-			// create table
+
 		this.objects.environment.table = createTable();
 		this.scene.add(this.objects.environment.table);
 
-		// Ball
+		// TEST INTERACTION
+		this.interaction = new Interaction(this.renderer, this.scene, this.camera);
+		this.objects.environment.table.cursor = 'pointer';
+		this.objects.environment.table.on('click', console.log("CLICK TABLE"));
+
 		this.objects.ball = createBall();
 		this.scene.add(this.objects.ball);
 
-		// Paddles
 		this.objects.paddle.push(createPaddle(0xf00000)); // West paddle
 		this.objects.paddle.push(createPaddle(0x0000f0)); // East paddle
 		this.objects.paddle.forEach(paddle => this.scene.add(paddle))
-
 	}
 
 	updateGameState(msg) {
@@ -182,6 +176,7 @@ export default class Pong3DView extends BaseView {
 		this.ball.last_hit.x = parseFloat(msg.ball_last_hit_x);
 		this.ball.last_hit.y = parseFloat(msg.ball_last_hit_y);
 		this.ball.is_out = msg.ball_is_out;
+		this.game_state  = msg['game_state'];
 
 		for (let i = 0; i < 2; i++) {
 			this.players[i] = {
@@ -203,9 +198,6 @@ export default class Pong3DView extends BaseView {
 		}
 	}
 
-
-
-
 	startGameLoop() {
 		console.log("startGameLoop");
 		this.intervalId = setInterval(() => {
@@ -221,9 +213,9 @@ export default class Pong3DView extends BaseView {
 			this.draw3D(); 
 			this.audio();
 
-			trackFrequency()
+			// trackFrequency()
 
-		}, 8);
+		}, 16);
 	}
 
 	// startGameLoop() {
@@ -362,7 +354,7 @@ export default class Pong3DView extends BaseView {
 				this.my_direction = i;
 		}
 
-		if (this.my_direction == -1)
+		if (this.my_direction == -1 || this.game_state == 3)
 			this.spectatorCamera()
 		else
 			this.setPOVCamera()

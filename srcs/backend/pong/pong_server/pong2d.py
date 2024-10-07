@@ -39,12 +39,9 @@ class Player2D(Player):
 
 	def __init__(self, player_id, side, lives=0, type='wall'):
 		super().__init__(player_id, side, lives)
-		print("Player2D constructor")
 		self.type = type
 		self.destination = 0
-		print("Accessing START_POS_2D[{}]: {}".format(side, START_POS_2D[side]))  # Debug print
-		self.coordinates = START_POS_2D[side]  # Ensure this accesses correctly
-		print("Coordinates:", self.coordinates)
+		self.coordinates = START_POS_2D[side]
 
 
 	def AI_behavior(self, ballX, ballY, ballSpeedX, ballSpeedY) -> str:
@@ -161,19 +158,44 @@ class PongLobby2D(PongLobby):
 		elif self.ball["x"] > 0 and abs(self.ball["y"]) < abs(self.ball["x"]):
 			ball_position = EAST
 
-
-		if ball_position == NORTH or ball_position == SOUTH:
-			if not -0.5 + BALL_RADIUS < self.ball["y"] < 0.5 - BALL_RADIUS:
-				if self.players[ball_position].type != "Player":
+		if ball_position == NORTH:
+			if self.ball["y"] > 0.5 - BALL_RADIUS:
+				if self.players[ball_position].type != "Player" and self.ball["speed"]["y"] > 0:
 					self.ball["speed"]["y"] *= -1
 				elif not -0.5 + BALL_RADIUS < self.ball["x"] < 0.5 - BALL_RADIUS:
 					self.ball["speed"]["x"] *= -1
-		else:
-			if not -0.5 + BALL_RADIUS < self.ball["x"] < 0.5 - BALL_RADIUS:
-				if self.players[ball_position].type != "Player":
+		if ball_position == SOUTH:
+			if self.ball["y"] < -0.5 + BALL_RADIUS:
+				if self.players[ball_position].type != "Player" and self.ball["speed"]["y"] < 0:
+					self.ball["speed"]["y"] *= -1
+				elif not -0.5 + BALL_RADIUS < self.ball["x"] < 0.5 - BALL_RADIUS:
+					self.ball["speed"]["x"] *= -1
+		if ball_position == EAST:
+			if self.ball["x"] > 0.5 - BALL_RADIUS:
+				if self.players[ball_position].type != "Player" and self.ball["speed"]["x"] > 0:
 					self.ball["speed"]["x"] *= -1
 				elif not -0.5 + BALL_RADIUS < self.ball["y"] < 0.5 - BALL_RADIUS:
 					self.ball["speed"]["y"] *= -1
+		if ball_position == WEST:
+			if self.ball["x"] < -0.5 + BALL_RADIUS:
+				if self.players[ball_position].type != "Player" and self.ball["speed"]["x"] < 0:
+					self.ball["speed"]["x"] *= -1
+				elif not -0.5 + BALL_RADIUS < self.ball["y"] < 0.5 - BALL_RADIUS:
+					self.ball["speed"]["y"] *= -1
+
+
+		# if ball_position == NORTH or ball_position == SOUTH:
+		# 	if not -0.5 + BALL_RADIUS < self.ball["y"] < 0.5 - BALL_RADIUS:
+		# 		if self.players[ball_position].type != "Player":
+		# 			self.ball["speed"]["y"] *= -1
+		# 		elif not -0.5 + BALL_RADIUS < self.ball["x"] < 0.5 - BALL_RADIUS:
+		# 			self.ball["speed"]["x"] *= -1
+		# else:
+		# 	if not -0.5 + BALL_RADIUS < self.ball["x"] < 0.5 - BALL_RADIUS:
+		# 		if self.players[ball_position].type != "Player":
+		# 			self.ball["speed"]["x"] *= -1
+		# 		elif not -0.5 + BALL_RADIUS < self.ball["y"] < 0.5 - BALL_RADIUS:
+		# 			self.ball["speed"]["y"] *= -1
 
 
 
@@ -234,19 +256,15 @@ class PongLobby2D(PongLobby):
 		goal_scored = False
 		if self.ball['x'] < -1.2 and self.players[WEST].type == "Player":
 			self.players[WEST].lives -= 1
-			print(f"WEST lost a life, {self.players[WEST].lives} remaining")
 			goal_scored = True
 		elif self.ball['x'] > 1.2 and self.players[EAST].type == "Player":
 			self.players[EAST].lives -= 1
-			print(f"EAST lost a life, {self.players[EAST].lives} remaining")
 			goal_scored = True
 		elif self.ball['y'] > 1.2 and self.players[NORTH].type == "Player":
 			self.players[NORTH].lives -= 1
-			print(f"NORTH lost a life, {self.players[NORTH].lives} remaining")
 			goal_scored = True
 		elif self.ball['y'] < -1.2 and self.players[SOUTH].type == "Player":
 			self.players[SOUTH].lives -= 1
-			print(f"SOUTH lost a life, {self.players[SOUTH].lives} remaining")
 			goal_scored = True
 
 		if goal_scored:
@@ -275,12 +293,12 @@ class PongLobby2D(PongLobby):
 		self.ball["speed"]["x"] = speed * math.cos(service_angle)
 		self.ball["speed"]["y"] = speed * math.sin(service_angle)
 
-	# def check_winning_condition(self) -> bool:
-	# 	count = 0
-	# 	for direction in range(0, self.player_num):
-	# 		if self.players[direction].type == "Player":
-	# 			count += 1
-	# 	return count == 1
+	def check_winning_condition(self) -> bool:
+		count = 0
+		for direction in range(0, self.player_num):
+			if self.players[direction].type == "Player":
+				count += 1
+		return count == 1
 	
 	def check_winner(self) -> str:
 		winner = ''
@@ -309,11 +327,6 @@ class PongLobby2D(PongLobby):
 			if self.players[direction].lives == 0 and self.players[direction].type != "eliminated_player":
 				# eliminate Player
 				self.players[direction].type = "eliminated_player"
-				# self.players[direction].coordinates["x"] = 0
-				# self.players[direction].coordinates["y"] = 0
-				# self.players[direction].coordinates["width"] = 0
-				# self.players[direction].coordinates["height"] = 0
-				print(f"Player {self.players[direction].player_id} has been eliminated")
 
 	def generate_JSON(self) -> Dict[str, Any]:
 		json = {
@@ -324,7 +337,8 @@ class PongLobby2D(PongLobby):
 			'ball_r': self.ball['r'],
 			'ball_speed_x': self.ball["speed"]['x'],
 			'ball_speed_y': self.ball["speed"]['y'],
-			'ball_last_hit': self.ball["last_hit"]
+			'ball_last_hit': self.ball["last_hit"],
+			'game_state': self.gameState
 		}
 
 		for index in range(4):

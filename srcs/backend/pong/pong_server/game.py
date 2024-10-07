@@ -39,7 +39,6 @@ BALL_START = {"x": 0, "y": 0, "r": BALL_RADIUS, "speed": {"x": 0, "y": 0}}
 
 class Player:
 	def __init__(self, player_id, side, lives=0):
-		print("Player constructor")
 		self.player_id = player_id
 		self.is_bot = self.player_id[0] == '!'
 		self.side = side
@@ -248,9 +247,9 @@ class PongLobby:
 	def	reset_ball(self):
 		pass
 
-	# @abstractmethod
-	# def check_winning_condition(self) -> bool:
-	# 	pass
+	@abstractmethod
+	def check_winning_condition(self) -> bool:
+		pass
 
 	@abstractmethod
 	def check_winner(self) -> str:
@@ -260,13 +259,13 @@ class PongLobby:
 	def generate_JSON(self) -> Dict[str, Any]:
 		pass
 
-	def get_winner(self) -> str:
-		for i in range(self.player_num):
-			if self.players[i].is_bot:
-				print(f"{self.players[i].player_id} won the game")
-				self.winner = self.players[i].player_id
-				return self.winner
-		return None
+	# def get_winner(self) -> str:
+	# 	for i in range(self.player_num):
+	# 		if self.players[i].is_bot:
+	# 			print(f"{self.players[i].player_id} won the game")
+	# 			self.winner = self.players[i].player_id
+	# 			return self.winner
+	# 	return None
 
 
 
