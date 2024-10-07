@@ -117,7 +117,7 @@ class Player3D(Player):
 class PongLobby3D(PongLobby):
 	service_direction = -1
 	service_count = 0
-	is_service = True
+	is_service = False
 
 	def __init__(self, lobby_id: str, players_list: List[str], settings: Dict[str, Any], tournId=None) -> None:
 		super().__init__(lobby_id, players_list, settings, tournId)
@@ -182,6 +182,7 @@ class PongLobby3D(PongLobby):
 										(self.ball["x"],self.ball["y"]),
 										self.ball["r"]):
 			self.is_service = False
+			print("is servie is now false");
 			# save the collision coordinates
 			self.ball["last_hit"]["x"] = self.ball["x"]
 			self.ball["last_hit"]["y"] = self.ball["y"]

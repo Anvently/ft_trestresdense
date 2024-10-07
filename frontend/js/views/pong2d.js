@@ -1,4 +1,3 @@
-
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.168.0/build/three.module.js'
 import { TextGeometry } from "https://cdn.jsdelivr.net/npm/three@0.168.0/examples/jsm/geometries/TextGeometry.js"
 import { FontLoader } from "https://cdn.jsdelivr.net/npm/three@0.168.0/examples/jsm/loaders/FontLoader.js"
@@ -66,10 +65,10 @@ export default class Pong2DView extends BaseView {
 		};
 
 		this.players = [
-			{type: "wall", lives: 0, x: 0, y: 0, width: 0, height: 0},
-			{type: "wall", lives: 0, x: 0, y: 0, width: 0, height: 0},
-			{type: "wall", lives: 0, x: 0, y: 0, width: 0, height: 0},
-			{type: "wall", lives: 0, x: 0, y: 0, width: 0, height: 0}
+			{type: "wall", lives: 0, x: 0, y: 0, width: 0, height: 0, id: ''},
+			{type: "wall", lives: 0, x: 0, y: 0, width: 0, height: 0, id: ''},
+			{type: "wall", lives: 0, x: 0, y: 0, width: 0, height: 0, id: ''},
+			{type: "wall", lives: 0, x: 0, y: 0, width: 0, height: 0, id: ''}
 		];
 		this.ball = {x: 0, y: 0, r: 0, speedX: 0, speedY: 0, last_hit: -1};
 		this.number_of_players;
@@ -77,8 +76,10 @@ export default class Pong2DView extends BaseView {
 		this.previous_score = [0, 0, 0, 0];
 		this.username = authenticatedUser.username;
 		this.pressKey = { key_up: false, key_down: false};
-		this.intervalId;
+		// this.intervalId;
 		this.font = null;
+
+		this.previousTimestamp = 0;
 	}
 
 	async initView() {
@@ -145,7 +146,7 @@ export default class Pong2DView extends BaseView {
 
 		this.resize();
 
-		this.scene.add(createSpotLight({x: 0, y: 0, z: 10}));
+		this.scene.add(createSpotLight({x: 0, y: 0, z: 5}));
 
 		this.createEnvironment(this.scene);
 
@@ -172,10 +173,10 @@ export default class Pong2DView extends BaseView {
 		this.ball.speedY = parseFloat(msg.ball_speed_y);
 		this.ball.last_hit = parseInt(msg.ball_last_hit);
 		this.game_state  = msg['game_state'];
-		console.log("gameState = ", this.game_state);
 
 		for (var i = 0; i < 4; i++) {
 			this.players[i] = {
+				id: msg[`player${i}_id`],
 				type: msg[`player${i}_type`],
 				lives: msg[`player${i}_lives`],
 				x: msg[`player${i}_x`],
@@ -237,16 +238,34 @@ export default class Pong2DView extends BaseView {
 		}
 	}
 
+	// startGameLoop() {
+	// 	console.log("startGameLoop");
+	// 	this.intervalId = setInterval(() => {
+	// 		if (this.pressKey.key_up === true)
+	// 			this.socket.send(JSON.stringify({type: 'key_input', username:this.username,  input: "up" }));
+	// 		if (this.pressKey.key_down === true)
+	// 			this.socket.send(JSON.stringify({type: 'key_input', username:this.username,  input: "down" }));
+
+	// 		this.draw3D();
+	// 	}, 16);
+	// }
+
 	startGameLoop() {
 		console.log("startGameLoop");
-		this.intervalId = setInterval(() => {
-			if (this.pressKey.key_up === true)
-				this.socket.send(JSON.stringify({type: 'key_input', username:this.username,  input: "up" }));
-			if (this.pressKey.key_down === true)
-				this.socket.send(JSON.stringify({type: 'key_input', username:this.username,  input: "down" }));
-
-			this.draw3D();
-		}, 16);
+		const loop = (timestamp) => {
+			// Calculate time delta
+			if (this.previousTimestamp !== 0) {
+				const deltaTime = timestamp - this.previousTimestamp;
+				if (this.pressKey.key_up === true)
+					this.socket.send(JSON.stringify({ type: 'key_input', username: this.username, input: "up" }));
+				if (this.pressKey.key_down === true)
+					this.socket.send(JSON.stringify({ type: 'key_input', username: this.username, input: "down" }));
+				this.draw3D();
+			}
+			this.previousTimestamp = timestamp;
+			requestAnimationFrame(loop);
+		};
+		requestAnimationFrame(loop);
 	}
 
 	draw3D()
@@ -289,9 +308,26 @@ export default class Pong2DView extends BaseView {
 		// update scoreBoard
 		this.updateScoreBoard();
 
+		if (this.game_state === 3) {
+			this.drawGameOver();
+		}
+
 		this.renderer.render(this.scene, this.camera);
 	}
 
+	async drawGameOver() {
+		var winner = 'AI';
+		for (let i = 0; i < this.number_of_players; i++) {
+			if (this.players[i].lives != 0) {
+				// get winner name... if possible...
+				var userInfoManager = new UserInfoManager();
+				var userInfo = await userInfoManager.getUserInfo(this.players[i].id);
+				if (userInfo !== undefined)
+					if (userInfo.display_name)	winner = userInfo.display_name;
+			}
+		} 
+		console.log(winner, " WON THE GAME !");
+	}
 
 
 	setupResizeListener() {
@@ -328,7 +364,7 @@ export default class Pong2DView extends BaseView {
 
 	cleanup() {
 		// Cleanup on exit (e.g., WebSocket and intervals)
-		if (this.intervalId) clearInterval(this.intervalId);
+		// if (this.intervalId) clearInterval(this.intervalId);
 		if (this.socket) this.socket.close();
 	}
 
@@ -346,7 +382,7 @@ export default class Pong2DView extends BaseView {
 			//corners
 			{
 				const geometry = new THREE.BoxGeometry( 10, 10, 0.5 );
-				const material = new THREE.MeshStandardMaterial ( { color: 0xf0f0f0});
+				const material = new THREE.MeshStandardMaterial ( { color: 0xffffff});
 				const corner = new THREE.Mesh(geometry, material);
 				corner.position.set(CORNER_POSITION.X[i], CORNER_POSITION.Y[i], 0)
 				this.objects.environment.corner.push(corner);
@@ -356,7 +392,7 @@ export default class Pong2DView extends BaseView {
 			//walls
 			{
 				const geometry = new THREE.BoxGeometry( 10, 10, 0.5 );
-				const material = new THREE.MeshStandardMaterial ( {color: 0xf0f0f0});
+				const material = new THREE.MeshStandardMaterial ( {color: 0xffffff});
 				const wall = new THREE.Mesh(geometry, material);
 				wall.position.set(WALL_POSITION.X[i], WALL_POSITION.Y[i], -1)
 				this.objects.environment.wall.push(wall);
@@ -365,8 +401,6 @@ export default class Pong2DView extends BaseView {
 		}
 	}
 }
-
-
 
 // registerCleanup('pong2d', () => {
 // 	console.log("cleanup pong2d");
@@ -396,7 +430,7 @@ function centerTextGeometry(geometry) {
 // MESH CREATORS ///////////////////////////////////////////////////////////////
 
 function createSpotLight(position) {
-	const light = new THREE.SpotLight(0xffffff, 0, 0, Math.PI / 3, 0.5, 0.5);
+	const light = new THREE.SpotLight(0xffffff, 3, 0, Math.PI / 3, 0.5, 0.5);
 	light.position.set(position.x, position.y, position.z);
 	light.lookAt(0,0,0)
 	light.castShadow = true;
@@ -413,12 +447,8 @@ function createBall() {
 
 	// create ball
 	const geometry = new THREE.SphereGeometry( BALL_RADIUS * 10, 48, 48 );
-	// const material = new THREE.MeshStandardMaterial({ color: 0xff0000, roughness: 0.7, metalness: 0.5 });
 	const material = new THREE.MeshBasicMaterial({ color: 0xff0000});
 	const sphere = new THREE.Mesh( geometry, material );
-	// sphere.castShadow = true;
-	// sphere.receiveShadow = true;
-
 	group.add(sphere);
 
 	//create light
@@ -428,19 +458,14 @@ function createBall() {
 	return group;
 }
 
-
-
 function createPaddleLight(color) {
 	const pointLight = new THREE.PointLight( color, 10, 100, 1 );
-	// pointLight.lookAt( 0, 0, 0 );
-
 	return pointLight;
 }
 
 function createPaddle(width, height, depth, color) {
 	const geometry = new THREE.BoxGeometry(width, height, depth);
 	const material = new THREE.MeshStandardMaterial({color: color, roughness: 1, metalness: 0.2});
-	// const material = new THREE.MeshStandardMaterial({color: color, roughness: 0, metalness: 0});
 	const paddle = new THREE.Mesh(geometry, material);
 	paddle.position.z = -1;
 

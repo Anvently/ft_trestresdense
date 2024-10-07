@@ -1,4 +1,3 @@
-
 import time
 import math
 import random
@@ -15,7 +14,6 @@ import traceback
 PADDLE_LENGTH = 0.16
 PADDLE_THICKNESS = 0.05
 PLAYER_SPEED = 0.016
-
 BALL_RADIUS = 0.015
 BALL_SERVICE_SPEED = 0.005
 BALL_SPEED = 0.01
@@ -25,7 +23,6 @@ WEST = 0
 EAST = 1
 NORTH = 2
 SOUTH = 3
-
 
 START_POS_2D = [{"x": -0.5 - PADDLE_THICKNESS / 2, 'y': 0, 'width': PADDLE_THICKNESS, 'height': PADDLE_LENGTH},
 			 {"x": 0.5 + PADDLE_THICKNESS / 2, "y": 0,"width": PADDLE_THICKNESS,"height": PADDLE_LENGTH,},
@@ -42,10 +39,12 @@ class Player2D(Player):
 		self.type = type
 		self.destination = 0
 		self.coordinates = START_POS_2D[side]
+		self.last_time = 0
 
 
 	def AI_behavior(self, ballX, ballY, ballSpeedX, ballSpeedY) -> str:
-		if int(time.time()) != self.last_time:
+		current_time = int(time.time())
+		if current_time != self.last_time:
 			self.calculate_destination(ballX, ballY, ballSpeedX, ballSpeedY)
 			self.last_time = int(time.time())
 
@@ -67,12 +66,6 @@ class Player2D(Player):
 		self.destination = 0
 		if self.side == WEST and ballSpeedX < 0 or self.side == EAST and ballSpeedX > 0 or self.side == NORTH and ballSpeedY > 0 or self.side == SOUTH and ballSpeedY < 0:
 			self.destination = self.calculate_impact(ballX, ballY, ballSpeedX, ballSpeedY)
-
-		# make the ai hit the edges of the paddle
-		# if self.destination < 0.5:
-		# 	self.destination += (PADDLE_LENGTH / 2 ) * 0.9
-		# else:
-		# 	self.destination -= (PADDLE_LENGTH / 2 ) * 0.9
 		rand = random.randint(0, 1)
 		if rand:
 			self.destination += (PADDLE_LENGTH / 2 ) * 0.9
@@ -80,14 +73,12 @@ class Player2D(Player):
 			self.destination -= (PADDLE_LENGTH / 2 ) * 0.9
 
 	def calculate_impact(self, ballX, ballY, ballSpeedX, ballSpeedY):
-		fpos_x = ballX
-		fpos_y = ballY
-		fspeed_x = ballSpeedX
-		fspeed_y = ballSpeedY
+		fpos_x, fpos_y, fspeed_x, fspeed_y = ballX, ballY, ballSpeedX, ballSpeedY
 
 		while True:
 			fpos_x += fspeed_x
 			fpos_y += fspeed_y
+
 			if not -0.5 + BALL_RADIUS < fpos_x < 0.5 - BALL_RADIUS:
 				if self.side == WEST or self.side == EAST:
 					return fpos_y
@@ -114,13 +105,7 @@ class PongLobby2D(PongLobby):
 			self.players.append(Player2D('!wall', i))
 		self.game_type = 'pong2d'
 		self.ball = BALL_START
-			##### AI TEST
 
-	# init variables
-	# def init_game(self):
-	# 	# ball initialization
-	# 	self.ball = BALL_START
-	
 	def player_input(self, player_id, input):
 		position = self.match_id_pos[player_id]
 
@@ -213,28 +198,22 @@ class PongLobby2D(PongLobby):
 					self.paddle_rebound(direction)
 
 	def paddle_rebound(self, direction):
-		# calculate the relative intersect: correspond to the relative position of ball/paddle intersection on the paddle (between -0.5 and 0.5)
 		if direction == WEST or direction == EAST:
 			relative_intersect = 0.5 - ((self.players[direction].coordinates["y"] + self.players[direction].coordinates["height"] / 2) - self.ball["y"]) / self.players[direction].coordinates["height"]
 		else:
 			relative_intersect = 0.5 + ((self.players[direction].coordinates["x"] + self.players[direction].coordinates["width"] / 2) - self.ball["x"]) / self.players[direction].coordinates["width"]
 
-		# calculate the bounce angle
 		bounce_angle = relative_intersect * (math.pi / 2)
 
-		# normalize the speed
 		speed = math.sqrt(self.ball["speed"]["x"]**2 + self.ball["speed"]["y"]**2)
 
-		# if ball was at service speed, set to normal speed
 		if speed < BALL_SPEED:
 			speed = BALL_SPEED
-			# OPTIONNAL: accelerate each time the ball collides with a paddle
 		if speed < MAX_SPEED:
 			speed *= 1.1
 		self.ball["speed"]["x"] = speed * math.cos(bounce_angle)
 		self.ball["speed"]["y"] = speed * math.sin(bounce_angle)
 
-		# reverse direction of ball
 		if direction == EAST:
 			self.ball["speed"]["x"] *= -1
 		elif direction == NORTH:
@@ -252,7 +231,6 @@ class PongLobby2D(PongLobby):
 		return distanceSquared <= radius**2
 	
 	def check_goals(self):
-		#meh, pue un peu la merde dans le cas des buts marques tres pres du bord
 		goal_scored = False
 		if self.ball['x'] < -1.2 and self.players[WEST].type == "Player":
 			self.players[WEST].lives -= 1
@@ -311,8 +289,6 @@ class PongLobby2D(PongLobby):
 			return winner
 		return ''
 
-
-
 	# change service direction to next live Player
 	def update_service_direction(self):
 		while True:
@@ -342,6 +318,7 @@ class PongLobby2D(PongLobby):
 		}
 
 		for index in range(4):
+			json[f"player{index}_id"] = self.players[index].player_id
 			json[f"player{index}_type"] = self.players[index].type
 			json[f"player{index}_lives"] = self.players[index].lives
 			json[f"player{index}_x"] = self.players[index].coordinates['x']

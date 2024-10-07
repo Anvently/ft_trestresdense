@@ -84,14 +84,13 @@ export default class Pong3DView extends BaseView {
 		this.game_state;
 		this.my_direction = -1;
 		this.is_service = false;
-		this.intervalId = null;
+		// this.intervalId = null;
 		this.font = null;
 
 		this.previous_hit_x = 0;
 		this.sound_type = 1; // 1 is PONG, 0 is PING
 
-
-		this.interaction = null;
+		this.previousTimestamp = 0;
 	}
 
 
@@ -153,11 +152,6 @@ export default class Pong3DView extends BaseView {
 		this.objects.environment.table = createTable();
 		this.scene.add(this.objects.environment.table);
 
-		// TEST INTERACTION
-		this.interaction = new Interaction(this.renderer, this.scene, this.camera);
-		this.objects.environment.table.cursor = 'pointer';
-		this.objects.environment.table.on('click', console.log("CLICK TABLE"));
-
 		this.objects.ball = createBall();
 		this.scene.add(this.objects.ball);
 
@@ -200,60 +194,50 @@ export default class Pong3DView extends BaseView {
 
 	startGameLoop() {
 		console.log("startGameLoop");
-		this.intervalId = setInterval(() => {
-			if (this.pressKey.key_up === true)
-				this.socket.send(JSON.stringify({type: 'key_input', username: this.username,  input: "up" }));
-			if (this.pressKey.key_down === true)
-				this.socket.send(JSON.stringify({type: 'key_input', username: this.username,  input: "down" }));
-			if (this.pressKey.key_left === true)
-				this.socket.send(JSON.stringify({type: 'key_input', username: this.username,  input: "left" }));
-			if (this.pressKey.key_right === true)
-				this.socket.send(JSON.stringify({type: 'key_input', username: this.username,  input: "right" }));
+		const loop = (timestamp) => {
+			if (this.previousTimestamp !== 0) {
+				const deltaTime = timestamp - this.previousTimestamp;
 
-			this.draw3D(); 
-			this.audio();
+				if (this.pressKey.key_up === true)
+					this.socket.send(JSON.stringify({type: 'key_input', username: this.username,  input: "up" }));
+				if (this.pressKey.key_down === true)
+					this.socket.send(JSON.stringify({type: 'key_input', username: this.username,  input: "down" }));
+				if (this.pressKey.key_left === true)
+					this.socket.send(JSON.stringify({type: 'key_input', username: this.username,  input: "left" }));
+				if (this.pressKey.key_right === true)
+					this.socket.send(JSON.stringify({type: 'key_input', username: this.username,  input: "right" }));
+			
+				this.draw3D();
+				this.audio();
+				
+				trackFrequency()
+			}
+			this.previousTimestamp = timestamp;
 
-			// trackFrequency()
+			requestAnimationFrame(loop);
+		};
 
-		}, 16);
+		requestAnimationFrame(loop);
 	}
 
 	// startGameLoop() {
 	// 	console.log("startGameLoop");
-	// 	let lastTimestamp = performance.now();
-		
-	// 	const gameLoop = () => {
-	// 		const currentTimestamp = performance.now();
-	// 		const deltaTime = currentTimestamp - lastTimestamp;
-	// 		lastTimestamp = currentTimestamp;
-	
-	// 		// Handle key inputs
-	// 		if (this.pressKey.key_up) {
-	// 			this.socket.send(JSON.stringify({type: 'key_input', username: this.username, input: "up" }));
-	// 		}
-	// 		if (this.pressKey.key_down) {
-	// 			this.socket.send(JSON.stringify({type: 'key_input', username: this.username, input: "down" }));
-	// 		}
-	// 		if (this.pressKey.key_left) {
-	// 			this.socket.send(JSON.stringify({type: 'key_input', username: this.username, input: "left" }));
-	// 		}
-	// 		if (this.pressKey.key_right) {
-	// 			this.socket.send(JSON.stringify({type: 'key_input', username: this.username, input: "right" }));
-	// 		}
-	
-	// 		// Call the drawing and audio functions
+	// 	this.intervalId = setInterval(() => {
+	// 		if (this.pressKey.key_up === true)
+	// 			this.socket.send(JSON.stringify({type: 'key_input', username: this.username,  input: "up" }));
+	// 		if (this.pressKey.key_down === true)
+	// 			this.socket.send(JSON.stringify({type: 'key_input', username: this.username,  input: "down" }));
+	// 		if (this.pressKey.key_left === true)
+	// 			this.socket.send(JSON.stringify({type: 'key_input', username: this.username,  input: "left" }));
+	// 		if (this.pressKey.key_right === true)
+	// 			this.socket.send(JSON.stringify({type: 'key_input', username: this.username,  input: "right" }));
+
 	// 		this.draw3D(); 
 	// 		this.audio();
-	
-	// 		// Call trackFrequency here if needed for frequency measurement
-	// 		trackFrequency();
-	
-	// 		// Request the next frame
-	// 		requestAnimationFrame(gameLoop);
-	// 	};
-	
-	// 	// Start the loop
-	// 	requestAnimationFrame(gameLoop);
+
+	// 		// trackFrequency()
+
+	// 	}, 16);
 	// }
 	
 
@@ -343,7 +327,7 @@ export default class Pong3DView extends BaseView {
 
 	cleanup() {
 		// Cleanup on exit (e.g., WebSocket and intervals)
-		if (this.intervalId) clearInterval(this.intervalId);
+		// if (this.intervalId) clearInterval(this.intervalId);
 		if (this.socket) this.socket.close();
 	}
 
