@@ -22,7 +22,8 @@ const PADDLE_INIT = {
 	WIDTH: [PADDLE_THICKNESS * 10, PADDLE_THICKNESS * 10, PADDLE_LENGTH * 10, PADDLE_LENGTH * 10],
 	HEIGHT: [PADDLE_LENGTH * 10, PADDLE_LENGTH * 10, PADDLE_THICKNESS * 10, PADDLE_THICKNESS * 10],
 	// Blue, Red, Green, Yellow
-	COLOR: [0x0000ff, 0xff0000, 0x00ff00, 0xffff00]
+	// COLOR: [0x0000ff, 0xff0000, 0x00ff00, 0xffff00]
+	COLOR: [0x0000ff, 0xff0000, 0x00ff00, 0xff00ff]
 };
 
 const CORNER_POSITION = {
@@ -72,6 +73,7 @@ export default class Pong2DView extends BaseView {
 		];
 		this.ball = {x: 0, y: 0, r: 0, speedX: 0, speedY: 0, last_hit: -1};
 		this.number_of_players;
+		this.previous_score = [0, 0, 0, 0];
 		this.username = authenticatedUser.username;
 		this.pressKey = { key_up: false, key_down: false};
 		this.intervalId;
@@ -249,30 +251,30 @@ export default class Pong2DView extends BaseView {
 	}
 
 	// PUE LA MERDE CETTE FUNCTION WALLA
-	// updateScoreBoard() {
-		// for (let i = 0; i < this.number_of_players; i++) {
-
-		// 	const score = this.players[i].lives; // Access player score
-
-		// 	const geometry = new TextGeometry(score.toString(), {
-		// 		font: this.font,
-		// 		size: 0.5,
-		// 		depth: 0,
-		// 		curveSegments: 12
-		// 	});
-
-		// 	const centeredGeometry = centerTextGeometry(geometry);
-		// 	const oldMesh = this.objects.scoreBoard[i].lives;
-
-		// 	// Clean up old geometry
-		// 	if (oldMesh.geometry) {
-		// 		oldMesh.geometry.dispose();
-		// 	}
-
-		// 	// Set new geometry
-		// 	oldMesh.geometry = centeredGeometry;
-		// }
-	// }
+	updateScoreBoard() {
+		for (let i = 0; i < this.number_of_players; i++) {
+			const score = this.players[i].lives; // Access player score
+			if (this.previous_score[i] != score) {
+				const geometry = new TextGeometry(score.toString(), {
+					font: this.font,
+					size: 0.5,
+					depth: 0,
+					curveSegments: 12
+				});
+	
+				const centeredGeometry = centerTextGeometry(geometry);
+				const oldMesh = this.objects.scoreBoard[i].lives;
+	
+				// Clean up old geometry
+				if (oldMesh.geometry) {
+					oldMesh.geometry.dispose();
+				}
+	
+				// Set new geometry
+				oldMesh.geometry = centeredGeometry;
+			}
+		}
+	}
 
 	startGameLoop() {
 		console.log("startGameLoop");
@@ -328,7 +330,7 @@ export default class Pong2DView extends BaseView {
 		}
 
 		// update scoreBoard
-		// this.updateScoreBoard();
+		this.updateScoreBoard();
 
 		this.renderer.render(this.scene, this.camera);
 	}
