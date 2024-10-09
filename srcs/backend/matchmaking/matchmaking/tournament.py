@@ -21,10 +21,12 @@ class Tournament:
 		})
 		self.id = data['id']
 		self.players = data['players']
-		for i in range(self.number_players / 2):
+		for i in range(self.number_players):
 			id=f"{self.id}{SUFFIXES[self.number_players].format(i)}"
 			lobbies[id] = TurnamentMatchLobby({
-				'name': self.name,
+				'name': self.generate_match_name(0, 0),
+				'tournament_name': self.name,
+				'hostname': self.hostname,
 				'game_type': self.game_type,
 				'number_players': 2,
 				'settings': self.default_settings
@@ -42,6 +44,11 @@ class Tournament:
 			online_players[player_id]['tournament_id'] = self.id
 			online_players[player_id]['status'] = new_status
 
+	def generate_match_name(self, stage: int, nbr: int) -> str:
+		if stage == 0:
+			return f"{self.name}'s final"
+		return f'{self.name}\'s {["1st", "2nd", "3rd", "4th"][nbr]} {["semi", "quarter", "eighth"][stage]}'
+
 	@staticmethod
 	def extract_id_info(string: str) -> Tuple[int, int]:
 		match = re.search(r'\.(\d+)(?:\.(\d+))?', string)
@@ -58,7 +65,9 @@ class Tournament:
 		if id in lobbies:
 			return id
 		lobbies[id] = TurnamentMatchLobby({
-			'name': self.name,
+			'name': self.generate_match_name(previous_stage - 1, previous_idx / 2),
+			'tournament_name': self.name,
+			'hostname': self.hostname,
 			'game_type': self.game_type,
 			'number_players': 2,
 			'settings': self.default_settings

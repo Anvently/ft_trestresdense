@@ -101,11 +101,21 @@
             background-color: #f8d7da;
         }
         @media (min-width: 768px) {
+            .stats-column {
+                max-width: 505px    ;
+            }
+            .row {
+                flex-wrap: nowrap;
+            }
             .left {
                 width: 34%;
+                flex-wrap: wrap;
             }
             .right {
                 width: auto;
+            }
+            #friends-list {
+                flex-wrap: wrap;
             }
             .friend-avatar {
                 width: 60px;

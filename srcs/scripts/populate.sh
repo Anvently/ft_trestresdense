@@ -69,6 +69,7 @@ generate_lobby_id() {
 # Fonction pour poster des résultats arbitraires
 post_results() {
 	local users=("$@")  # Liste des utilisateurs donnée en paramètre
+	local host="${users[$((RANDOM % ${#users[@]}))]}"  # Sélection aléatoire d'un utilisateur
 	local num_scores=$(shuf -i 2-4 -n 1)  # Choisir aléatoirement entre 2 et 4 entrées
 	local lobby_id=$(generate_lobby_id)  # ID aléatoire pour le lobby
 	local lobby_name="${users[0]}'s lobby"  # Nom du lobby basé sur le premier utilisateur de la liste
@@ -108,6 +109,7 @@ post_results() {
 		\"lobby_id\": \"$lobby_id\",
 		\"lobby_name\": \"$lobby_name\",
 		\"game_name\": \"$game_name\",
+		\"host\": \"$host\",
 		\"scores_set\": $scores_set
 	}"
 
@@ -134,8 +136,8 @@ send_tournament_results() {
   local TOURNAMENT_ID=$(openssl rand -hex 12)
   
   # Sélection aléatoire d'un utilisateur pour nommer le tournoi
-  RANDOM_USER="${USERS[$((RANDOM % ${#USERS[@]}))]}"
-  local TOURNAMENT_NAME="${RANDOM_USER} tournament"
+  local HOST="${USERS[$((RANDOM % ${#USERS[@]}))]}"
+  local TOURNAMENT_NAME="${HOST} tournament"
   
   # Fonction pour envoyer les résultats d'un match
   send_match_result() {
@@ -161,8 +163,10 @@ send_tournament_results() {
 	local json_data="{
     \"lobby_id\": \"${lobby_id}\",
     \"lobby_name\": \"${lobby_name}\",
-    \"game_name\": \"${GAME_NAME}\",
+    \"host\": \"${HOST}\",
+	\"game_name\": \"${GAME_NAME}\",
     \"tournament_id\": \"${TOURNAMENT_ID}\",
+	\"tournament_name\": \"${TOURNAMENT_NAME}\",
     \"scores_set\": [
       {
         \"username\": \"${winner}\",

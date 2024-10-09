@@ -82,9 +82,9 @@ class AuthenticatedUser extends User {
 	async getInfos() {
 		const response = await fetch(`https://${document.location.host}/api/me/`);
 		if (!response.ok) {
-			console.error(`Failed to fetch user informations: status=${response.statusText}`);
 			this.valid_info = false;
-			throw (new Error("Seems your auth-token is not valid"));
+			throw new Error(`Failed to fetch user informations: status=${response.statusText}`);
+			// throw (new Error("Seems your auth-token is not valid"));
 			// console.log(response.status);
 			// if (response.status === 401) {
 			// 	logOut();
@@ -194,7 +194,7 @@ function errorHandler(error, attemptReconnect = false) {
 	setTimeout(() => {
 		errorPopup.style.display = 'none';
 	}, 5000); // Masquer après 5 secondes
-	throw error; //UNCOMMENT TO TRACK ERROR IN CONSOLE
+	// throw error; //UNCOMMENT TO TRACK ERROR IN CONSOLE
 }
 
 // Fonction pour fermer le pop-up
@@ -271,6 +271,7 @@ if (authenticatedUser.isAuthenticated) {
 			throw new Error("Failed to fetch your personnal informations");
 	} catch (error) {
 		errorHandler(error);
+		authenticatedUser.logOut();
 	}
 }
 
