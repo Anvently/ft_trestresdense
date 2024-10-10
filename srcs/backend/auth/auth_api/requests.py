@@ -62,7 +62,7 @@ def obtain_oauth_token(request:HttpRequest, code:str) -> str:
 		'client_id':settings.API42_UUID,
 		'client_secret':settings.API42_SECRET,
 		'code': code,
-		'redirect_uri': 'https://localhost:8083/api/auth/42-api-callback'
+		'redirect_uri': f"https://localhost:8083/api/auth/42-api-callback"
 	}
 	try:
 		response = requests.post("https://api.intra.42.fr/oauth/token",

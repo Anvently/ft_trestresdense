@@ -133,6 +133,7 @@ class SignIn42CallbackView(APIView):
 	# authentication_classes = [Api]
 
 	def get(self, request):
+		print(request.META['QUERY_STRING'])
 		code = request.GET.get('code')
 		
 		if code == None:
