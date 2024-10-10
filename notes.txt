@@ -30,3 +30,9 @@ BUGS:
 	rejoindre une autre partie
 
 - Websocket se ferme au debut de la partie sur les pc peu puissants (les macs). Ajout d'un timeout ?
+
+- Joueurs en ligne dans le matchmaking ne fonctionne plus
+
+- post user batch in pong.js
+
+- matchmaking, expulsing bot does not trigger general update

@@ -144,7 +144,7 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 		if not PongConsumer.DISABLE_AUTH and content['username'].split('.')[0] != self.username:
 			await self._send_error('You are not who you pretend to be')
 			return
-		if not await lobbys_list[self.lobby_id].player_join(content['username']):
+		if not lobbys_list[self.lobby_id].player_join(content['username']):
 			await self._send_error('Could not join the lobby.')
 			return
 		self.users.add(content['username'])

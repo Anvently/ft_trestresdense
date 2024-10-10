@@ -233,7 +233,7 @@ class LocalMatchLobby(SimpleMatchLobby):
 
 	def check_rules(self):
 		match(self.game_type, self.player_num, self.settings['lives']):
-			case ("pong2d", 2, y) if y > 0:
+			case ("pong2d", x, y) if x in (2,4) and y > 0:
 				pass
 			case ("pong3d", 2, y) if y > 0:
 				pass
@@ -334,31 +334,30 @@ lobby3 = TurnamentInitialLobby({
 	'public': True
 })
 
-lobby4 = SimpleMatchLobby({
-	'hostname': 'chloe',
-	'name': "Clhloe's room",
-	'game_type': 'pong2d',
-	'nbr_players': 4,
-	'nbr_bots': 4,
-	'lives':20,
-	'allow_spectators':True,
-	'public': True
-})
+# lobby4 = SimpleMatchLobby({
+# 	'hostname': 'chloe',
+# 	'name': "Clhloe's room",
+# 	'game_type': 'pong2d',
+# 	'nbr_players': 4,
+# 	'nbr_bots': 4,
+# 	'lives':20,
+# 	'allow_spectators':True,
+# 	'public': True
+# })
+# lobbies[lobby4.id] = lobby4
 
-lobbies[lobby4.id] = lobby4
+# lobby5 = SimpleMatchLobby({
+# 	'hostname': 'john',
+# 	'name': "John's room",
+# 	'game_type': 'pong2d',
+# 	'nbr_players': 4,
+# 	'nbr_bots': 4,
+# 	'lives':20,
+# 	'allow_spectators':True,
+# 	'public': True
+# })
+# lobbies[lobby5.id] = lobby5
 
-lobby5 = SimpleMatchLobby({
-	'hostname': 'john',
-	'name': "John's room",
-	'game_type': 'pong2d',
-	'nbr_players': 4,
-	'nbr_bots': 4,
-	'lives':20,
-	'allow_spectators':True,
-	'public': True
-})
-
-lobbies[lobby5.id] = lobby5
 lobbies[lobby.id] = lobby
 lobbies[lobby2.id] = lobby2
 lobbies[lobby3.id] = lobby3

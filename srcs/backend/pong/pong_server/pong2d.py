@@ -9,6 +9,7 @@ from typing import List, Dict, Any, Tuple
 import json
 from django.conf import settings
 import traceback
+import copy
 
 # Constants
 PADDLE_LENGTH = 0.16
@@ -38,7 +39,7 @@ class Player2D(Player):
 		super().__init__(player_id, side, lives)
 		self.type = type
 		self.destination = 0
-		self.coordinates = START_POS_2D[side]
+		self.coordinates = copy.deepcopy(START_POS_2D[side])
 		self.last_time = 0
 
 
@@ -104,7 +105,7 @@ class PongLobby2D(PongLobby):
 		for i in range(self.player_num, 4):
 			self.players.append(Player2D('!wall', i))
 		self.game_type = 'pong2d'
-		self.ball = BALL_START
+		self.ball = copy.deepcopy(BALL_START)
 
 	def player_input(self, player_id, input):
 		position = self.match_id_pos[player_id]

@@ -81,6 +81,7 @@ class PongLobby:
 		self.waiting_for = len(players_list)
 		self.winner = None
 		self.game_type = None
+		self.counter = self.simple_call_counter()
 		print(f"game {lobby_id} initialized, await players {players_list}")
 
 	def check_game_start(self) -> bool:
@@ -102,7 +103,7 @@ class PongLobby:
 		self.loop = await self.game_loop()
 
 
-	async def player_join(self, player_id: str) -> bool:
+	def player_join(self, player_id: str) -> bool:
 		""" Template of player_list: ["user1", "user1_guest"] """
 		if not self.check_user(player_id):
 			return False
@@ -155,6 +156,22 @@ class PongLobby:
 	def player_input(self, player_id, input):
 		pass
 
+	def simple_call_counter(self):
+		start_time = time.time()
+		call_count = 0
+
+		def count():
+			nonlocal call_count, start_time
+			current_time = time.time()
+			call_count += 1
+
+			if current_time - start_time >= 1:
+				print(f"Appels par seconde : {call_count}")
+				call_count = 0
+				start_time = current_time
+
+		return count
+
 	async def	game_loop(self):
 		try:
 			print(f"Lobby {self.lobby_id}: Game loop has started")
@@ -188,6 +205,8 @@ class PongLobby:
 			print("game has started")
 			while self.gameState == 2:
 				await asyncio.sleep(0.016)	# 0.16 -> 60Hz
+				self.counter()
+				print(f"Computing game {self.lobby_id}, {self.game_type}")
 				data = self.compute_game()
 				await player_channel.group_send(self.lobby_id, data)
 			await player_channel.group_send(
@@ -210,15 +229,20 @@ class PongLobby:
 
 	def	compute_game(self):
 		self.move_ball()
+		print("move_ball()")
 		self.collision_logic()
+		print("collision_logic()")
 		self.check_goals()
+		print("check_goals()")
 		self.compute_AI()
+		print("compute_AI()")
 
 		# if self.check_winning_condition():
 		# 	self.gameState = 3
 		# 	self.winner = self.get_winner()
 
 		winner = self.check_winner()
+		print("check winner")
 		if winner:
 			print(f"{winner} won the game")
 			self.gameState = 3
@@ -228,7 +252,9 @@ class PongLobby:
 	def compute_AI(self):
 		for i in range(self.player_num):
 			if self.players[i].player_id.startswith("!"):
+				print(f"i={i}")
 				input = self.players[i].AI_behavior(self.ball["x"], self.ball["y"], self.ball["speed"]["x"], self.ball["speed"]["y"])
+				print(f"input={input}")
 				self.player_input(self.players[i].player_id, input)
 
 	@abstractmethod

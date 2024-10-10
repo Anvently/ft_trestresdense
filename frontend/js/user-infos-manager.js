@@ -110,12 +110,12 @@ class UserCache {
 
 	getUser(username) {
 		const itemStr = localStorage.getItem(`user_${username}`);
-		if (!itemStr) return null;
+		if (!itemStr) return undefined;
 
 		const item = JSON.parse(itemStr);
 		if (Date.now() > item.expiry) {
 				localStorage.removeItem(`user_${username}`);
-				return null;
+				return undefined;
 		}
 
 		return item.value;
@@ -123,7 +123,7 @@ class UserCache {
 
 	isValid(username) {
 		const user = this.getUser(username);
-		return user !== null;
+		return user !== undefined;
 	}
 }
 
@@ -135,8 +135,8 @@ class BackgroundUpdater {
 		this.updateTimeout = updateTimeout;
 		this.activeUsers = new Set(); //List of active, ideally only displayed username, that needs to be updated
 		this.usersToUpdate = new Set(); //List of username that needs to be updated
-		this.refreshIntervalId = null;
-		this.updateTimeoutId = null;
+		this.refreshIntervalId = undefined;
+		this.updateTimeoutId = undefined;
 		this.userChangeHandler = (username, userInfo) => {
 			throw Error('You need to assign a handler taking (username, userInfo) to update user content');
 		};
@@ -152,7 +152,7 @@ class BackgroundUpdater {
 
 	registerUserToUpdate(username) {
 		this.usersToUpdate.add(username);
-		if (this.updateTimeoutId === null) {
+		if (this.updateTimeoutId === undefined) {
 			this.updateTimeoutId = setTimeout(async () => {
 				await this.forceUpdate();
 			}, this.updateTimeout);
@@ -175,7 +175,7 @@ class BackgroundUpdater {
 		this.activeUsers.clear();
 		this.usersToUpdate.clear();
 		clearTimeout(this.updateTimeoutId);
-		this.updateTimeoutId = null;
+		this.updateTimeoutId = undefined;
 	}
 
 	async forceUpdate() {
@@ -183,7 +183,7 @@ class BackgroundUpdater {
 		await this.updateUsers(this.usersToUpdate);
 		if (this.updateTimeoutId) {
 			clearTimeout(this.updateTimeoutId);
-			this.updateTimeoutId = null;
+			this.updateTimeoutId = undefined;
 		}
 		this.usersToUpdate.clear();
 	}
@@ -212,7 +212,7 @@ class BackgroundUpdater {
 			}
 			return await response.json();
 		} catch (error) {
-			return;
+			return undefined;
 		}
 	}
 
