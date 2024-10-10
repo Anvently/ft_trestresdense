@@ -19,7 +19,10 @@ export default class LobbyView extends BaseView {
 	
 		this.lobbyName = document.getElementById('lobby-name');
 		this.lobbyDate = document.getElementById('lobby-date');
-		this.gameName = document.getElementById('game-name');
+		this.hostName = document.getElementById('lobby-host');
+		this.gameName = document.getElementById('lobby-game-name');
+		this.tournamentName = document.getElementById('lobby-tournament-name');
+		this.tournamentLink = document.getElementById('lobby-tournament-link');
 		this.displayLobbyInfo();
 		userManager.setDynamicUpdateHandler(this.updateUserInfos);
 		await this.displayPlayerScores();
@@ -33,7 +36,13 @@ export default class LobbyView extends BaseView {
 	displayLobbyInfo() {
 		this.lobbyName.textContent = this.lobbyData.lobby_name;
 		this.lobbyDate.textContent = new Date(this.lobbyData.date).toLocaleString();
+		this.hostName.textContent = this.lobbyData.host;
 		this.gameName.textContent = this.lobbyData.game_name;
+		if (this.lobbyData.tournament_id) {
+			this.tournamentLink.textContent = this.lobbyData.tournament_name;
+			this.tournamentLink.href = `https://${window.location.host}/#tournament?id=${this.lobbyData.tournament_id}`;
+			document.querySelector(".tournament-details").classList.remove('d-none');
+		}
 	}
 
 	async displayPlayerScores() {

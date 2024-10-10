@@ -172,6 +172,7 @@ class Lobby():
 		""" register in database"""
 		if results['status'] != 'cancelled':
 			results.pop('status')
+			results['hostname'] = self.hostname
 			# results['scores_set'] = [el for el in results['scores_set'] if el['username'][0] != '!']
 			try:
 				response = requests.post('http://users_api:8001/post-result/?format=json',
@@ -284,13 +285,15 @@ class TurnamentMatchLobby(Lobby):
 	def __init__(self, settings: Dict[str, Any], id:str) -> None:
 		super().__init__(settings, id, 'T')
 		self.tournament_id = self.id[:self.id.find('.')]
+		self.tournament_name = self.settings.pop('tournament_name')
+		# self.tournament_name = settings.get('tournament_name')
 		self.created_at = time.time()
 
 	def handle_results(self, results: Dict[str, Any]):
-		super().handle_results(results)
-		tournament_id = results.get('tournament_id', None)
-		if tournament_id and tournament_id in tournaments:
-			tournaments[tournament_id].handle_result(results)
+		if self.tournament_id in tournaments: #Probably not necessary to check that
+			results['tournament_name'] = self.tournament_name
+			super().handle_results(results)
+			tournaments['tournament_id'].handle_result(results)
 		self.delete()
 
 	def __str__(self) -> str:

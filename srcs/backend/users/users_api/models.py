@@ -66,6 +66,13 @@ class	Tournament(models.Model):
 	game_name = models.CharField(max_length=50)
 	date = models.DateTimeField(auto_now_add=True, editable=False)
 	number_players = models.SmallIntegerField()
+	host = models.ForeignKey(
+		User,
+		null=True,
+		on_delete=models.SET_NULL,
+		related_name='hosted_tournaments'
+	)
+	tournament_name = models.CharField(max_length=128, verbose_name="tournament name", default="Unnamed tournament")
 
 	def __str__(self) -> str:
 		return self.tournament_id.__str__()
@@ -82,7 +89,7 @@ class	Lobby(models.Model):
 	1598.2.3 => 4th quarter
 	"""
 	lobby_id = models.CharField(max_length=64, verbose_name="lobby unique id", unique=True)
-	lobby_name = models.CharField(max_length=64, verbose_name="lobby_display_name", default="Unknown")
+	lobby_name = models.CharField(max_length=128, verbose_name="lobby_display_name", default="Unknown")
 	game_name = models.CharField(max_length=50)
 	date = models.DateTimeField(auto_now_add=True, editable=False)
 	tournament = models.ForeignKey(
@@ -91,6 +98,12 @@ class	Lobby(models.Model):
 		verbose_name="corresponding tournament",
 		on_delete=models.CASCADE,
 		related_name="lobbys_set"
+	)
+	host = models.ForeignKey(
+		User,
+		null=True,
+		on_delete=models.SET_NULL,
+		related_name='hosted_lobbies'
 	)
 
 	def __str__(self) -> str:
