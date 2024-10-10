@@ -26,7 +26,7 @@ export default class LoginView extends BaseView {
 
 		this.login42Button.addEventListener('click', () => {
 				// Redirection vers l'authentification 42
-				window.location.href = `https://api.intra.42.fr/oauth/authorize?client_id=u-s4t2ud-7b58cca1aa55dd25c0845e50d85160e19d51224f609b8d441d4b6281473ba7ee&redirect_uri=https%3A%2F%${window.location.host}%3A8083%2Fapi%2Fauth%2F42-api-callback&response_type=code`;
+				window.location.href = `https://api.intra.42.fr/oauth/authorize?client_id=u-s4t2ud-7b58cca1aa55dd25c0845e50d85160e19d51224f609b8d441d4b6281473ba7ee&redirect_uri=https://${window.location.host}/api/auth/42-api-callback&response_type=code`;
 		});
 		
 		this.signupForm.addEventListener('change', (e) => {

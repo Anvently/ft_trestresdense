@@ -133,7 +133,6 @@ class SignIn42CallbackView(APIView):
 	# authentication_classes = [Api]
 
 	def get(self, request):
-		print(request.META['QUERY_STRING'])
 		code = request.GET.get('code')
 		
 		if code == None:
@@ -163,7 +162,7 @@ class SignIn42CallbackView(APIView):
 			return Response(
 				{"error": f"Failed to generate token: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
 			)
-		response = HttpResponseRedirect('https://localhost:8083/')
+		response = HttpResponseRedirect(f'https://{request.META["HTTP_HOST"]}:8083/')
 		# response = Response({"token":token}, status=status.HTTP_200_OK)
 		response.set_cookie('auth-token', token, expires=time.time() + settings.RSA_KEY_EXPIRATION)
 		return response
