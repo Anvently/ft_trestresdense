@@ -319,7 +319,7 @@ export default class Pong2DView extends BaseView {
 		var winner = 'AI';
 		for (let i = 0; i < this.number_of_players; i++) {
 			if (this.players[i].lives != 0) {
-				// get winner name... if possible...
+				// get winner name...
 				var userInfoManager = new UserInfoManager();
 				var userInfo = await userInfoManager.getUserInfo(this.players[i].id);
 				if (userInfo !== undefined)
