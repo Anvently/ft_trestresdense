@@ -141,30 +141,38 @@ export default class MatchmakingView extends BaseView {
 	general_update(message) {
 		const availableLobbiesEl = document.querySelector('#availableLobbies tbody');
 		const ongoingMatchesEl = document.querySelector('#ongoingMatches tbody');
-		availableLobbiesEl.innerHTML = '';
-		ongoingMatchesEl.innerHTML = '';
 
-		message.availableLobbies.forEach(lobby => {
-			const [id, obj] = Object.entries(lobby)[0];
-			this.appendLobbyEntry(availableLobbiesEl, id, obj, true);
-			const joinButton = document.getElementById(`joinLobbyButton-${id}`);
-			if (joinButton) {
-				joinButton.addEventListener('click', () => {
-					this.joinLobby(id);
-				});
-			}
-		});
-
-		message.ongoingMatches.forEach(match => {
-			const [id, obj] = Object.entries(match)[0];
-			this.appendLobbyEntry(ongoingMatchesEl, id, obj, false);
-			const spectateButton = document.getElementById(`spectateLobbyButton-${id}`);
-			if (spectateButton) {
-				spectateButton.addEventListener('click', () => {
-					this.spectateLobby(id);
-				});
-			}
-		});
+		if (message.availableLobbies && message.availableLobbies.length) {
+			availableLobbiesEl.innerHTML = '';
+			message.availableLobbies.forEach(lobby => {
+				const [id, obj] = Object.entries(lobby)[0];
+				this.appendLobbyEntry(availableLobbiesEl, id, obj, true);
+				const joinButton = document.getElementById(`joinLobbyButton-${id}`);
+				if (joinButton) {
+					joinButton.addEventListener('click', () => {
+						this.joinLobby(id);
+					});
+				}
+			});
+		} else {
+			availableLobbiesEl.innerHTML = `<tr><td colspan="5">Aucun résultat.</td></tr>`;
+		}
+		
+		if (message.ongoingMatches && message.ongoingMatches.length) {
+			ongoingMatchesEl.innerHTML = '';
+			message.ongoingMatches.forEach(match => {
+				const [id, obj] = Object.entries(match)[0];
+				this.appendLobbyEntry(ongoingMatchesEl, id, obj, false);
+				const spectateButton = document.getElementById(`spectateLobbyButton-${id}`);
+				if (spectateButton) {
+					spectateButton.addEventListener('click', () => {
+						this.spectateLobby(id);
+					});
+				}
+			});
+		} else {
+			ongoingMatchesEl.innerHTML = `<tr><td colspan="5">Aucun résultat.</td></tr>`;
+		}
 
 		userManager.forceUpdate();
 	}

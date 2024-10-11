@@ -2,6 +2,7 @@ import { BaseView } from '../view-manager.js';
 import { userManager, User } from '../home.js'
 
 export default class ResultsView extends BaseView {
+
 	async initView() {
 		
 		await Promise.all([
@@ -50,7 +51,11 @@ export default class ResultsView extends BaseView {
 	}
 
 	async displayLobbies() {
+		if (!this.lobbiesResults || this.lobbiesResults.length === 0) {
+			return;
+		}
 		const lobbiesTable = document.getElementById('lobbies-table');
+		lobbiesTable.innerHTML = "";
 		await this.lobbiesResults.forEach(async lobby => {
 			const host = new User(lobby.host, await userManager.getUserInfo(lobby.host)); 
 			const row = document.createElement('tr');
@@ -74,7 +79,11 @@ export default class ResultsView extends BaseView {
 	}
 
 	async displayTournaments() {
+		if (!this.tournaments || this.tournaments.length === 0) {
+			return;
+		}
 		const tournamentsTable = document.getElementById('tournaments-table');
+		tournamentsTable.innerHTML = "";
 		await this.tournaments.forEach(async tournament => {
 			const host = new User(tournament.host, await userManager.getUserInfo(tournament.host)); 
 			const row = document.createElement('tr');
