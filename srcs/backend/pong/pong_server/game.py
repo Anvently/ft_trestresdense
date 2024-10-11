@@ -206,7 +206,6 @@ class PongLobby:
 			while self.gameState == 2:
 				await asyncio.sleep(0.016)	# 0.16 -> 60Hz
 				self.counter()
-				print(f"Computing game {self.lobby_id}, {self.game_type}")
 				data = self.compute_game()
 				await player_channel.group_send(self.lobby_id, data)
 			await player_channel.group_send(
@@ -229,20 +228,15 @@ class PongLobby:
 
 	def	compute_game(self):
 		self.move_ball()
-		print("move_ball()")
 		self.collision_logic()
-		print("collision_logic()")
 		self.check_goals()
-		print("check_goals()")
 		self.compute_AI()
-		print("compute_AI()")
 
 		# if self.check_winning_condition():
 		# 	self.gameState = 3
 		# 	self.winner = self.get_winner()
 
 		winner = self.check_winner()
-		print("check winner")
 		if winner:
 			print(f"{winner} won the game")
 			self.gameState = 3
@@ -252,9 +246,7 @@ class PongLobby:
 	def compute_AI(self):
 		for i in range(self.player_num):
 			if self.players[i].player_id.startswith("!"):
-				print(f"i={i}")
 				input = self.players[i].AI_behavior(self.ball["x"], self.ball["y"], self.ball["speed"]["x"], self.ball["speed"]["y"])
-				print(f"input={input}")
 				self.player_input(self.players[i].player_id, input)
 
 	@abstractmethod

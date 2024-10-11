@@ -109,7 +109,7 @@ export default class Pong2DView extends BaseView {
 				);
 			} else if (msg["type"] === "send_game_state") {
 				this.updateGameState(msg);
-				this.draw3D();
+				// this.draw3D();
 			}
 		};
 	}

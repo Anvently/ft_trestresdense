@@ -48,7 +48,6 @@ class Player2D(Player):
 		if current_time != self.last_time:
 			self.calculate_destination(ballX, ballY, ballSpeedX, ballSpeedY)
 			self.last_time = int(time.time())
-
 		if self.side == WEST or self.side == EAST:
 			position = self.coordinates["y"]
 			if self.destination < position - PLAYER_SPEED:
@@ -77,6 +76,7 @@ class Player2D(Player):
 		fpos_x, fpos_y, fspeed_x, fspeed_y = ballX, ballY, ballSpeedX, ballSpeedY
 
 		while True:
+			""" !!! THE BUG IS HERE !!! (>-<), the loop never exit """
 			fpos_x += fspeed_x
 			fpos_y += fspeed_y
 
@@ -90,8 +90,6 @@ class Player2D(Player):
 					return fpos_x
 				else:
 					fspeed_y *= -1 
-
-
 
 class PongLobby2D(PongLobby):
 	service_direction = 0

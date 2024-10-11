@@ -19,12 +19,11 @@ TODO:
 	- implement 2FA 
 	- local turnament
 
+	Pong:
+		- display explicit message on the page when the lobby doesn't exist
 
 
 BUGS:
-- Erreur lorsqu'on abandonne une partie en cours et en on en reherberge une : on revient quelques secondes sur la partie precedente
-	meme probleme d initialisation...
-
 - Dans le cas d'une partie avec un joueur human et plus de deux bots, si le joueur
 	est elimine, il doit attendre la fin de la partie entre les bots avant de pouvoir
 	rejoindre une autre partie
@@ -36,3 +35,5 @@ BUGS:
 - post user batch in pong.js
 
 - matchmaking, expulsing bot does not trigger general update
+
+- the crash in pong is caused by an infinite loop in calculate_impact()
