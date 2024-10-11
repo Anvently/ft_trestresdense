@@ -21,6 +21,7 @@ export default class TournamentView extends BaseView {
 		userManager.setDynamicUpdateHandler(this.updateUserInfos);
 		await this.displayTournamentInfos();
 		await this.renderTournament();
+		await userManager.forceUpdate();
 	}
 
 	cleanupView() {
@@ -60,12 +61,24 @@ export default class TournamentView extends BaseView {
 		}
 	}
 
+	computeNbrRounds(nbr_player) {
+		if (nbr_player % 2)
+			return 0;
+		var count = 0;
+		while (nbr_player / 2 >= 1) {
+			nbr_player /= 2;
+			count++;
+		}
+		return count;
+	}
+
 	async renderTournament() {
 		const { lobbies_set } = this.tournamentData;
 		
+		const nbr_rounds = this.computeNbrRounds(this.tournamentData.number_players);
 		const treeContainer = document.getElementById('tournamentTree');
-		const rounds = this.organizeMatches(lobbies_set);
-		const max_index = rounds.length - 1;
+		const rounds = this.organizeMatches(lobbies_set, nbr_rounds);
+		const max_index = nbr_rounds - 1;
 
 		rounds.reverse().forEach((round, roundIndex) => {
 			roundIndex = max_index - roundIndex;
@@ -79,6 +92,9 @@ export default class TournamentView extends BaseView {
 			
 			const matchContainers = this.createMatchContainers(max_index, roundIndex, round.length);
 		
+			// for (var i = 0; i < 2^roundIndex; i++) {
+
+			// }
 			round.forEach(async (match, matchIndex) => {
 				const matchDiv = await this.createMatchElement(match, roundIndex, rounds.length);
 				matchContainers[matchIndex].appendChild(matchDiv);
@@ -101,7 +117,6 @@ export default class TournamentView extends BaseView {
 		for (let i = 0; i < count; i++) {
 		const container = document.createElement('div');
 		container.className = 'match-container';
-		console.log(max_index, roundIndex, i);
 		container.style.marginTop = `${marginsTop[max_index][roundIndex][i]}px`;
 		containers.push(container);
 		}
@@ -110,7 +125,9 @@ export default class TournamentView extends BaseView {
 	
 	async createMatchElement(match, roundIndex, totalRounds) {
 		const matchDiv = document.createElement('div');
-		matchDiv.className = 'match';
+		matchDiv.classList.add('match')
+		if (!match.completed)
+			matchDiv.classList.add('not-completed');
 		matchDiv.innerHTML = await this.createMatchHTML(match);
 		
 		// if (roundIndex) {
@@ -128,14 +145,24 @@ export default class TournamentView extends BaseView {
 		return matchDiv;
 	}
 	
-	organizeMatches(lobbies_set) {
+	organizeMatches(lobbies_set, nbr_rounds) {
 		const rounds = [];
-		lobbies_set.forEach(lobby => {
-		const roundNumber = lobby.lobby_id.split('.')[1];
-		if (!rounds[roundNumber]) {
-			rounds[roundNumber] = [];
+		const defaultRoundModel = {completed: false};
+		for (var i = 0; i < nbr_rounds; i++) {
+			rounds[i] = [];
+			for (var y = 0; y < 2 ** i; y++) {
+				rounds[i][y] = {...defaultRoundModel};
+			}
 		}
-		rounds[roundNumber].push(lobby);
+		lobbies_set.forEach(lobby => {
+			const roundNumber = parseInt(lobby.lobby_id.split('.')[1]);
+			const matchNumber = !roundNumber ? 0 : parseInt(lobby.lobby_id.split('.')[2]);
+			if (roundNumber > 2 || matchNumber > 3) {
+				console.error(`Invalid tournament: roundNumber=${roundNumber}, matchNumber=${matchNumber}`);
+				throw new Error("Invalid tournament structure");
+			}
+			rounds[roundNumber][matchNumber] = lobby;
+			rounds[roundNumber][matchNumber].completed = true;
 		});
 		return rounds;
 	}
@@ -148,21 +175,24 @@ export default class TournamentView extends BaseView {
 	async createMatchHTML(match) {
 		var htmlContent = "";
 
-		await match.scores_set.forEach(async score => {
-			const player = new User(score.username, await userManager.getUserInfo(score.username));
-			htmlContent += `
-			<div class="user-info user-${player.username} player ${score.has_win ? 'winner' : ''}">
-				<div class="user-status user-status ${player.is_online ? 'online' : 'offline'}">
-					<img src="${player.avatar}"
-					class="user-avatar user-avatar"
-					onclick="window.location.href='#user?username=${player.username}'">
+		if (match.completed) {
+			await match.scores_set.forEach(async score => {
+				const player = new User(score.username, await userManager.getUserInfo(score.username));
+				htmlContent += `
+				<div class="user-info user-${player.username} player ${score.has_win ? 'winner' : ''}">
+					<div class="user-status user-status ${player.is_online ? 'online' : 'offline'}">
+						<img src="${player.avatar}"
+						class="user-avatar user-avatar"
+						onclick="window.location.href='#user?username=${player.username}'">
+					</div>
+					<span class="user-name">${player.display_name}</span>
+					<span>${score.score}</span>
 				</div>
-				<span class="user-name">${player.display_name}</span>
-				<span>${score.score}</span>
-			</div>
-			`;
-		});
-		console.log(htmlContent);
+				`;
+			});
+		} else {
+			htmlContent = `<p>En attente...</p>`;
+		}
 
 		return htmlContent;
 	}

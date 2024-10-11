@@ -33,6 +33,15 @@
           display: flex;
           flex-direction: column;
           gap: 5px;
+          height: 115px;
+        }
+        .match.not-completed {
+          justify-content: center;
+          text-align: center;
+          font-style: italic;
+        }
+        .match.not-completed p {
+          margin: 0;
         }
         .player {
           display: flex;
@@ -42,21 +51,6 @@
         .winner {
           font-weight: bold;
           color: green;
-        }
-        .connector {
-          position: absolute;
-          background-color: #ddd;
-        }
-        .connector-horizontal {
-          height: 2px;
-          right: -40px;
-          top: 50%;
-          width: 40px;
-        }
-        .connector-vertical {
-          width: 2px;
-          right: -40px;
-          height: 100%;
         }
         .round-title {
           text-align: center;
