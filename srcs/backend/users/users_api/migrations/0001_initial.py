@@ -86,6 +86,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='lobby',
             name='tournament',
-            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, related_name='lobbys_set', to='users_api.tournament', verbose_name='corresponding tournament'),
+            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, related_name='lobbies_set', to='users_api.tournament', verbose_name='corresponding tournament'),
         ),
     ]

@@ -28,7 +28,7 @@ from rest_framework.authtoken import views
 
 router = SimpleRouter()
 router.register(r'users', UserViewSet, basename='users')
-router.register(r'lobbys', LobbyViewSet, basename='lobbys')
+router.register(r'lobbies', LobbyViewSet, basename='lobbies')
 router.register(r'tournaments', TurnamentViewSet, basename='tournaments')
 nested_router = NestedSimpleRouter(router, r'users', lookup='user')
 nested_router.register(r'scores', ScoreViewSet, basename='user_scores')
@@ -42,8 +42,8 @@ urlpatterns = [
     path('api/', include(router.urls)),
 	path('api/', include(nested_router.urls)),
     path('admin/', admin.site.urls),
-	re_path(r'^api/lobbys/(?P<lobby_id>[\w.-]+)/$', LobbyViewSet.as_view({'get': 'retrieve'}), name='lobby-detail'),
-    path('api/lobbys/', LobbyViewSet.as_view({'get': 'list'}), name='lobby-list'),
+	re_path(r'^api/lobbies/(?P<lobby_id>[\w.-]+)/$', LobbyViewSet.as_view({'get': 'retrieve'}), name='lobby-detail'),
+    path('api/lobbies/', LobbyViewSet.as_view({'get': 'list'}), name='lobby-list'),
 	path('api/users/<username>/avatar/', AvatarView.as_view()),
 	path('api/users-batch/', BatchUsersView.as_view()),
 	path('api/friends-update/', FriendsUpdateView.as_view()),

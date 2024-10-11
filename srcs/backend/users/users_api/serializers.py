@@ -64,11 +64,12 @@ class LobbySerializer(DynamicFieldsSerializer):
 	scores_set = ScoreSerializer(many=True, fields=['username', 'display_name', 'score', 'has_win',])
 	tournament_id = serializers.CharField(required=False, source='tournament.tournament_id', allow_blank=True)
 	tournament_name = serializers.CharField(required=False, source='tournament.tournament_name', allow_blank=True)
+	tournament_nbr_players = serializers.IntegerField(required=False, write_only=True, source='tournament.number_players')
 	host = serializers.CharField(required=False, source='host.username', allow_blank=True)
 
 	class Meta:
 		model = Lobby
-		fields = ('lobby_id', 'lobby_name', 'host', 'game_name', 'tournament_id', 'tournament_name', 'date', 'scores_set',)
+		fields = ('lobby_id', 'lobby_name', 'host', 'game_name', 'tournament_id', 'tournament_name', 'tournament_nbr_players', 'date', 'scores_set',)
 		# read_only_fields = ('date',)
 
 	def __init__(self, *args, **kwargs):
@@ -98,12 +99,14 @@ class LobbySerializer(DynamicFieldsSerializer):
 				except:
 					if not 'tournament_name' in validated_data['tournament']:
 						raise serializers.ValidationError({"tournament_name" : ["A value is required in order to register a new tournament."]})
+					if not 'number_players' in validated_data['tournament']:
+						raise serializers.ValidationError({"tournament_nbr_players" : ["A value is required in order to register a new tournament."]})
 					lobby.tournament = Tournament.objects.create(
 						tournament_id = validated_data['tournament']["tournament_id"],
 						tournament_name = validated_data['tournament']["tournament_name"],
 						game_name = validated_data["game_name"],
 						host = lobby.host,
-						number_players = 0,
+						number_players = validated_data['tournament']["number_players"],
 					)
 		else: lobby.tournament = None
 		lobby.save()
@@ -123,12 +126,12 @@ class LobbySerializer(DynamicFieldsSerializer):
 		return lobby
 
 class TurnamentSerializer(serializers.HyperlinkedModelSerializer):
-	lobbys_set = LobbySerializer(many=True, read_only=True, fields=['lobby_id', 'lobby_name', 'scores_set',])
+	lobbies_set = LobbySerializer(many=True, read_only=True, fields=['lobby_id', 'lobby_name', 'scores_set',])
 	host = serializers.CharField(required=False, source='host.username', allow_blank=True)
 
 	class Meta:
 		model = Tournament
-		fields = ('tournament_id', 'tournament_name', 'host', 'game_name', 'date', 'number_players', 'lobbys_set',)
+		fields = ('tournament_id', 'tournament_name', 'host', 'game_name', 'date', 'number_players', 'lobbies_set',)
 
 class UserSerializer(serializers.HyperlinkedModelSerializer):
 	username = serializers.CharField(read_only=True)

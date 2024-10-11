@@ -9,7 +9,7 @@ export default class LobbyView extends BaseView {
 			return;
 			// May throw an error if we want to redirect user to the previous page
 		}
-		const response = await fetch(`https://${window.location.host}/api/lobbys/${this.lobby_id}/`);
+		const response = await fetch(`https://${window.location.host}/api/lobbies/${this.lobby_id}/`);
 		if (!response.ok) {
 			this.errorHandler("Failed to retrieve lobby informations");
 			throw new Error("Failed to retrieve lobby informations");
@@ -19,12 +19,12 @@ export default class LobbyView extends BaseView {
 	
 		this.lobbyName = document.getElementById('lobby-name');
 		this.lobbyDate = document.getElementById('lobby-date');
-		this.hostName = document.getElementById('lobby-host');
+		this.hostCell = document.getElementById('lobby-host');
 		this.gameName = document.getElementById('lobby-game-name');
 		this.tournamentName = document.getElementById('lobby-tournament-name');
 		this.tournamentLink = document.getElementById('lobby-tournament-link');
-		this.displayLobbyInfo();
 		userManager.setDynamicUpdateHandler(this.updateUserInfos);
+		await this.displayLobbyInfo();
 		await this.displayPlayerScores();
 		await userManager.forceUpdate();
 	}
@@ -33,10 +33,20 @@ export default class LobbyView extends BaseView {
 		// Clean up any event listeners or other resources
 	}
 
-	displayLobbyInfo() {
+	async displayLobbyInfo() {
 		this.lobbyName.textContent = this.lobbyData.lobby_name;
 		this.lobbyDate.textContent = new Date(this.lobbyData.date).toLocaleString();
-		this.hostName.textContent = this.lobbyData.host;
+		const host = new User(this.lobbyData.host, await userManager.getUserInfo(this.lobbyData.host));
+		this.hostCell.innerHTML = `
+			<div class="user-info">
+				<div class="user-status user-status-small ${host.is_online ? 'online' : 'offline'}">
+					<img src="${host.avatar}"
+					class="user-avatar user-avatar-small"
+					onclick="window.location.href='#user?username=${host.username}'">
+				</div>
+				<span class="user-name">${host.display_name}</span>
+			</div>`;
+		this.hostCell.classList.add(`user-${host.username}`);
 		this.gameName.textContent = this.lobbyData.game_name;
 		if (this.lobbyData.tournament_id) {
 			this.tournamentLink.textContent = this.lobbyData.tournament_name;

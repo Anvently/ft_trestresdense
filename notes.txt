@@ -15,7 +15,6 @@ TODO:
 	- dig into production server
 
 	Frontend:
-	- turnament tree
 	- implement 2FA 
 	- local turnament
 

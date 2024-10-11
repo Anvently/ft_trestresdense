@@ -52,7 +52,7 @@ Check when last consumer disconnect
 """
 
 def check_lobby_id(id:str) -> bool:
-		if id in lobbys_list:
+		if id in lobbies_list:
 			return True
 		return False
 
@@ -89,11 +89,11 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 			return False
 		if not self._auth_client():
 			return False
-		if self.username and lobbys_list[self.lobby_id].check_user(self.username):
+		if self.username and lobbies_list[self.lobby_id].check_user(self.username):
 			self.is_spectator = False
 		elif self.DISABLE_AUTH:
 			pass
-		elif not lobbys_list[self.lobby_id].settings.get('allow_spectators', True):
+		elif not lobbies_list[self.lobby_id].settings.get('allow_spectators', True):
 				self.scope['error'] = "forbidden lobby"
 				self.scope['error_code'] = 4004
 				return False
@@ -115,7 +115,7 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 	async def disconnect(self, close_code):
 		if not self.is_spectator:
 			for user in self.users:
-				lobbys_list[self.lobby_id].player_leave(user)
+				lobbies_list[self.lobby_id].player_leave(user)
 			await self.channel_layer.group_send(
 				self.lobby_id, {
 					"type": "info_message",
@@ -144,7 +144,7 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 		if not PongConsumer.DISABLE_AUTH and content['username'].split('.')[0] != self.username:
 			await self._send_error('You are not who you pretend to be')
 			return
-		if not lobbys_list[self.lobby_id].player_join(content['username']):
+		if not lobbies_list[self.lobby_id].player_join(content['username']):
 			await self._send_error('Could not join the lobby.')
 			return
 		self.users.add(content['username'])
@@ -157,7 +157,7 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 		if content['username'] not in self.users:
 			await self._send_error('Invalid username')
 			return
-		lobbys_list[self.lobby_id].player_input(content['username'], content['input'])
+		lobbies_list[self.lobby_id].player_input(content['username'], content['input'])
 
 	async def cancel(self, content):
 		await self.send_json(content)
@@ -179,7 +179,7 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 	async def info_message(self, content):
 		await self.send_json(content)
 
-lobbys_list : Dict[str, PongLobby] = dict()
+lobbies_list : Dict[str, PongLobby] = dict()
 
 
 
@@ -187,7 +187,7 @@ from daphne.server import twisted_loop
 
 
 
-# lobbys_list["11"] = PongLobby3D(
+# lobbies_list["11"] = PongLobby3D(
 # 	lobby_id="11",
 # 	# players_list=["P1", "P2"],
 # 	# players_list=["!AI1", "!AI2"],
@@ -196,7 +196,7 @@ from daphne.server import twisted_loop
 # )
 
 
-for lobby_id in lobbys_list:
-	if lobbys_list[lobby_id].check_game_start():
+for lobby_id in lobbies_list:
+	if lobbies_list[lobby_id].check_game_start():
 		print(f"Auto-starting {lobby_id}")
-		twisted_loop.create_task(lobbys_list[lobby_id].start_game_loop())
+		twisted_loop.create_task(lobbies_list[lobby_id].start_game_loop())

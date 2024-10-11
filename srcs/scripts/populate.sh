@@ -167,6 +167,7 @@ send_tournament_results() {
 	\"game_name\": \"${GAME_NAME}\",
     \"tournament_id\": \"${TOURNAMENT_ID}\",
 	\"tournament_name\": \"${TOURNAMENT_NAME}\",
+	\"tournament_nbr_players\": ${NUM_USERS},
     \"scores_set\": [
       {
         \"username\": \"${winner}\",
@@ -232,9 +233,9 @@ user_list=("herve" "john" "user2" "foo" "laura" "chloe" "bar" "ashley" "npirad" 
 # Appel des fonctions
 register "${user_list[@]}"
 login_add_friends "${user_list[@]}"
-for i in {1..30}; do
-  post_results "${user_list[@]}"
-done
+# for i in {1..30}; do
+#   post_results "${user_list[@]}"
+# done
 
 # Sélection aléatoire d'un nombre fixe d'utilisateurs (par exemple, 4 utilisateurs)
 select_random_users() {
