@@ -10,33 +10,36 @@ SUFFIXES = {
 	32: f".4.{0}"
 }
 
+
 class Tournament:
 	def __init__(self, data: Dict[str, Any]) -> None:
 		self.game_type = data['game_type']
 		self.hostname = data['hostname']
-		self.name = data.get('name', f"{self.hostname}'s tournament")
-		self.number_players = data['number_players']
+		self.name = data.pop('name', f"{self.hostname}'s tournament")
+		self.number_players = data['nbr_players']
 		self.default_settings = data.get('default_settings', {
 			'lives':10
 		})
 		self.id = data['id']
 		self.players = data['players']
-		for i in range(self.number_players):
+		for i in range(int(self.number_players / 2)):
 			id=f"{self.id}{SUFFIXES[self.number_players].format(i)}"
-			lobbies[id] = TurnamentMatchLobby({
+			from matchmaking.lobby import TournamentMatchLobby
+			lobbies[id] = TournamentMatchLobby({
 				'name': self.generate_match_name(0, 0),
 				'tournament_name': self.name,
 				'hostname': self.hostname,
 				'game_type': self.game_type,
-				'number_players': 2,
+				'nbr_players': 2,
 				'settings': self.default_settings
 			}, id)
-			self.reassign_player(self.players[i], id, PlayerStatus.IN_TURNAMENT_LOBBY)
-			self.reassign_player(self.players[i + (self.number_players / 2)], id, PlayerStatus.IN_TURNAMENT_LOBBY)
-			if not lobbies[id].init_game():
-				raise Exception("Failed to init tournament")
+			print(i, self.players)
+			self.reassign_player(self.players[i], id, PlayerStatus.IN_TOURNAMENT_LOBBY)
+			self.reassign_player(self.players[i + int(self.number_players / 2)], id, PlayerStatus.IN_TOURNAMENT_LOBBY)
+			# if not lobbies[id].init_game():
+			# 	raise Exception("Failed to init tournament")
 
-	def reassign_player(self, player_id: str, lobby_id: str, new_status: int = PlayerStatus.IN_TURNAMENT_LOBBY):
+	def reassign_player(self, player_id: str, lobby_id: str, new_status: int = PlayerStatus.IN_TOURNAMENT_LOBBY):
 		lobbies[lobby_id].add_player(player_id)
 		if not player_id[0] == '!':
 			lobbies[online_players[player_id]['lobby_id']].remove_player(player_id)
@@ -64,7 +67,7 @@ class Tournament:
 		id = f"{self.id}.{previous_stage - 1}.{previous_idx / 2}"
 		if id in lobbies:
 			return id
-		lobbies[id] = TurnamentMatchLobby({
+		lobbies[id] = TournamentMatchLobby({
 			'name': self.generate_match_name(previous_stage - 1, previous_idx / 2),
 			'tournament_name': self.name,
 			'hostname': self.hostname,
@@ -87,7 +90,7 @@ class Tournament:
 				""" We need to instantiate the new lobby if it doesn't exist yet,
 				 and assign player to it. """
 				next_match_id = self.setup_next_match(stage, match_idx)
-				self.reassign_player(score['username'], next_match_id, PlayerStatus.IN_TURNAMENT_LOBBY)
+				self.reassign_player(score['username'], next_match_id, PlayerStatus.IN_TOURNAMENT_LOBBY)
 			else:
 				""" If someone lose or it was a final, it's up to the
 				 lobby result handler to update status of associated players. """

@@ -11,7 +11,7 @@ import base64
 import enum
 from channels.layers import get_channel_layer
 from matchmaking.common import online_players, lobbies, PlayerStatus
-from matchmaking.lobby import Lobby, LocalMatchLobby, SimpleMatchLobby, TurnamentInitialLobby
+from matchmaking.lobby import Lobby, LocalMatchLobby, SimpleMatchLobby, TournamentInitialLobby
 import copy
 import copy
 from asgiref.sync import sync_to_async
@@ -99,7 +99,7 @@ class Errors(Enum):
 def get_status_from_lobby(lobby_id):
 	match lobby_id[0]:
 		case 'T':
-			return PlayerStatus.IN_TURNAMENT_LOBBY
+			return PlayerStatus.IN_TOURNAMENT_LOBBY
 		case _:
 			return PlayerStatus.IN_LOBBY
 
@@ -201,7 +201,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 					await self.channel_layer.group_discard(self._lobby_id, self.channel_name)
 					await self.send_lobby_update(self._lobby_id)
 					self._lobby_id = None
-			if status not in (PlayerStatus.IN_GAME, PlayerStatus.IN_TURNAMENT_LOBBY):
+			if status not in (PlayerStatus.IN_GAME, PlayerStatus.IN_TOURNAMENT_LOBBY):
 				del online_players[self.username]
 		await self.channel_layer.group_discard(self.username, self.channel_name)
 		await self.channel_layer.group_discard(MatchMakingConsumer.matchmaking_group, self.channel_name)
@@ -236,7 +236,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 
 
 	async def lobby_canceled(self, content):
-		if online_players[self.username]['status'] not in (PlayerStatus.IN_LOBBY, PlayerStatus.IN_TURNAMENT_LOBBY):
+		if online_players[self.username]['status'] not in (PlayerStatus.IN_LOBBY, PlayerStatus.IN_TOURNAMENT_LOBBY):
 			return
 		if not self._is_host:
 			await self.send_json(content)
@@ -255,7 +255,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 			await self._send_error(msg=f'Can\'t join the lobby {target_lobby}: already started', code=Errors.JOIN_ERROR, close=False)
 		elif self.get_status() == PlayerStatus.IN_LOBBY:
 			await self.switch_lobby(target_lobby)
-		elif self.get_status() == PlayerStatus.IN_TURNAMENT_LOBBY:
+		elif self.get_status() == PlayerStatus.IN_TOURNAMENT_LOBBY:
 			await self._send_error(msg='Already in tournament lobby.', code=Errors.JOIN_ERROR, close=False)
 		else:
 			if lobbies[target_lobby].add_player(self.username):
@@ -307,7 +307,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 	async def leave_lobby(self, content=None):
 		if not self._lobby_id:
 			return
-		if online_players[self.username]['status'] not in (PlayerStatus.IN_LOBBY, PlayerStatus.IN_TURNAMENT_LOBBY):
+		if online_players[self.username]['status'] not in (PlayerStatus.IN_LOBBY, PlayerStatus.IN_TOURNAMENT_LOBBY):
 			await self._send_error(msg="You are not in a lobby, can't do !", close=False)
 			return
 		if self._is_host == True:
@@ -339,7 +339,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 					new_lobby = LocalMatchLobby(data)
 					game_type = PlayerStatus.IN_LOBBY
 				case "tournament_lobby":
-					new_lobby = TurnamentInitialLobby(data)
+					new_lobby = TournamentInitialLobby(data)
 					game_type = PlayerStatus.IN_LOBBY
 				case _:
 					raise KeyError("Wrong game type")
@@ -378,17 +378,23 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		await self.send_json(state)
 
 	async def lobby_update(self,content):
-		if self.get_status() not in (PlayerStatus.IN_LOBBY, PlayerStatus.IN_TURNAMENT_LOBBY):
+		if self.get_status() not in (PlayerStatus.IN_LOBBY, PlayerStatus.IN_TOURNAMENT_LOBBY):
 			return
 		await self.send_json(content)
 
 
 	async def player_ready(self, content):
-		if self.get_status() not in (PlayerStatus.IN_LOBBY, PlayerStatus.IN_TURNAMENT_LOBBY):
+		""" If true, check that lobby id in dict is not the same than before. If so then
+		 update lobby id from dict and send lobby update """
+		if self.get_status() not in (PlayerStatus.IN_LOBBY, PlayerStatus.IN_TOURNAMENT_LOBBY):
 			await self._send_error(msg="You are not in a lobby, ready up failed",code=4005, close=False)
 			return
 		if lobbies[self._lobby_id].player_ready(self.username):
-			await self.dispatch_players(self._lobby_id)
+			id = online_players[self.username]['lobby_id']
+			if id != self._lobby_id:
+				self._lobby_id = id
+			else:
+				await self.dispatch_players(self._lobby_id)
 		else:
 			await self.send_lobby_update(self._lobby_id)
 
@@ -401,7 +407,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 
 
 	async def player_unready(self, content):
-		if self.get_status() not in (PlayerStatus.IN_LOBBY, PlayerStatus.IN_TURNAMENT_LOBBY):
+		if self.get_status() not in (PlayerStatus.IN_LOBBY, PlayerStatus.IN_TOURNAMENT_LOBBY):
 			return
 		lobbies[self._lobby_id].player_not_ready(self.username)
 		await self.send_lobby_update(self._lobby_id)
@@ -475,7 +481,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		if self.get_status() != PlayerStatus.IN_LOBBY:
 			await self._send_error(msg='You are not in position to invite someone', code=Errors.INVITE_ERROR, close=False)
 			return
-		if get_player_status(player_target) in (None, PlayerStatus.IN_GAME, PlayerStatus.IN_TURNAMENT_LOBBY):
+		if get_player_status(player_target) in (None, PlayerStatus.IN_GAME, PlayerStatus.IN_TOURNAMENT_LOBBY):
 			await self._send_error(msg='This player is not available at the moment', code=Errors.INVITE_ERROR, close=False)
 			return
 		await self.channel_layer.group_send(player_target, {'type' : 'be_invited', 'invite_from' : self.username,'lobby_id' : self._lobby_id})

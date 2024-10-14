@@ -51,7 +51,10 @@ class Lobby():
 		self.started = False
 		self.game_type = settings.pop('game_type')
 		self.player_num = settings.pop('nbr_players')
-		self.settings = settings
+		if ('settings' in settings):
+			self.settings = settings['settings']
+		else:
+			self.settings = settings
 		self.settings['nbr_players'] = self.player_num
 		self.check_rules()
 		for n in range(settings.get('nbr_bots', 0)):
@@ -119,12 +122,10 @@ class Lobby():
 		self.players[player_id]['has_joined'] = True
 
 	def remove_player(self, player_id):
-		print(f"before kick {self.players}")
 		if player_id in self.players:
 			del self.players[player_id]
 		if len(self.players) == 0:
 			self.delete()
-		print(f"after kick {self.players}")
 
 	def check_rules(self):
 		pass
@@ -241,7 +242,7 @@ class LocalMatchLobby(SimpleMatchLobby):
 				raise KeyError("Wrong settings")
 
 
-class TurnamentInitialLobby(Lobby):
+class TournamentInitialLobby(Lobby):
 
 	def __init__(self, settings: Dict[str, Any]) -> None:
 		super().__init__(settings, prefix='I')
@@ -272,6 +273,7 @@ class TurnamentInitialLobby(Lobby):
 			'id': self.id,
 			'players': list(self.players.keys())
 		}):
+			print("error creating tournament")
 			return False
 		self.delete()
 		return True
@@ -280,13 +282,12 @@ class TurnamentInitialLobby(Lobby):
 		return "tournament_lobby"
 
 
-class TurnamentMatchLobby(Lobby):
+class TournamentMatchLobby(Lobby):
 
 	def __init__(self, settings: Dict[str, Any], id:str) -> None:
 		super().__init__(settings, id, 'T')
 		self.tournament_id = self.id[:self.id.find('.')]
-		self.tournament_name = self.settings.pop('tournament_name')
-		# self.tournament_name = settings.get('tournament_name')
+		self.tournament_name = settings['tournament_name']
 		self.created_at = time.time()
 
 	def handle_results(self, results: Dict[str, Any]):
@@ -324,7 +325,7 @@ lobby2 = SimpleMatchLobby({
 })
 
 
-lobby3 = TurnamentInitialLobby({
+lobby3 = TournamentInitialLobby({
 	'hostname': 'john',
 	'name': "Tornois",
 	'game_type': 'pong2d',

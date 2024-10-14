@@ -20,7 +20,6 @@ class PostGameView(APIView):
 		if not serializer.is_valid():
 			return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 		serializer.save() #Init the game
-		print(lobbies_list[serializer.validated_data['game_id']].players)
 		twisted_loop.create_task(lobbies_list[serializer.validated_data['game_id']].start_game_loop())
 		return Response(serializer.validated_data, status=status.HTTP_201_CREATED)
 
