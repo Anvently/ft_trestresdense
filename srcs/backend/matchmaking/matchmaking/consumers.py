@@ -294,6 +294,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 			# await self.send_json("{'type' : 'self_unready'}")
 			lobbies[self._lobby_id].add_bot()
 			await self.send_lobby_update(self._lobby_id)
+			await self.send_general_update()
 
 	async def spectate_game(self, content):
 		target_lobby = content['lobby_id']
@@ -392,7 +393,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		if lobbies[self._lobby_id].player_ready(self.username):
 			id = online_players[self.username]['lobby_id']
 			if id != self._lobby_id:
-				self._lobby_id = id
+				await self.channel_layer.group_send(self._lobby_id, {"type": "switch_to_first_match"})
 			else:
 				await self.dispatch_players(self._lobby_id)
 		else:
@@ -404,6 +405,15 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		await self.channel_layer.group_add(self.username, self.channel_name)
 		await self.send_general_update()
 
+	async def switch_to_first_match(self, content):
+		await self.channel_layer.group_discard(self._lobby_id, self.channel_name)
+		self._lobby_id = online_players[self.username]['lobby_id']
+		await self.channel_layer.group_add(self._lobby_id, self.channel_name)
+		lobbies[self._lobby_id].player_joined(self.username)
+		await self.send_json({'type': 'set_unready'})
+		await self.send_json({"type" : 'lobby_joined', 'lobby_id' : self._lobby_id, 'is_host' : False})
+		await self.send_lobby_update(self._lobby_id)
+		await self.send_general_update()
 
 
 	async def player_unready(self, content):
@@ -447,6 +457,15 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		data['type'] = 'lobby_update'
 		await self.channel_layer.group_send(lobby_id, data)
 
+	# async def tournament_match_init(self, lobby_id):
+	# 	print(f"lobby_id target is {lobby_id}")
+	# 	if lobby_id not in lobbies:
+	# 		return
+	# 	data = jsonize_lobby(lobbies[lobby_id])
+	# 	data['type'] = 'tournament_match_init'
+	# 	await self.send_json(data)
+
+
 	async def get_online_players(self, content):
 		data = await self.generate_player_list()
 		await self.send_json(data)
@@ -464,6 +483,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		if not player_target[0] == "!":
 			await self.channel_layer.group_send(player_target, {"type" : "be_kicked"})
 		await self.send_lobby_update(self._lobby_id)
+		await self.send_general_update()
 
 	async def be_kicked(self, content):
 

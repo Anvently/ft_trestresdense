@@ -3,11 +3,11 @@ from matchmaking.common import online_players, tournaments, PlayerStatus, lobbie
 import re
 
 SUFFIXES = {
-	2: f".0",
-	4: f".1.{0}",
-	8: f".2.{0}",
-	16: f".3.{0}",
-	32: f".4.{0}"
+	2: ".0",
+	4: ".1.{0}",
+	8: ".2.{0}",
+	16: ".3.{0}",
+	32: ".4.{0}"
 }
 
 
@@ -33,7 +33,7 @@ class Tournament:
 				'nbr_players': 2,
 				'settings': self.default_settings
 			}, id)
-			print(i, self.players)
+			print(i, id)
 			self.reassign_player(self.players[i], id, PlayerStatus.IN_TOURNAMENT_LOBBY)
 			self.reassign_player(self.players[i + int(self.number_players / 2)], id, PlayerStatus.IN_TOURNAMENT_LOBBY)
 			# if not lobbies[id].init_game():
@@ -46,6 +46,7 @@ class Tournament:
 			online_players[player_id]['lobby_id'] = lobby_id
 			online_players[player_id]['tournament_id'] = self.id
 			online_players[player_id]['status'] = new_status
+
 
 	def generate_match_name(self, stage: int, nbr: int) -> str:
 		if stage == 0:
