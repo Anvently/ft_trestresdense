@@ -166,7 +166,7 @@ class PongLobby:
 			call_count += 1
 
 			if current_time - start_time >= 1:
-				print(f"Appels par seconde : {call_count}")
+				# print(f"Appels par seconde : {call_count}")
 				call_count = 0
 				start_time = current_time
 

@@ -20,7 +20,7 @@ class Tournament:
 		self.default_settings = data.get('default_settings', {
 			'lives':10
 		})
-		self.id = data['id']
+		self.id = 'T' + data['id'][:1]
 		self.players = data['players']
 		for i in range(int(self.number_players / 2)):
 			id=f"{self.id}{SUFFIXES[self.number_players].format(i)}"
@@ -31,7 +31,6 @@ class Tournament:
 				'nbr_players': 2,
 				'settings': self.default_settings
 			}, id)
-			print(i, self.players)
 			self.reassign_player(self.players[i], id, PlayerStatus.IN_TOURNAMENT_LOBBY)
 			self.reassign_player(self.players[i + int(self.number_players / 2)], id, PlayerStatus.IN_TOURNAMENT_LOBBY)
 			# if not lobbies[id].init_game():

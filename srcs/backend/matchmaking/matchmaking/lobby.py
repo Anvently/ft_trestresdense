@@ -170,7 +170,8 @@ class Lobby():
 		for player_id, player in self.iterate_human_player():
 			if online_players[player_id]['lobby_id'] == self.id:
 				del online_players[player_id]
-		del lobbies[self.id]
+		if self.id in lobbies:
+			del lobbies[self.id]
 
 	def handle_results(self, results: dict[str, Any]):
 		""" register in database"""
@@ -288,7 +289,7 @@ class TournamentInitialLobby(Lobby):
 class TournamentMatchLobby(Lobby):
 
 	def __init__(self, settings: Dict[str, Any], id:str) -> None:
-		self.tournament_id = self.id[:self.id.find('.')]
+		self.tournament_id = id[:id.find('.')]
 		self.created_at = time.time()
 		self.hostname = None
 		super().__init__(settings, id, 'T')
@@ -311,36 +312,40 @@ class TournamentMatchLobby(Lobby):
 	# 	if time.time() - self.created_at >
 
 
-lobby = SimpleMatchLobby({
-	'hostname': '!AI1',
-	'name': 'pouet_pouet',
-	'game_type': 'pong3d',
-	'nbr_players': 2,
-	'lives':20,
-	'allow_spectators':True,
-	'public': True
-})
+# lobby = SimpleMatchLobby({
+# 	'hostname': '!AI1',
+# 	'name': 'pouet_pouet',
+# 	'game_type': 'pong3d',
+# 	'nbr_players': 2,
+# 	'lives':20,
+# 	'allow_spectators':True,
+# 	'public': True
+# })
 
-lobby2 = SimpleMatchLobby({
-	'hostname': 'herve',
-	'name': "Herve's room",
-	'game_type': 'pong2d',
-	'nbr_players': 4,
-	'lives':20,
-	'allow_spectators':False,
-	'public': True
-})
+# lobby2 = SimpleMatchLobby({
+# 	'hostname': 'herve',
+# 	'name': "Herve's room",
+# 	'game_type': 'pong2d',
+# 	'nbr_players': 4,
+# 	'lives':20,
+# 	'allow_spectators':False,
+# 	'public': True
+# })
 
 
 lobby3 = TournamentInitialLobby({
 	'hostname': 'john',
 	'name': "Tornois",
 	'game_type': 'pong2d',
-	'nbr_players': 8,
-	'lives':20,
-	'allow_spectators':False,
+	'nbr_players': 2,
+	'nbr_bots': 2,
+	'lives':2,
+	'allow_spectators': True,
 	'public': True
 })
+
+# lobbies[lobby3.id] = lobby3
+# lobbies[lobby3.id].player_ready('john')
 
 # lobby4 = SimpleMatchLobby({
 # 	'hostname': 'chloe',
@@ -366,9 +371,8 @@ lobby3 = TournamentInitialLobby({
 # })
 # lobbies[lobby5.id] = lobby5
 
-lobbies[lobby.id] = lobby
-lobbies[lobby2.id] = lobby2
-lobbies[lobby3.id] = lobby3
+# lobbies[lobby.id] = lobby
+# lobbies[lobby2.id] = lobby2
 
 # lobbies[lobby.id].add_bot()
 # lobbies["9"].add_bot()
