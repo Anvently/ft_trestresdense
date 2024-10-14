@@ -27,8 +27,6 @@ class Tournament:
 			from matchmaking.lobby import TournamentMatchLobby
 			lobbies[id] = TournamentMatchLobby({
 				'name': self.generate_match_name(0, 0),
-				'tournament_name': self.name,
-				'hostname': self.hostname,
 				'game_type': self.game_type,
 				'nbr_players': 2,
 				'settings': self.default_settings
@@ -67,10 +65,9 @@ class Tournament:
 		id = f"{self.id}.{previous_stage - 1}.{previous_idx / 2}"
 		if id in lobbies:
 			return id
+		from matchmaking.lobby import TournamentMatchLobby
 		lobbies[id] = TournamentMatchLobby({
 			'name': self.generate_match_name(previous_stage - 1, previous_idx / 2),
-			'tournament_name': self.name,
-			'hostname': self.hostname,
 			'game_type': self.game_type,
 			'number_players': 2,
 			'settings': self.default_settings

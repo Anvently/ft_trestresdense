@@ -43,7 +43,6 @@ class GameSerializer(serializers.Serializer):
 				settings=self.validated_data['settings'],
 				tournId=self.validated_data.get('tournament_id')
 			)
-		print(id(lobbies_list[self.validated_data['game_id']]))
 
 	def validate(self, data):
 		number_players = data['settings']['nbr_players']

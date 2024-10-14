@@ -64,17 +64,22 @@ class LobbySerializer(DynamicFieldsSerializer):
 	scores_set = ScoreSerializer(many=True, fields=['username', 'display_name', 'score', 'has_win',])
 	tournament_id = serializers.CharField(required=False, source='tournament.tournament_id', allow_blank=True)
 	tournament_name = serializers.CharField(required=False, source='tournament.tournament_name', allow_blank=True)
-	tournament_nbr_players = serializers.IntegerField(required=False, write_only=True, source='tournament.number_players')
 	host = serializers.CharField(required=False, source='host.username', allow_blank=True)
 
 	class Meta:
 		model = Lobby
-		fields = ('lobby_id', 'lobby_name', 'host', 'game_name', 'tournament_id', 'tournament_name', 'tournament_nbr_players', 'date', 'scores_set',)
+		fields = ('lobby_id', 'lobby_name', 'host', 'game_name', 'tournament_id', 'tournament_name', 'date', 'scores_set',)
 		# read_only_fields = ('date',)
 
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 		self.host_instance = None
+
+	def to_representation(self, instance):
+		ret = super().to_representation(instance)
+		if not ret.get('host', None) and instance.tournament:
+			ret['host'] = instance.tournament.host.username
+		return ret
 
 	def validate(self, attrs):
 		attrs = super().validate(attrs)
@@ -82,33 +87,24 @@ class LobbySerializer(DynamicFieldsSerializer):
 			if 'host' in attrs:
 				attrs['host'] = User.objects.get(username=attrs['host']['username'])
 		except:
-			raise serializers.ValidationError({"host": [f"User {attrs['host']['username']} does not exists."]})	
+			raise serializers.ValidationError({"host": [f"User {attrs['host']['username']} does not exists."]})
+		try:
+			if 'tournament' in attrs:
+				attrs['tournament'] = Tournament.objects.get(tournament_id=attrs['tournament']["tournament_id"])
+		except:
+			raise serializers.ValidationError({"tournament_id" : ["No tournament exists with this id"]})
+		if not 'host' in attrs and not 'tournament' in attrs:
+			raise serializers.ValidationError({'host, tournament_id': "You must provide information on one of these fields."})
 		return attrs
 
 	def create(self, validated_data):
-		print(validated_data)
 		lobby = Lobby(
 			lobby_id = validated_data["lobby_id"],
 			lobby_name = validated_data["lobby_name"],
 			game_name = validated_data["game_name"],
-			host = validated_data.get("host", None)
+			host = validated_data.get("host", None),
+			tournament = validated_data.get("tournament", None)
 		)
-		if 'tournament' in validated_data and 'tournament_id' in validated_data['tournament']:
-				try:
-					lobby.tournament = Tournament.objects.get(tournament_id=validated_data['tournament']["tournament_id"])
-				except:
-					if not 'tournament_name' in validated_data['tournament']:
-						raise serializers.ValidationError({"tournament_name" : ["A value is required in order to register a new tournament."]})
-					if not 'number_players' in validated_data['tournament']:
-						raise serializers.ValidationError({"tournament_nbr_players" : ["A value is required in order to register a new tournament."]})
-					lobby.tournament = Tournament.objects.create(
-						tournament_id = validated_data['tournament']["tournament_id"],
-						tournament_name = validated_data['tournament']["tournament_name"],
-						game_name = validated_data["game_name"],
-						host = lobby.host,
-						number_players = validated_data['tournament']["number_players"],
-					)
-		else: lobby.tournament = None
 		lobby.save()
 		
 		scores_list = validated_data.pop('scores_set')
@@ -125,13 +121,32 @@ class LobbySerializer(DynamicFieldsSerializer):
 			)
 		return lobby
 
-class TurnamentSerializer(serializers.HyperlinkedModelSerializer):
+class TournamentSerializer(serializers.HyperlinkedModelSerializer):
 	lobbies_set = LobbySerializer(many=True, read_only=True, fields=['lobby_id', 'lobby_name', 'scores_set',])
-	host = serializers.CharField(required=False, source='host.username', allow_blank=True)
+	host = serializers.CharField(required=True, source='host.username', allow_blank=True)
 
 	class Meta:
 		model = Tournament
 		fields = ('tournament_id', 'tournament_name', 'host', 'game_name', 'date', 'number_players', 'lobbies_set',)
+
+	def validate(self, attrs):
+		attrs = super().validate(attrs)
+		try:
+			if 'host' in attrs:
+				attrs['host'] = User.objects.get(username=attrs['host']['username'])
+		except:
+			raise serializers.ValidationError({"host": [f"User {attrs['host']['username']} does not exists."]})	
+		return attrs
+
+	def create(self, validated_data):
+		return Tournament.objects.create(
+			tournament_id=validated_data['tournament_id'],
+			tournament_name=validated_data.get('tournament_name', None),
+			game_name=validated_data['game_name'],
+			number_players=validated_data['number_players'],
+			host=validated_data['host']
+		)
+
 
 class UserSerializer(serializers.HyperlinkedModelSerializer):
 	username = serializers.CharField(read_only=True)
