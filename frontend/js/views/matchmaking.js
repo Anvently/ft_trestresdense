@@ -43,7 +43,7 @@ export default class MatchmakingView extends BaseView {
 		this.createLobbyButton.addEventListener('click', () => this.createLobby());
 		this.saveLobbyOptionsButton.addEventListener('click', () => this.saveLobbyOptions());
 
-		document.getElementById('lobbyNameCreation').value = `${authenticatedUser.display_name}'s lobby`;
+
 
 		userManager.setDynamicUpdateHandler(this.updateUserInfos);
 
@@ -422,14 +422,23 @@ export default class MatchmakingView extends BaseView {
 	}
 
 	async lobby_update(message) {
+		console.log(message)
+		let isTnMatch = false;
+		if (message.match_type === "tournament_match")
+		{
+			this.isHost = false;
+			isTnMatch = true;
+		}
+		document.getElementById('lobbyName').textContent = message.name;
 		const lobbyNameEl = document.getElementById('lobbyName');
 		const playerListEl = document.getElementById('playerList');
 
-		lobbyNameEl.textContent = message.lobbyName;
+		// lobbyNameEl.textContent = message.lobbyName;
 		playerListEl.innerHTML = '';  // Vider la liste avant mise à jour
 
+
 		await Object.entries(message.players).forEach(async ([playerId, playerData]) => {
-		  await this.appendPlayerEntry(playerListEl, playerId, playerData, message.host);
+		  await this.appendPlayerEntry(playerListEl, playerId, playerData, message.host, isTnMatch);
 		});
 
 		// Gérer les slots libres
@@ -441,7 +450,7 @@ export default class MatchmakingView extends BaseView {
 
 
 
-	async appendPlayerEntry(tableElement, playerId, playerData, hostId) {
+	async appendPlayerEntry(tableElement, playerId, playerData, hostId, isTnMatch) {
 		const playerRow = document.createElement('tr');
 		let playerState;
 		if (playerData.is_ready) {
@@ -479,7 +488,8 @@ export default class MatchmakingView extends BaseView {
 
 		const actionCell = document.createElement('td');
 		actionCell.classList.add('right');
-		if (this.isHost && playerId !== hostId) {
+		if (this.isHost && playerId !== hostId && !isTnMatch) {
+			console.log("creating kick button");
 			const kickButton = document.createElement('button');
 			kickButton.className = 'btn btn-danger';
 			kickButton.textContent = 'Expulser';
