@@ -119,6 +119,7 @@ class PongLobby:
 		self.waiting_for += 1
 
 	def send_result(self):
+		print(f"winner is = {self.winner}")
 		data = {}
 		data['lobby_id'] =  self.lobby_id
 		data['game_name'] = self.game_type
@@ -130,10 +131,11 @@ class PongLobby:
 			data['status'] = 'terminated'
 			data['scores_set'] = []
 			for player in self.players:
-				data['scores_set'].append({
-					'username': player.player_id,
-					'has_win': self.winner == player.player_id
-				})
+				if (player.player_id != '!wall'):
+					data['scores_set'].append({
+						'username': player.player_id,
+						'has_win': self.winner == player.player_id
+					})
 		try:
 			response = requests.post('http://matchmaking:8003/result/?format=json',
 					data=json.dumps(data),
@@ -144,7 +146,7 @@ class PongLobby:
 						}
 					)
 			if response.status_code != 200:
-				raise Exception(f"expected status 201 but got {response.status_code} ({response.content})")
+				raise Exception(f"expected status 201 but got {response.status_code}")
 		except Exception as e:
 			logging.error(f"Failed to send results of lobby {self.lobby_id}: {e}")
 		# API call to send result to matchmaking
@@ -236,9 +238,9 @@ class PongLobby:
 		# 	self.gameState = 3
 		# 	self.winner = self.get_winner()
 
-		winner = self.check_winner()
-		if winner:
-			print(f"{winner} won the game")
+		self.winner = self.check_winner()
+		if self.winner:
+			print(f"{self.winner} won the game")
 			self.gameState = 3
 
 		return self.generate_JSON()

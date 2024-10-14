@@ -176,7 +176,6 @@ class Lobby():
 	def handle_results(self, results: dict[str, Any]):
 		""" register in database"""
 		if results['status'] != 'cancelled':
-			results.pop('status')
 			results['hostname'] = self.hostname
 			# results['scores_set'] = [el for el in results['scores_set'] if el['username'][0] != '!']
 			try:
@@ -297,7 +296,7 @@ class TournamentMatchLobby(Lobby):
 	def handle_results(self, results: Dict[str, Any]):
 		if self.tournament_id in tournaments: #Probably not necessary to check that
 			super().handle_results(results)
-			tournaments['tournament_id'].handle_result(results)
+			tournaments[self.tournament_id].handle_result(results)
 		self.delete()
 
 	def init_game(self, extra_data: Dict[str, Any] = None) -> bool:
@@ -333,16 +332,16 @@ class TournamentMatchLobby(Lobby):
 # })
 
 
-# lobby3 = TournamentInitialLobby({
-# 	'hostname': 'john',
-# 	'name': "Tornois",
-# 	'game_type': 'pong2d',
-# 	'nbr_players': 2,
-# 	'nbr_bots': 2,
-# 	'lives':20,
-# 	'allow_spectators': True,
-# 	'public': True
-# })
+lobby3 = TournamentInitialLobby({
+	'hostname': 'john',
+	'name': "Tornois",
+	'game_type': 'pong2d',
+	'nbr_players': 4,
+	'nbr_bots': 4,
+	'lives':1,
+	'allow_spectators': True,
+	'public': True
+})
 
 # lobbies[lobby3.id] = lobby3
 # lobbies[lobby3.id].player_ready('john')
