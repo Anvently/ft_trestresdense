@@ -57,7 +57,8 @@ export default class ResultsView extends BaseView {
 		const lobbiesTable = document.getElementById('lobbies-table');
 		lobbiesTable.innerHTML = "";
 		await this.lobbiesResults.forEach(async lobby => {
-			const host = new User(lobby.host, await userManager.getUserInfo(lobby.host)); 
+			const hostName = (lobby.host ? lobby.host : lobby.tournament_host);
+			const host = new User(hostName, await userManager.getUserInfo(hostName)); 
 			const row = document.createElement('tr');
 			row.innerHTML = `
 			<td>${this.convertDate(lobby.date)}</td>

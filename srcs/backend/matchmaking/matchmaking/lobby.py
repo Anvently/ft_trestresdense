@@ -130,7 +130,7 @@ class Lobby():
 	def check_rules(self):
 		pass
 
-	def init_game(self) -> bool:
+	def init_game(self, extra_data: Dict[str, any] = None) -> bool:
 		""" Send HTTP request to pong backend and sent link to consumers. Update players status """
 		# This exception could be ignored and we could complete here missing player with bots
 		if len(self.players) != self.player_num:
@@ -139,9 +139,12 @@ class Lobby():
 		data = {
 			'game_name': self.game_type,
 			'game_id': self.id,
+			'hostname': self.hostname,
 			'settings': self.settings,
 			'player_list': list(self.players.keys())
 		}
+		if (extra_data):
+			data.update(extra_data)
 		try:
 			response = requests.post('http://pong:8002/init-game/?format=json',
 					data=json.dumps(data),
@@ -285,17 +288,21 @@ class TournamentInitialLobby(Lobby):
 class TournamentMatchLobby(Lobby):
 
 	def __init__(self, settings: Dict[str, Any], id:str) -> None:
-		super().__init__(settings, id, 'T')
 		self.tournament_id = self.id[:self.id.find('.')]
-		self.tournament_name = settings['tournament_name']
 		self.created_at = time.time()
+		self.hostname = None
+		super().__init__(settings, id, 'T')
 
 	def handle_results(self, results: Dict[str, Any]):
 		if self.tournament_id in tournaments: #Probably not necessary to check that
-			results['tournament_name'] = self.tournament_name
 			super().handle_results(results)
 			tournaments['tournament_id'].handle_result(results)
 		self.delete()
+
+	def init_game(self, extra_data: Dict[str, Any] = None) -> bool:
+		return super().init_game({
+			'tournament_id': self.tournament_id
+		})
 
 	def __str__(self) -> str:
 		return "tournament_match"

@@ -38,11 +38,35 @@ def IsApiAuthenticatedAs(required_api: List[str]):
 
 	return CustomIsApiAuthenticated
 
+class IsApiAuthenticatedOrReadOnly(BasePermission):
+
+	restrict_api: List[str] = None
+
+	def __init__(self):
+		pass
+
+	def has_permission(self, request, view):
+		if (request.method in ('GET', 'HEAD', 'OPTIONS')):
+			return True
+		if not hasattr(request, 'api_name'):
+			return False
+		if self.restrict_api and request.api_name not in self.restrict_api:
+			raise AuthenticationFailed("The provided token does not allow this action")
+		elif request.api_name:
+			return True
+		return False
+	
+def IsApiAuthenticatedAsOrReadOnly(required_api: List[str]):
+	class CustomIsApiAuthenticatedOrReadOnly(IsApiAuthenticatedOrReadOnly):
+		restrict_api = required_api
+
+	return CustomIsApiAuthenticatedOrReadOnly
+
 class ApiJWTAuthentication(BaseAuthentication):
 	def authenticate(self, request):
 		token = request.headers.get("Authorization")
 		if not token:
-			raise AuthenticationFailed("Token not provided")
+			return None
 		token = token.removeprefix("Bearer ")
 		try:
 			data = verify_jwt(token, is_ttl_based=False)
