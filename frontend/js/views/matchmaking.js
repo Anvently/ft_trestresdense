@@ -157,7 +157,7 @@ export default class MatchmakingView extends BaseView {
 		} else {
 			availableLobbiesEl.innerHTML = `<tr><td colspan="5">Aucun résultat.</td></tr>`;
 		}
-		
+
 		if (message.ongoingMatches && message.ongoingMatches.length) {
 			ongoingMatchesEl.innerHTML = '';
 			message.ongoingMatches.forEach(match => {
@@ -439,6 +439,8 @@ export default class MatchmakingView extends BaseView {
 		}
 	}
 
+
+
 	async appendPlayerEntry(tableElement, playerId, playerData, hostId) {
 		const playerRow = document.createElement('tr');
 		let playerState;
@@ -550,6 +552,11 @@ export default class MatchmakingView extends BaseView {
 			this.displayFriends(friends);
 		})
 		.catch (error => this.errorHandler(error));
+	}
+
+	set_unready(message)
+	{
+		this.isReady = false;
 	}
 
 	beReady(playerId)
@@ -786,6 +793,7 @@ export default class MatchmakingView extends BaseView {
 
 	game_start(message)
 	{
+		console.log("WTF");
 		const websocket_id = message.websocket_id;
 		const game_type = message.game_type;
 		window.location.hash = `#${game_type}?id=${websocket_id}`;
@@ -818,6 +826,7 @@ export default class MatchmakingView extends BaseView {
         if (this.socket) {
 			this.received_error = true;
             this.socket.close();
+			this.socket = undefined;
         }
 
 		this.showOnlinePLayersButton.removeEventListener('click', this.showOnlinePlayers);
@@ -832,4 +841,5 @@ export default class MatchmakingView extends BaseView {
         // this.startButton.removeEventListener('click', this.startMatchmaking);
     }
 }
+
 
