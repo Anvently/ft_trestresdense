@@ -1,5 +1,6 @@
 from typing import Any, Dict
 from enum import IntEnum
+import logging
 from functools import total_ordering
 
 @total_ordering
@@ -22,8 +23,9 @@ tournaments: Dict[str, 'Tournament'] = {}
 from matchmaking.tournament import Tournament
 def tournament_creator(data: Dict[str, Any]) -> bool:
 	try:
-		tournaments[data['id']] = Tournament(data)
+		tournament = Tournament(data)
+		tournaments[tournament.id] = tournament
 	except Exception as e :
-		raise e
+		logging.error(e)
 		return False
 	return True
