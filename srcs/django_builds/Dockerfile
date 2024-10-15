@@ -23,3 +23,6 @@ FROM django_authapi AS django_websocketapi
 RUN pip3 install -U 'channels[daphne]'
 RUN pip3 install -U channels-redis
 RUN pip3 install -U pottery
+
+FROM django_websocketapi AS django_pongapi
+RUN pip3 install -U adrf

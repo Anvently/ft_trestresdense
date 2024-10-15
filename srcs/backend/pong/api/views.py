@@ -1,4 +1,4 @@
-from rest_framework.views import APIView
+from adrf.views import APIView
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.parsers import JSONParser
@@ -15,7 +15,7 @@ class PostGameView(APIView):
 	authentication_classes = [ApiJWTAuthentication,]
 	permission_classes = [IsApiAuthenticatedAs("matchmaking")]
 
-	def post(self, request):
+	async def post(self, request):
 		print(f"receiving {request.data}")
 		serializer = GameSerializer(data=request.data)
 		if not serializer.is_valid():
@@ -26,7 +26,7 @@ class PostGameView(APIView):
 
 class RetrieveLobbyView(APIView):
 
-	def get(self, request, lobby_id):
+	async def get(self, request, lobby_id):
 		if not PongLobby.check_lobby_id(lobby_id):
 			return Response({'lobby not found.'}, status=status.HTTP_404_NOT_FOUND)
 		serializer = GameSerializer()
@@ -34,7 +34,7 @@ class RetrieveLobbyView(APIView):
 
 class ListLobbyView(APIView):
 
-	def get(self, request):
+	async def get(self, request):
 		serializer = GameSerializer(lobbies_list.values(), many=True)
 		return Response(serializer.data)
 

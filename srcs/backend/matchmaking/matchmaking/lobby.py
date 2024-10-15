@@ -336,16 +336,16 @@ class TournamentMatchLobby(Lobby):
 # })
 
 
-# lobby3 = TournamentInitialLobby({
-# 	'hostname': 'john',
-# 	'name': "Tornois",
-# 	'game_type': 'pong2d',
-# 	'nbr_players': 4,
-# 	'nbr_bots': 4,
-# 	'lives':1,
-# 	'allow_spectators': True,
-# 	'public': True
-# })
+lobby3 = TournamentInitialLobby({
+	'hostname': 'john',
+	'name': "Tornois",
+	'game_type': 'pong2d',
+	'nbr_players': 4,
+	'nbr_bots': 4,
+	'lives':1,
+	'allow_spectators': True,
+	'public': True
+})
 
 # lobbies[lobby3.id] = lobby3
 # lobbies[lobby3.id].player_ready('john')
