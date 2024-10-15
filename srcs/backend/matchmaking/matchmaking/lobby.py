@@ -8,8 +8,7 @@ from django.conf import settings
 # from matchmaking.common import tournament_creator
 import time, logging, random, string
 from matchmaking.common import online_players, PlayerStatus, lobbies, tournaments, tournament_creator
-
-
+from channels.layers import get_channel_layer
 
 def generate_id(public, spectate ,prefix=''):
 	""" Simplr => S
@@ -177,6 +176,7 @@ class Lobby():
 		""" register in database"""
 		if results['status'] != 'cancelled':
 			results['hostname'] = self.hostname
+			results['lobby_name'] = self.name
 			# results['scores_set'] = [el for el in results['scores_set'] if el['username'][0] != '!']
 			try:
 				response = requests.post('http://users_api:8001/post-result/?format=json',

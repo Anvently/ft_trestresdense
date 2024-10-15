@@ -52,7 +52,7 @@ export default class UserView extends BaseView {
 	}
 
 	updateEditFriendButton() {
-		if (this.userInfo.username === authenticatedUser.username) {
+		if (this.userInfo.username === authenticatedUser.username || this.userInfo.username[0] === '!') {
 			this.editFriendButton.classList.add('d-none');
 			return;
 		}

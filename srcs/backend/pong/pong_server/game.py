@@ -134,6 +134,7 @@ class PongLobby:
 				if (player.player_id != '!wall'):
 					data['scores_set'].append({
 						'username': player.player_id,
+						'score': player.lives,
 						'has_win': self.winner == player.player_id
 					})
 		try:
