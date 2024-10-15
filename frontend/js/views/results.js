@@ -107,12 +107,11 @@ export default class ResultsView extends BaseView {
 		});
 	}
 
-	updateUserInfos(username, userInfo) {
-		const scoreEl = document.querySelector(`td.user-${username}`);
+	async updateUserInfos(username, userInfo) {
 		const user = new User(username, userInfo);
-		if (scoreEl) {
+		document.querySelectorAll(`td.user-${username}`).forEach((scoreEl) => {
 			scoreEl.querySelector('img').src = user.avatar;
 			scoreEl.querySelector('.user-name').innerText = user.display_name;
-		}
+		});
 	}
 }

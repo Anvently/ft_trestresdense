@@ -137,7 +137,7 @@ class BackgroundUpdater {
 		this.usersToUpdate = new Set(); //List of username that needs to be updated
 		this.refreshIntervalId = undefined;
 		this.updateTimeoutId = undefined;
-		this.userChangeHandler = (username, userInfo) => {
+		this.userChangeHandler = async (username, userInfo) => {
 			throw Error('You need to assign a handler taking (username, userInfo) to update user content');
 		};
 	}
@@ -235,7 +235,7 @@ class BackgroundUpdater {
 			for (const userInfo of receivedInfo) {
 				if (JSON.stringify(userInfo) !== JSON.stringify(this.userCache.getUser(userInfo.username))) {
 					this.userCache.setUser(userInfo.username, userInfo);
-					this.userChangeHandler(userInfo.username, userInfo);
+					await this.userChangeHandler(userInfo.username, userInfo);
 				}
 			} 
 		} catch (error) {

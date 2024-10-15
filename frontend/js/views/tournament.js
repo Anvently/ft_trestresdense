@@ -52,13 +52,12 @@ export default class TournamentView extends BaseView {
 			</div>`;
 	}
 
-	updateUserInfos(username, userInfo) {
-		const scoreEl = document.querySelector(`div.user-info.user-${username}`);
+	async updateUserInfos(username, userInfo) {
 		const user = new User(username, userInfo);
-		if (scoreEl) {
+		document.querySelectorAll(`div.user-info.user-${username}`).forEach((scoreEl) => {
 			scoreEl.querySelector('img').src = user.avatar;
 			scoreEl.querySelector('.user-name').innerText = user.display_name;
-		}
+		});
 	}
 
 	computeNbrRounds(nbr_player) {

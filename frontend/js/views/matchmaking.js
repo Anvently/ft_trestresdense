@@ -823,7 +823,7 @@ export default class MatchmakingView extends BaseView {
 		}
 	}
 
-	updateUserInfos(username, userInfo) {
+	async updateUserInfos(username, userInfo) {
 		document.querySelectorAll(`.dynamicDisplayName.user-${username}`).forEach(el => {
 			el.textContent = userInfo.display_name;
 		});

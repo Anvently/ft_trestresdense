@@ -24,10 +24,10 @@ export default class UserView extends BaseView {
 			e.preventDefault();
 			this.switchFriendStatus();
 		})
+		userManager.setDynamicUpdateHandler(this.updateUserInfos);
 		this.updateEditFriendButton();
 		this.displayUserInfo();
 		this.displayScores();
-		userManager.setDynamicUpdateHandler(this.updateUserInfos);
 		await this.updateFriendsList();
 		await userManager.forceUpdate();
 	}
