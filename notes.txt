@@ -2,8 +2,6 @@ Failles possibles :
 	- si on obtient un token valide pour un user "xyz", on supprime le compte, et quelqu'un recreait le compte "xyz", notre token est toujours valide.
 	
 TODO:
-	matchmaking/pong:
-	- check tournament implementation with bot only
 
 	Backend:
 	- implement 2FA authentification
@@ -15,28 +13,19 @@ TODO:
 	- dig into production server
 
 	Frontend:
-	- tournament tree
-		- need to be able to print bots results
 	- implement 2FA 
 	- local turnament
+	- check how to implement tournament tree view as a pop-up 
 
 	Pong:
 		- display explicit message on the page when the lobby doesn't exist
 
 
 BUGS:
-- Dans le cas d'une partie avec un joueur human et plus de deux bots, si le joueur
-	est elimine, il doit attendre la fin de la partie entre les bots avant de pouvoir
-	rejoindre une autre partie
-
-- Websocket se ferme au debut de la partie sur les pc peu puissants (les macs). Ajout d'un timeout ?
-
-- Joueurs en ligne dans le matchmaking ne fonctionne plus
 
 - post user batch in pong.js
 
-- matchmaking, expulsing bot does not trigger general update
-
 - the crash in pong is caused by an infinite loop in calculate_impact()
 
-- in matchmaking some issue with updating user infos callback
+- matchmaking: when refreshing page in tournament lobby (not initial), 
+	we can't reconnect to websocket because "a websocket connection is already opened"

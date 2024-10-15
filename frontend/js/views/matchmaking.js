@@ -1,4 +1,4 @@
-import { BaseView } from '../view-manager.js';
+import { BaseView, ViewManager } from '../view-manager.js';
 import { authenticatedUser, userManager, User } from '../home.js'
 
 export default class MatchmakingView extends BaseView {
@@ -35,7 +35,7 @@ export default class MatchmakingView extends BaseView {
 		this.saveLobbyOptionsButton = document.getElementById("saveLobbyOptionsButton");
 
 		this.showOnlinePLayersButton.addEventListener('click', () => this.showOnlinePlayers());
-		this.openLobbyOptionsButton.addEventListener('clck', (e) => this.openLobbyOptions());
+		this.openLobbyOptionsButton.addEventListener('click', (e) => this.openLobbyOptions());
 		//this.startGameButton.addEventListener('click', () => this.startGame());
 		this.inviteFriendsButton.addEventListener('click', () => this.inviteFriends());
 		this.leaveLobbyButton.addEventListener('click', () => this.leaveLobby());
@@ -43,7 +43,7 @@ export default class MatchmakingView extends BaseView {
 		this.createLobbyButton.addEventListener('click', () => this.createLobby());
 		this.saveLobbyOptionsButton.addEventListener('click', () => this.saveLobbyOptions());
 
-
+		document.getElementById('testBracketButton').addEventListener('click', async () => await this.displayTournamentTree('efa18272fd22f393f157e374'));
 
 		userManager.setDynamicUpdateHandler(this.updateUserInfos);
 
@@ -428,6 +428,10 @@ export default class MatchmakingView extends BaseView {
 		{
 			this.isHost = false;
 			isTnMatch = true;
+			document.getElementById('displayBracketButton').classList.remove('d-none');
+			document.getElementById('inviteFriendsButton').classList.add('d-none');
+		} else {
+			document.getElementById('inviteFriendsButton').classList.remove('d-none');
 		}
 		document.getElementById('lobbyName').textContent = message.name;
 		const lobbyNameEl = document.getElementById('lobbyName');
@@ -446,6 +450,8 @@ export default class MatchmakingView extends BaseView {
 		for (let i = players_len; i < message.settings.nbr_players; i++) {
 		  this.appendEmptySlotEntry(playerListEl, i === players_len);
 		}
+
+		await userManager.forceUpdate();
 	}
 
 
@@ -794,6 +800,8 @@ export default class MatchmakingView extends BaseView {
 	spectateLobby(lobby_id)
 	{
 		this.sendMessage({type : "spectate_game", lobby_id : lobby_id}, 500).then ((message) => {
+			if (message === undefined)
+				throw new Error("Invalid lobby");
 			const game_type = message.game_type;
 			window.location.hash = `#${game_type}?id=${message.lobby_id}`;
 		})
@@ -830,6 +838,15 @@ export default class MatchmakingView extends BaseView {
 		document.querySelectorAll(`.dynamicAvatarUrl.user-${username}`).forEach(el => {
 			el.src = userInfo.avatar + "#" + new Date().getTime();
 		});
+	}
+
+	async displayTournamentTree(id) {
+		new bootstrap.Modal(document.getElementById('tournamentModal')).show();
+		const tournamentDiv = document.getElementById('tournamentModalDiv');
+		const viewManager = new ViewManager(tournamentDiv);
+		viewManager.setErrorHandler(this.errorHandler);
+		await viewManager.loadView('./views/tournament.js', 'html/tournament.html');
+		// viewManager.v
 	}
 
     cleanupView() {
