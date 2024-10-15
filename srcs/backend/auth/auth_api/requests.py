@@ -64,14 +64,12 @@ def obtain_oauth_token(request:HttpRequest, code:str) -> str:
 		'code': code,
 		'redirect_uri': f"https://{request.META['HTTP_HOST']}:8083/api/auth/42-api-callback"
 	}
-	print(data)
 	try:
 		response = requests.post("https://api.intra.42.fr/oauth/token",
 						data=data,
 						allow_redirects=False,
 		)
 		json_content = response.json()
-		print(json_content)
 	except:
 		raise StatusException("obtain_auth_token_for_user")
 	if response.status_code != 200 or not "access_token" in json_content:

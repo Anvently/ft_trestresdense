@@ -183,7 +183,7 @@ lobbies_list : Dict[str, PongLobby] = dict()
 
 
 
-from daphne.server import twisted_loop
+# from daphne.server import twisted_loop
 
 
 
@@ -196,7 +196,7 @@ from daphne.server import twisted_loop
 # )
 
 
-for lobby_id in lobbies_list:
-	if lobbies_list[lobby_id].check_game_start():
-		print(f"Auto-starting {lobby_id}")
-		twisted_loop.create_task(lobbies_list[lobby_id].start_game_loop())
+# for lobby_id in lobbies_list:
+# 	if lobbies_list[lobby_id].check_game_start():
+# 		print(f"Auto-starting {lobby_id}")
+# 		twisted_loop.create_task(lobbies_list[lobby_id].start_game_loop())

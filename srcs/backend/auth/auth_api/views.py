@@ -18,7 +18,6 @@ from typing import Any
 import time
 
 def	get_or_create_user(infos: dict[str, Any]) -> User:
-	print(infos)
 	try:
 		user = User.objects.get(username="042{0}".format(infos['username']))
 		return user

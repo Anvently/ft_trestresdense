@@ -111,7 +111,6 @@ class Lobby():
 			return False
 		if not self.init_game():
 			return False
-		print("init successful")
 		return True
 
 	def player_not_ready(self, player_id):
@@ -147,7 +146,6 @@ class Lobby():
 		if (extra_data):
 			data.update(extra_data)
 		try:
-			print("sending request")
 			response = requests.post('http://pong:8002/init-game/?format=json',
 					data=json.dumps(data),
 					headers = {
@@ -162,10 +160,8 @@ class Lobby():
 			print(f"ERROR: Failed to post game initialization to pong api: {e}")
 			return False
 		# Update player status
-		print("request sent")
 		for player_id, player in self.iterate_human_player():
 			online_players[player_id]['status'] = PlayerStatus.IN_GAME
-		print("end of loop")
 		self.started = True
 		return True
 
@@ -336,16 +332,16 @@ class TournamentMatchLobby(Lobby):
 # })
 
 
-lobby3 = TournamentInitialLobby({
-	'hostname': 'john',
-	'name': "Tornois",
-	'game_type': 'pong2d',
-	'nbr_players': 4,
-	'nbr_bots': 4,
-	'lives':1,
-	'allow_spectators': True,
-	'public': True
-})
+# lobby3 = TournamentInitialLobby({
+# 	'hostname': 'john',
+# 	'name': "Tornois",
+# 	'game_type': 'pong2d',
+# 	'nbr_players': 8,
+# 	'nbr_bots': 8,
+# 	'lives':1,	
+# 	'allow_spectators': True,
+# 	'public': True
+# })
 
 # lobbies[lobby3.id] = lobby3
 # lobbies[lobby3.id].player_ready('john')

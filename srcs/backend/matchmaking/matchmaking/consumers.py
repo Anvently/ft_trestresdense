@@ -211,12 +211,12 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		if self._messageId != None:
 			content['id'] = self._messageId
 		self._messageId = None
-		print(f"\n SENDING {content} \n")
+		# print(f"\n SENDING {content} \n")
 		return await super().send_json(content, close)
 
 	async def receive_json(self, content, **kwargs):
 		# perform some basic checks ?
-		print(f"\n RECEIVED : {content} \n")
+		# print(f"\n RECEIVED : {content} \n")
 		try:
 			if 'id' in content:
 				self._messageId = content['id']

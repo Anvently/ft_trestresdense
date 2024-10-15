@@ -12,6 +12,7 @@ from django.conf import settings
 import traceback
 from abc import abstractmethod
 import logging, threading
+from asgiref.sync import sync_to_async
 
 # Constants
 PADDLE_LENGTH = 0.16
@@ -118,8 +119,7 @@ class PongLobby:
 		""" Template of player_list: ["user1", "user1_guest"] """
 		self.waiting_for += 1
 
-	def send_result(self):
-		print(f"winner is = {self.winner}")
+	async def send_result(self):
 		data = {}
 		data['lobby_id'] =  self.lobby_id
 		data['game_name'] = self.game_type
@@ -137,7 +137,7 @@ class PongLobby:
 						'has_win': self.winner == player.player_id
 					})
 		try:
-			response = requests.post('http://matchmaking:8003/result/?format=json',
+			response = await sync_to_async(requests.post)('http://matchmaking:8003/result/?format=json',
 					data=json.dumps(data),
 					headers = {
 						'Host': 'localhost',
@@ -190,7 +190,7 @@ class PongLobby:
 				await player_channel.group_send(self.lobby_id, {"type": "cancel",
 																"message": "A Player failed to load"
 																})
-				self.send_result()
+				await self.send_result()
 				self.loop.cancel()
 				return
 			await player_channel.group_send(self.lobby_id, {"type": "game_start"})
@@ -216,7 +216,7 @@ class PongLobby:
 					"winner": self.winner
 				}
 			)
-			self.send_result()
+			await self.send_result()
 			await player_channel.group_send(
 				self.lobby_id, {
 					"type": "leave_lobby"

@@ -87,14 +87,14 @@ class Tournament:
 		return (None, None)
 
 	@staticmethod
-	def get_max_stage(nbr_players: int):
+	def get_max_stage(nbr_players: int) -> int:
 		if (nbr_players % 2):
 			return 0
 		count = 0
 		while (nbr_players / 2 > 1):
 			nbr_players /= 2
 			count += 1
-		return count
+		return int(count)
 
 	def delete(self):
 		""" May want to post special results ?? """
@@ -104,12 +104,12 @@ class Tournament:
 		if (previous_stage - 1 == 0):
 			id = f"{self.id}.0"
 		else:
-			id = f"{self.id}.{previous_stage - 1}.{previous_idx / 2}"
+			id = f"{self.id}.{previous_stage - 1}.{int(previous_idx / 2)}"
 		if id in lobbies:
 			return id
 		from matchmaking.lobby import TournamentMatchLobby
 		lobbies[id] = TournamentMatchLobby({
-			'name': self.generate_match_name(previous_stage - 1, previous_idx / 2),
+			'name': self.generate_match_name(previous_stage - 1, int(previous_idx / 2)),
 			'game_type': self.game_type,
 			'nbr_players': 2,
 			'nbr_bots': 0,
@@ -126,13 +126,10 @@ class Tournament:
 		lobby_id:str = results['lobby_id']
 		stage, match_idx = Tournament.extract_id_info(lobby_id)
 		for score in results['scores_set']:
-			print(score)
 			if score['has_win'] == True and stage != 0:
 				""" We need to instantiate the new lobby if it doesn't exist yet,
 				 and assign player to it. """
 				next_match_id = self.setup_next_match(stage, match_idx)
-				print("next match id=", next_match_id)
-				print(f"reassigning {score['username']}")
 				self.reassign_player(score['username'], next_match_id, PlayerStatus.IN_TOURNAMENT_LOBBY)
 			else:
 				""" If someone lose or it was a final, it's up to the
