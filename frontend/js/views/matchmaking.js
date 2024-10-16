@@ -485,9 +485,9 @@ export default class MatchmakingView extends BaseView {
 		const linkBlock = document.createElement('a');
 		linkBlock.classList.add('user-link', 'd-flex', 'align-items-center', 'text-decoration-none');
 		const userAvatar = document.createElement('img');
-		userAvatar.classList.add('rounded-circle', 'me-2', 'dynamicAvatarUrl');
+		userAvatar.classList.add('rounded-circle', 'me-2', 'dynamicAvatarUrl', `user-${user.username}`);
 		const userNameSpan = document.createElement('span');
-		userNameSpan.classList.add('dynamicDisplayName');
+		userNameSpan.classList.add('dynamicDisplayName', `user-${user.username}`);
 		userNameSpan.textContent = user.display_name;
 		userAvatar.src = user.avatar;
 		linkBlock.href = !user.is_bot ? `https://${window.location.host}/#user?username=${playerId}` : "javascript:void(0)";
@@ -721,7 +721,7 @@ export default class MatchmakingView extends BaseView {
 	}
 
 
-	appendPLayerStatusEntry(tableElement, player_id, player_data, modal)
+	appendPlayerStatusEntry(tableElement, player_id, player_data, modal)
 	{
 
 		console.log('adding player');
@@ -744,10 +744,9 @@ export default class MatchmakingView extends BaseView {
 		{
 			userAvatar.src = url;
 		});
-		userAvatar.classList.add = (`dynamicAvatarUrl`, `user-${player_id}`);
+		userAvatar.classList.add(`dynamicAvatarUrl`, `user-${player_id}`);
 		userNameSpan.classList.add(`dynamicDisplayName`, `user-${player_id}`);
 		userManager.getUserAttr(player_id, 'display_name', player_id).then(displayName => {
-			console.log(`display name is ${displayName}`);
 			userNameSpan.textContent = displayName;
 		});
 		linkBlock.href = `https://${window.location.host}/api/users/${player_id}/`;
@@ -799,7 +798,7 @@ export default class MatchmakingView extends BaseView {
 		onlinePlayers.innerHTML = '';
 		Object.entries(players).forEach(player_data => {
 			if (authenticatedUser.is_friend(player_data[0]))
-				this.appendPLayerStatusEntry(onlinePlayers, player_data[0], player_data[1], modal);
+				this.appendPlayerStatusEntry(onlinePlayers, player_data[0], player_data[1], modal);
 		});
 		modal.show();
 	}
@@ -839,6 +838,7 @@ export default class MatchmakingView extends BaseView {
 	}
 
 	async updateUserInfos(username, userInfo) {
+		console.log(`updating ${username} informations`);
 		document.querySelectorAll(`.dynamicDisplayName.user-${username}`).forEach(el => {
 			el.textContent = userInfo.display_name;
 		});
