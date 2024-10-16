@@ -221,7 +221,8 @@ export default class Pong2DView extends BaseView {
 	updateScoreBoard() {
 		for (let i = 0; i < this.number_of_players; i++) {
 			const score = this.players[i].lives; // Access player score
-			if (this.previous_score[i] != score) {
+			if (this.previous_score[i] !== score) {
+				console.log("updateScoreBoard");
 				const geometry = new TextGeometry(score.toString(), {
 					font: this.font,
 					size: 0.5,
@@ -234,6 +235,7 @@ export default class Pong2DView extends BaseView {
 					oldMesh.geometry.dispose();
 				}
 				oldMesh.geometry = centeredGeometry;
+				this.previous_score = score;
 			}
 		}
 	}

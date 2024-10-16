@@ -347,18 +347,18 @@ lobby4 = SimpleMatchLobby({
 
 lobbies[lobby4.id] = lobby4
 
-lobby5 = SimpleMatchLobby({
-	'hostname': 'john',
-	'name': "John's room",
-	'game_type': 'pong2d',
-	'nbr_players': 4,
-	'nbr_bots': 4,
-	'lives':20,
-	'allow_spectators':True,
-	'public': True
-})
+# lobby5 = SimpleMatchLobby({
+# 	'hostname': 'john',
+# 	'name': "John's room",
+# 	'game_type': 'pong2d',
+# 	'nbr_players': 4,
+# 	'nbr_bots': 4,
+# 	'lives':20,
+# 	'allow_spectators':True,
+# 	'public': True
+# })
 
-lobbies[lobby5.id] = lobby5
+# lobbies[lobby5.id] = lobby5
 lobbies[lobby.id] = lobby
 lobbies[lobby2.id] = lobby2
 lobbies[lobby3.id] = lobby3
