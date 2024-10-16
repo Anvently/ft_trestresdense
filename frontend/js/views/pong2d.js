@@ -39,6 +39,21 @@ const SCORE_POSITION = [
 	{X: 0, Y: -6.5},
 ];
 
+// CONTROLS[player][direction]
+const CONTROLS = [
+	[
+		{up: "w", down: "s"},
+		{up: "w", down: "s"},
+		{up: "a", down: "d"},
+		{up: "a", down: "d"}
+	],
+	[
+		{up: "ArrowUp", down: "ArrowDown"},
+		{up: "ArrowUp", down: "ArrowDown"},
+		{up: "ArrowLeft", down: "ArrowRight"},
+		{up: "ArrowLeft", down: "ArrowRight"}
+	]
+]
 
 export default class Pong2DView extends BaseView {
 	constructor() {
@@ -46,10 +61,14 @@ export default class Pong2DView extends BaseView {
 
 		this.start = false;
 		this.socket = null;
+
+		this.playerInfos = [];
+
+		this.isLocalMatch = false;
+
 		this.scene = null;
 		this.camera = null;
 		this.renderer = null;
-		this.playerInfos = [];
 		this.objects = {
 			ball: null,
 			paddle:[],
@@ -60,7 +79,8 @@ export default class Pong2DView extends BaseView {
 				{name: null, lives: null},
 				{name: null, lives: null},
 			],
-			environment: {field: null, corner: [], wall: []}
+			environment: {field: null, corner: [], wall: []},
+			winnerDisplay: null
 		};
 
 		this.players = [
@@ -74,7 +94,10 @@ export default class Pong2DView extends BaseView {
 		this.game_state;
 		this.previous_score = [0, 0, 0, 0];
 		this.username = authenticatedUser.username;
-		this.pressKey = { key_up: false, key_down: false};
+		this.pressKey = [
+			{ key_up: false, key_down: false },
+			{ key_up: false, key_down: false }
+		];
 		// this.intervalId;
 		this.font = null;
 
@@ -86,8 +109,7 @@ export default class Pong2DView extends BaseView {
 		await this.initFont();
 		this.createScene();
 		this.initWebSocket();
-		this.startGameLoop();
-		this.setupInputListeners();
+		// this.startGameLoop();
 		this.setupResizeListener();
 	}
 
@@ -96,7 +118,15 @@ export default class Pong2DView extends BaseView {
 		const sockAdd = this.urlParams.get('id');
 		if (sockAdd === undefined)
 			window.location.hash = '#';
+
 		this.socket = new WebSocket(`wss://${location.hostname}:8083/ws/pong/${sockAdd}/`);
+
+		// wait for the WebSocket to open
+		this.socket.onopen = () => {
+			console.log("WebSocket is now open");
+
+			this.startGameLoop();
+		}
 
 		this.socket.onmessage = (e) => {
 			const msg = JSON.parse(e.data);
@@ -111,6 +141,16 @@ export default class Pong2DView extends BaseView {
 				this.updateGameState(msg);
 				// this.draw3D();
 			}
+		};
+
+		// Handle WebSocket errors
+		this.socket.onerror = (error) => {
+			console.error('WebSocket error:', error);
+		};
+	
+		// Handle WebSocket closure
+		this.socket.onclose = () => {
+			console.log('WebSocket is closed now.');
 		};
 	}
 
@@ -133,25 +173,33 @@ export default class Pong2DView extends BaseView {
 	createScene() {
 		console.log("createScene");
 		this.scene = new THREE.Scene();
+		console.log("-> scene created");
 
 		this.camera = new THREE.PerspectiveCamera( 75, 1, 0.1, 1000);
 		this.camera.position.z = 10;
 		this.camera.lookAt(0, 0, 0);
+		console.log("-> camera created");
 
 		this.renderer = new THREE.WebGLRenderer();
+		console.log("-> renderer created");
+
 		this.renderer.setSize(1200, 1200);
 		this.renderer.shadowMap.enabled = true;
 		this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 		document.getElementById('container-canva').appendChild(this.renderer.domElement);
 
 		this.resize();
+		console.log("-> resized");
 
 		this.scene.add(createSpotLight({x: 0, y: 0, z: 5}));
+		console.log("-> spotlight created");
 
 		this.createEnvironment(this.scene);
+		console.log("-> environment created");
 
 		this.objects.ball = createBall();
 		this.scene.add(this.objects.ball);
+		console.log("-> ball created");
 
 		for (let i = 0; i < 4; i++) {
 			this.objects.paddle.push(createPaddle(PADDLE_INIT.WIDTH[i],
@@ -161,7 +209,9 @@ export default class Pong2DView extends BaseView {
 			this.scene.add(this.objects.paddle[i]);
 			this.objects.paddleLight.push(createPaddleLight(PADDLE_INIT.COLOR[i]));
 			this.scene.add(this.objects.paddleLight[i]);
+			console.log("-> paddle created");
 		}
+
 	}
 
 	updateGameState(msg) {
@@ -186,16 +236,39 @@ export default class Pong2DView extends BaseView {
 			};
 		}
 
-		// create scoreBoard only once game started (bit janky)
-		if (this.start == false) {
+		// if game hasnt started yet
+		if (this.start === false) {
+			// if all players are present
 			for (let i = 0; i < this.number_of_players; i++) {
 				if (this.players[i].id == '')
 					return;
-				this.start = true;
-				//create scoreBoard
-				this.createScoreBoard();
+			}
+			this.start = true;
+			this.onGameStart();
+		}
+	}
+
+	onGameStart() {
+		console.log("onGameStart");
+		this.createScoreBoard();
+
+		// check if is LocalMatch
+		for (let i = 0; i < this.number_of_players; i++) {
+			if (this.isGuestId(this.players[i].id)) {
+				this.isLocalMatch = true;
+				break;
 			}
 		}
+
+		this.setupInputListeners();
+
+
+	}
+
+	isGuestId(id) {
+		if (id.includes("!") && id.indexOf("!") > 0)
+			return true;
+		return false;
 	}
 
 	createScoreBoard() {
@@ -203,8 +276,8 @@ export default class Pong2DView extends BaseView {
 				var geometry = new TextGeometry('', {
 					font: this.font,
 					size: 0.5,
-					depth: 2,
-					curveSegments: 12
+					depth: 0,
+					curveSegments: 24
 				});
 
 				geometry = centerTextGeometry(geometry);
@@ -218,16 +291,17 @@ export default class Pong2DView extends BaseView {
 		}
 	}
 
+
+	// METHOD CALLED TO MUCH... REWORK NEEDED
 	updateScoreBoard() {
 		for (let i = 0; i < this.number_of_players; i++) {
 			const score = this.players[i].lives; // Access player score
 			if (this.previous_score[i] !== score) {
-				console.log("updateScoreBoard");
 				const geometry = new TextGeometry(score.toString(), {
 					font: this.font,
 					size: 0.5,
 					depth: 0,
-					curveSegments: 12
+					curveSegments: 24
 				});
 				const centeredGeometry = centerTextGeometry(geometry);
 				const oldMesh = this.objects.scoreBoard[i].lives;
@@ -240,35 +314,52 @@ export default class Pong2DView extends BaseView {
 		}
 	}
 
-	// startGameLoop() {
-	// 	console.log("startGameLoop");
-	// 	this.intervalId = setInterval(() => {
-	// 		if (this.pressKey.key_up === true)
-	// 			this.socket.send(JSON.stringify({type: 'key_input', username:this.username,  input: "up" }));
-	// 		if (this.pressKey.key_down === true)
-	// 			this.socket.send(JSON.stringify({type: 'key_input', username:this.username,  input: "down" }));
-
-	// 		this.draw3D();
-	// 	}, 16);
-	// }
-
 	startGameLoop() {
 		console.log("startGameLoop");
 		const loop = (timestamp) => {
 			// Calculate time delta
 			if (this.previousTimestamp !== 0) {
 				const deltaTime = timestamp - this.previousTimestamp;
-				if (this.pressKey.key_up === true)
-					this.socket.send(JSON.stringify({ type: 'key_input', username: this.username, input: "up" }));
-				if (this.pressKey.key_down === true)
-					this.socket.send(JSON.stringify({ type: 'key_input', username: this.username, input: "down" }));
+
+				// Check if websocket is open before sending data
+				if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+					this.sendInput();
+				} else {
+					if (this.game_state != 3) {
+						console.log("Error: Socket is not open !");
+						cancelAnimationFrame(this.animationId);
+						return;
+					}
+				}
+
 				this.draw3D();
 			}
+
 			this.previousTimestamp = timestamp;
 			trackFrequency();
+
 			this.animationId = requestAnimationFrame(loop);
 		};
 		this.animationId = requestAnimationFrame(loop);
+	}
+
+	sendInput() {		
+		// if localMatch
+		if (this.isLocalMatch) {
+			if (this.pressKey[0].key_up === true)
+				this.socket.send(JSON.stringify({ type: 'key_input', username: this.players[0].id, input: "up" }));
+			if (this.pressKey[0].key_down === true)
+				this.socket.send(JSON.stringify({ type: 'key_input', username: this.players[0].id, input: "down" }));
+			if (this.pressKey[1].key_up === true)
+				this.socket.send(JSON.stringify({ type: 'key_input', username: this.players[1].id, input: "up" }));
+			if (this.pressKey[1].key_down === true)
+				this.socket.send(JSON.stringify({ type: 'key_input', username: this.players[1].id, input: "down" }));
+		} else {
+			if (this.pressKey[1].key_up === true)
+				this.socket.send(JSON.stringify({ type: 'key_input', username: this.username, input: "up" }));
+			if (this.pressKey[1].key_down === true)
+				this.socket.send(JSON.stringify({ type: 'key_input', username: this.username, input: "down" }));
+		}
 	}
 
 	draw3D()
@@ -312,23 +403,53 @@ export default class Pong2DView extends BaseView {
 		this.updateScoreBoard();
 
 		if (this.game_state === 3) {
-			this.drawGameOver();
+			console.log("game_state === 3");
+			if (this.objects.winnerDisplay == null) {
+				const winnerDisplay = this.createGameOver();
+				this.objects.winnerDisplay = winnerDisplay;
+				this.scene.add(this.objects.winnerDisplay);
+			}
+
 		}
 
 		this.renderer.render(this.scene, this.camera);
 	}
 
-	async drawGameOver() {
+	createGameOver() {
 		var winner = 'AI';
-		for (let i = 0; i < this.number_of_players; i++) {
-			if (this.players[i].lives != 0) {
-				// get winner name...
-				var userInfo = await userManager.getUserInfo(this.players[i].id);
-				if (userInfo !== undefined)
-					if (userInfo.display_name)	winner = userInfo.display_name;
-			}
-		} 
+		var winner_idx = 0;
+		// for (winner_idx = 0; winner_idx < this.number_of_players; winner_idx++) {
+		// 	if (this.players[winner_idx].lives != 0) {
+		// 		// get winner name...
+		// 		var userInfo = await userManager.getUserInfo(this.players[winner_idx].id);
+		// 		if (userInfo && userInfo.display_name)
+		// 			winner = userInfo.display_name;
+		// 		break;
+		// 	}
+		// }
 		console.log(winner, " WON THE GAME !");
+
+		var geometry = new TextGeometry(`${winner} won the game !`, {
+			font: this.font,
+			size: 3,
+			depth: 0.5,
+			curveSegments: 24
+		});
+
+		geometry = centerTextGeometry(geometry);
+
+		const material = new THREE.MeshBasicMaterial({ color: PADDLE_INIT.COLOR[winner_idx] });
+		const mesh = new THREE.Mesh(geometry, material);
+
+		if (mesh instanceof THREE.Object3D) {
+			console.log('the mesh is an instance of THREE.Object3D');
+			mesh.position.set(0, 0, 1);
+			return mesh;
+		} else {
+			console.log('The generated mesh is not an instance of THREE.Object3D');
+			return null; // Return null if there's an issue
+		}
+
 	}
 
 
@@ -338,12 +459,70 @@ export default class Pong2DView extends BaseView {
 
 	setupInputListeners() {
 		console.log("setupInputListeners");
-		window.addEventListener("keydown", (e) => this.handleKeyDown(e));
-		window.addEventListener("keyup", (e) => this.handleKeyUp(e));
+
+		if (this.isLocalMatch) {
+			console.log("-> is localMatch");
+			if (this.isGuestId(this.players[WEST].id)) {
+				window.addEventListener("keydown", (e) => this.handleKeyDown(e, 0, WEST));
+				window.addEventListener("keyup", (e) => this.handleKeyUp(e, 0, WEST));
+			}
+			if (this.isGuestId(this.players[EAST].id)) {
+				window.addEventListener("keydown", (e) => this.handleKeyDown(e, 1, EAST));
+				window.addEventListener("keyup", (e) => this.handleKeyUp(e, 1, EAST));
+			}
+
+		} else {
+			// find player direction
+			console.log("-> is not localMatch");
+			let direction = 0;
+			for (let i = 0; i < 4; i++) {
+				if (this.username === this.players[i].id) {
+					direction = i;
+					break;
+				}
+			}
+			console.log("direction is = ", direction);
+			console.log("Key Down:", CONTROLS[1][direction].down);
+			console.log("Key Up:", CONTROLS[1][direction].up);
+			window.addEventListener("keydown", (e) => this.handleKeyDown(e, 1, direction));
+			window.addEventListener("keyup", (e) => this.handleKeyUp(e, 1, direction));
+		}
+
 	}
 
+
+	handleKeyDown(e, player, direction) {
+		console.log("handleKeyDown");
+		if (e.key === CONTROLS[player][direction].up) this.pressKey[player].key_up = true;
+		else if (e.key === CONTROLS[player][direction].down) this.pressKey[player].key_down = true;
+	}
+
+	handleKeyUp(e, player, direction) {
+		console.log("handleKeyUp");
+		if (e.key === CONTROLS[player][direction].up) this.pressKey[player].key_up = false;
+		else if (e.key === CONTROLS[player][direction].down) this.pressKey[player].key_down = false;
+	}
+
+	// handleKeyDown(e) {
+	// 	if (e.key === "ArrowUp") this.pressKey.key_up = true;
+	// 	else if (e.key === "ArrowDown") this.pressKey.key_down = true;
+	// 	// else if (e.key === "ArrowLeft") this.pressKey.key_left = true;
+	// 	// else if (e.key === "ArrowRight") this.pressKey.key_right = true;
+	// }
+
+	// handleKeyUp(e) {
+	// 	if (e.key === "ArrowUp") this.pressKey.key_up = false;
+	// 	else if (e.key === "ArrowDown") this.pressKey.key_down = false;
+	// 	// else if (e.key === "ArrowLeft") this.pressKey.key_left = false;
+	// 	// else if (e.key === "ArrowRight") this.pressKey.key_right = false;
+	// }
+
 	resize() {
-		var ratio = 1;
+
+		// this.renderer.setPixelRatio(0.5);
+		// console.log("window.devicePixelRatio = ", window.devicePixelRatio);
+		// this.renderer.setPixelRatio( window.devicePixelRatio * 0.75 );
+		// console.log(this.renderer.getPixelRatio());
 
 		var newWidth = window.innerWidth;
 		var newHeight = window.innerWidth;
@@ -351,17 +530,17 @@ export default class Pong2DView extends BaseView {
 			newWidth = window.innerHeight;
 			newHeight = window.innerHeight;
 		}
-		this.renderer.setSize(newWidth * 0.9, newHeight * 0.9);
-	}
 
-	handleKeyDown(e) {
-		if (e.key === "ArrowUp") this.pressKey.key_up = true;
-		else if (e.key === "ArrowDown") this.pressKey.key_down = true;
-	}
+		newWidth *= 0.9;
+		newHeight *= 0.9;
 
-	handleKeyUp(e) {
-		if (e.key === "ArrowUp") this.pressKey.key_up = false;
-		else if (e.key === "ArrowDown") this.pressKey.key_down = false;
+		var pixelRatio = 1;
+		if (newWidth > 400) {
+			pixelRatio = 400 / newWidth;
+		}
+		this.renderer.setPixelRatio( window.devicePixelRatio * pixelRatio);
+		console.log(this.renderer.getPixelRatio());
+		this.renderer.setSize(newWidth, newHeight);
 	}
 
 	cleanupView() {
