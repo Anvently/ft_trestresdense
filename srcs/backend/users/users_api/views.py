@@ -7,9 +7,9 @@ from rest_framework.parsers import JSONParser
 from rest_framework.response import Response
 from users_api.models import User, Lobby, Score, Tournament
 from users_api.serializers import UserSerializer, LobbySerializer, ScoreSerializer, \
-		UserCreationSerializer, TurnamentSerializer
+		UserCreationSerializer, TournamentSerializer
 from users_api.authentication import CookieUserJWTAuthentication, HeaderUserJWTAuthentication, \
-		ApiJWTAuthentication, IsApiAuthenticatedAs
+		ApiJWTAuthentication, IsApiAuthenticatedAs, IsApiAuthenticatedAsOrReadOnly
 from django.http import HttpResponseRedirect
 
 class MeUserView(APIView):
@@ -43,8 +43,10 @@ class LobbyViewSet(viewsets.ReadOnlyModelViewSet):
 	lookup_field = "lobby_id"
 	queryset = Lobby.objects.all()
 
-class TurnamentViewSet(viewsets.ReadOnlyModelViewSet):
-	serializer_class = TurnamentSerializer
+class TournamentViewSet(viewsets.ModelViewSet):
+	serializer_class = TournamentSerializer
+	permission_classes = [IsApiAuthenticatedAsOrReadOnly(["matchmaking"]),]
+	authentication_classes = [ApiJWTAuthentication,]
 	lookup_field = "tournament_id"
 	queryset = Tournament.objects.all()
 

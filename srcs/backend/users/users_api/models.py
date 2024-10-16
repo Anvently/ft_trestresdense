@@ -65,7 +65,7 @@ class	Tournament(models.Model):
 	tournament_id = models.CharField(max_length=64, verbose_name="tournament unique id", unique=True)
 	game_name = models.CharField(max_length=50)
 	date = models.DateTimeField(auto_now_add=True, editable=False)
-	number_players = models.SmallIntegerField()
+	number_players = models.IntegerField()
 	host = models.ForeignKey(
 		User,
 		null=True,
@@ -97,7 +97,7 @@ class	Lobby(models.Model):
 		null=True,
 		verbose_name="corresponding tournament",
 		on_delete=models.CASCADE,
-		related_name="lobbys_set"
+		related_name="lobbies_set"
 	)
 	host = models.ForeignKey(
 		User,

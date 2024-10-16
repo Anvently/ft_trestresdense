@@ -5,73 +5,148 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Arbre du Tournoi</title>
      <style>
-       .tournament-tree {
-  display: flex;
-  gap: 40px;
-  padding: 20px;
-  justify-content: center;
-}
-.round {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-.match-container {
-  position: relative;
-  height: 100px;
-  display: flex;
-  align-items: center;
-}
-.match {
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  padding: 10px;
-  width: 200px;
-  background-color: white;
-}
-.player {
-  margin: 5px 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.player img {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  margin-right: 5px;
-}
-.winner {
-  font-weight: bold;
-  color: green;
-}
-.connector {
-  position: absolute;
-  background-color: #ddd;
-}
-.connector-horizontal {
-  height: 2px;
-  right: -40px;
-  top: 50%;
-  width: 40px;
-}
-.connector-vertical {
-  width: 2px;
-  right: -40px;
-  height: 100%;
-}
-.round-title {
-  text-align: center;
-  font-weight: bold;
-  margin-bottom: 10px;
-}
-    </style>
+        .container {
+          max-width: 800px;
+        }
+        .tournament-tree {
+          display: flex;
+          gap: 40px;
+          padding: 20px;
+          justify-content: center;
+        }
+        .round {
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+        }
+        .match-container {
+          /* position: relative; */
+          display: flex;
+          align-items: center;
+        }
+        .match {
+          border: 1px solid #ddd;
+          border-radius: 5px;
+          padding: 8px;
+          width: 200px;
+          background-color: white;
+          display: flex;
+          flex-direction: column;
+          gap: 5px;
+          height: 115px;
+        }
+        .match.not-completed {
+          justify-content: center;
+          text-align: center;
+          font-style: italic;
+        }
+        .match.not-completed p {
+          margin: 0;
+          color: rgb(107, 107, 107);
+        }
+        .player {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+        .winner {
+          font-weight: bold;
+          color: green;
+        }
+        .round-title {
+          text-align: center;
+          font-weight: bold;
+          margin-bottom: 10px;
+        }
+        #tournamentHost {
+          display: flex;
+        }
+        .online {
+          border: 2px solid green;
+        }
+        .offline {
+          border: 2px solid red;
+        }
+        .user-info {
+          display: flex;
+          align-items: center;
+        }
+        .user-status {
+          width: 46px;
+          height: 46px;
+          border-radius: 50%;
+          display: inline-flex;
+          justify-content: center;
+          align-items: center;
+          margin-right: 10px;
+        }
+        .user-avatar {
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          object-fit: cover;
+        }
+        #tournamentHost .user-status {
+          width: 36px;
+          height: 36px;
+        }
+        #tournamentHost .user-avatar {
+          width: 30px;
+          height: 30px;
+        }
+        tr td:first-child {
+          text-align: left;
+          width: 80%;
+        }
+        tr td:last-child {
+          text-align: right;
+          justify-content: right;
+          /* width: 70%; */
+        }
+        @media (min-width:480px) and (max-width:800px) {
+          .match {
+            width: 130px;
+          }
+        }
+        @media (max-width:480px) {
+          #tournamentTree {
+            display: grid;
+          }
+          .match-container {
+            margin-top: 0px !important;
+          }
+        }
+      </style>
 </head>
 <body>
-    <div class="container mt-5">
+  <div class="container py-4">
+    <div class="row">
+      <div class="col-12 text-center">
         <h1 id="tournamentName" class="text-center mb-3"></h1>
-        <p id="tournamentDate" class="text-center mb-5"></p>
-        <div id="tournamentTree" class="tournament-tree"></div>
+        <p class="text-center mb-3">Date: <span id="tournamentDate"></span></p>
+      </div>
     </div>
+    <div class="row">
+      <div class="table-responsive detail-table">
+        <table class="table table-striped">
+          <tbody id="detail-table">
+            <tr>
+                        <td>Hôte</td>
+                        <td id="tournamentHost"></td>
+                    </tr>
+                    <tr>
+                        <td>Jeu</td>
+                        <td id="tournamentGame"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+      <div class="row mt-4">  
+          <div class="col-12">
+            <div id="tournamentTree" class="tournament-tree"></div>
+          </div>
+      </div>
+  </div>
 </body>
 </html>

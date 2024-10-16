@@ -4,8 +4,6 @@ import { FontLoader } from "https://cdn.jsdelivr.net/npm/three@0.168.0/examples/
 
 import { BaseView } from '../view-manager.js';
 import { authenticatedUser, User, userManager } from '../home.js';
-import { UserInfoManager } from '../user-infos-manager.js';
-
 
 // Constants
 const WEST = 0;
@@ -51,6 +49,7 @@ export default class Pong2DView extends BaseView {
 		this.scene = null;
 		this.camera = null;
 		this.renderer = null;
+		this.playerInfos = [];
 		this.objects = {
 			ball: null,
 			paddle:[],
@@ -80,6 +79,7 @@ export default class Pong2DView extends BaseView {
 		this.font = null;
 
 		this.previousTimestamp = 0;
+		this.animationId = undefined;
 	}
 
 	async initView() {
@@ -109,7 +109,7 @@ export default class Pong2DView extends BaseView {
 				);
 			} else if (msg["type"] === "send_game_state") {
 				this.updateGameState(msg);
-				this.draw3D();
+				// this.draw3D();
 			}
 		};
 	}
@@ -265,9 +265,10 @@ export default class Pong2DView extends BaseView {
 				this.draw3D();
 			}
 			this.previousTimestamp = timestamp;
-			requestAnimationFrame(loop);
+			trackFrequency();
+			this.animationId = requestAnimationFrame(loop);
 		};
-		requestAnimationFrame(loop);
+		this.animationId = requestAnimationFrame(loop);
 	}
 
 	draw3D()
@@ -322,8 +323,7 @@ export default class Pong2DView extends BaseView {
 		for (let i = 0; i < this.number_of_players; i++) {
 			if (this.players[i].lives != 0) {
 				// get winner name...
-				var userInfoManager = new UserInfoManager();
-				var userInfo = await userInfoManager.getUserInfo(this.players[i].id);
+				var userInfo = await userManager.getUserInfo(this.players[i].id);
 				if (userInfo !== undefined)
 					if (userInfo.display_name)	winner = userInfo.display_name;
 			}
@@ -364,9 +364,13 @@ export default class Pong2DView extends BaseView {
 		else if (e.key === "ArrowDown") this.pressKey.key_down = false;
 	}
 
-	cleanup() {
+	cleanupView() {
 		// Cleanup on exit (e.g., WebSocket and intervals)
 		// if (this.intervalId) clearInterval(this.intervalId);
+		console.log("Cleaning view");
+		if (this.animationId) {
+			cancelAnimationFrame(this.animationId);
+		}
 		if (this.socket) this.socket.close();
 	}
 
@@ -475,4 +479,20 @@ function createPaddle(width, height, depth, color) {
 	// paddle.receiveShadow = true;
 
 	return paddle;
+}
+
+var callCount = 0;
+var lastTimestamp = 0;
+
+function trackFrequency() {
+    callCount++;
+    const currentTime = performance.now();
+    const elapsedTime = currentTime - lastTimestamp;
+
+    // Check if one second has passed
+    if (elapsedTime >= 1000) {
+        console.log(`Function called ${callCount} times in the last second`);
+        callCount = 0; // Reset call count
+        lastTimestamp = currentTime; // Reset the timestamp
+    }
 }

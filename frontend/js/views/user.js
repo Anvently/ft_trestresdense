@@ -24,10 +24,10 @@ export default class UserView extends BaseView {
 			e.preventDefault();
 			this.switchFriendStatus();
 		})
+		userManager.setDynamicUpdateHandler(this.updateUserInfos);
 		this.updateEditFriendButton();
 		this.displayUserInfo();
 		this.displayScores();
-		userManager.setDynamicUpdateHandler(this.updateUserInfos);
 		await this.updateFriendsList();
 		await userManager.forceUpdate();
 	}
@@ -52,7 +52,7 @@ export default class UserView extends BaseView {
 	}
 
 	updateEditFriendButton() {
-		if (this.userInfo.username === authenticatedUser.username) {
+		if (this.userInfo.username === authenticatedUser.username || this.userInfo.username[0] === '!') {
 			this.editFriendButton.classList.add('d-none');
 			return;
 		}
@@ -84,6 +84,8 @@ export default class UserView extends BaseView {
 	}
 
 	async updateFriendsList() {
+		if (!this.userInfo.friends || !this.userInfo.friends.length)
+			return;
 		const friendsList = document.getElementById('friends-list');
 		friendsList.innerHTML = ''; // Clear existing content
 		this.userInfo.friends.forEach(async user => {
@@ -114,7 +116,9 @@ export default class UserView extends BaseView {
 	}
 
 	displayScores() {
+		if (!this.userInfo.scores_set || !this.userInfo.scores_set.length) return;
 		const scoreTable = document.getElementById('score-table');
+		scoreTable.innerHTML = '';
 		this.userInfo.scores_set.forEach(score => {
 				const row = document.createElement('tr');
 				row.innerHTML = `

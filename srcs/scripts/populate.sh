@@ -139,6 +139,21 @@ send_tournament_results() {
   local HOST="${USERS[$((RANDOM % ${#USERS[@]}))]}"
   local TOURNAMENT_NAME="${HOST} tournament"
   
+  local json_data="{
+    \"tournament_id\": \"${TOURNAMENT_ID}\",
+    \"tournament_name\": \"${TOURNAMENT_NAME}\",
+    \"host\": \"${HOST}\",
+	\"game_name\": \"${GAME_NAME}\",
+	\"number_players\": ${NUM_USERS}
+  }"
+
+    # Envoi de la requête POST via curl
+    curl --request POST \
+      --url http://localhost:8001/api/tournaments/ \
+      --header "Authorization: Bearer ${MATCHMAKING_TOKEN}" \
+      --header 'Content-Type: application/json' \
+      --data "$json_data" > /dev/null
+
   # Fonction pour envoyer les résultats d'un match
   send_match_result() {
     local lobby_id=$1
@@ -163,10 +178,8 @@ send_tournament_results() {
 	local json_data="{
     \"lobby_id\": \"${lobby_id}\",
     \"lobby_name\": \"${lobby_name}\",
-    \"host\": \"${HOST}\",
 	\"game_name\": \"${GAME_NAME}\",
     \"tournament_id\": \"${TOURNAMENT_ID}\",
-	\"tournament_name\": \"${TOURNAMENT_NAME}\",
     \"scores_set\": [
       {
         \"username\": \"${winner}\",

@@ -1,4 +1,4 @@
-import { BaseView } from '../view-manager.js';
+import { BaseView, ViewManager } from '../view-manager.js';
 import { authenticatedUser, userManager, User } from '../home.js'
 
 export default class MatchmakingView extends BaseView {
@@ -35,7 +35,7 @@ export default class MatchmakingView extends BaseView {
 		this.saveLobbyOptionsButton = document.getElementById("saveLobbyOptionsButton");
 
 		this.showOnlinePLayersButton.addEventListener('click', () => this.showOnlinePlayers());
-		this.openLobbyOptionsButton.addEventListener('clck', (e) => this.openLobbyOptions());
+		this.openLobbyOptionsButton.addEventListener('click', (e) => this.openLobbyOptions());
 		//this.startGameButton.addEventListener('click', () => this.startGame());
 		this.inviteFriendsButton.addEventListener('click', () => this.inviteFriends());
 		this.leaveLobbyButton.addEventListener('click', () => this.leaveLobby());
@@ -43,7 +43,7 @@ export default class MatchmakingView extends BaseView {
 		this.createLobbyButton.addEventListener('click', () => this.createLobby());
 		this.saveLobbyOptionsButton.addEventListener('click', () => this.saveLobbyOptions());
 
-		document.getElementById('lobbyNameCreation').value = `${authenticatedUser.display_name}'s lobby`;
+		document.getElementById('testBracketButton').addEventListener('click', async () => await this.displayTournamentTree('efa18272fd22f393f157e374'));
 
 		userManager.setDynamicUpdateHandler(this.updateUserInfos);
 
@@ -141,30 +141,38 @@ export default class MatchmakingView extends BaseView {
 	general_update(message) {
 		const availableLobbiesEl = document.querySelector('#availableLobbies tbody');
 		const ongoingMatchesEl = document.querySelector('#ongoingMatches tbody');
-		availableLobbiesEl.innerHTML = '';
-		ongoingMatchesEl.innerHTML = '';
 
-		message.availableLobbies.forEach(lobby => {
-			const [id, obj] = Object.entries(lobby)[0];
-			this.appendLobbyEntry(availableLobbiesEl, id, obj, true);
-			const joinButton = document.getElementById(`joinLobbyButton-${id}`);
-			if (joinButton) {
-				joinButton.addEventListener('click', () => {
-					this.joinLobby(id);
-				});
-			}
-		});
+		if (message.availableLobbies && message.availableLobbies.length) {
+			availableLobbiesEl.innerHTML = '';
+			message.availableLobbies.forEach(lobby => {
+				const [id, obj] = Object.entries(lobby)[0];
+				this.appendLobbyEntry(availableLobbiesEl, id, obj, true);
+				const joinButton = document.getElementById(`joinLobbyButton-${id}`);
+				if (joinButton) {
+					joinButton.addEventListener('click', () => {
+						this.joinLobby(id);
+					});
+				}
+			});
+		} else {
+			availableLobbiesEl.innerHTML = `<tr><td colspan="5">Aucun résultat.</td></tr>`;
+		}
 
-		message.ongoingMatches.forEach(match => {
-			const [id, obj] = Object.entries(match)[0];
-			this.appendLobbyEntry(ongoingMatchesEl, id, obj, false);
-			const spectateButton = document.getElementById(`spectateLobbyButton-${id}`);
-			if (spectateButton) {
-				spectateButton.addEventListener('click', () => {
-					this.spectateLobby(id);
-				});
-			}
-		});
+		if (message.ongoingMatches && message.ongoingMatches.length) {
+			ongoingMatchesEl.innerHTML = '';
+			message.ongoingMatches.forEach(match => {
+				const [id, obj] = Object.entries(match)[0];
+				this.appendLobbyEntry(ongoingMatchesEl, id, obj, false);
+				const spectateButton = document.getElementById(`spectateLobbyButton-${id}`);
+				if (spectateButton) {
+					spectateButton.addEventListener('click', () => {
+						this.spectateLobby(id);
+					});
+				}
+			});
+		} else {
+			ongoingMatchesEl.innerHTML = `<tr><td colspan="5">Aucun résultat.</td></tr>`;
+		}
 
 		userManager.forceUpdate();
 	}
@@ -414,14 +422,27 @@ export default class MatchmakingView extends BaseView {
 	}
 
 	async lobby_update(message) {
+		console.log(message)
+		let isTnMatch = false;
+		if (message.match_type === "tournament_match")
+		{
+			this.isHost = false;
+			isTnMatch = true;
+			document.getElementById('displayBracketButton').classList.remove('d-none');
+			document.getElementById('inviteFriendsButton').classList.add('d-none');
+		} else {
+			document.getElementById('inviteFriendsButton').classList.remove('d-none');
+		}
+		document.getElementById('lobbyName').textContent = message.name;
 		const lobbyNameEl = document.getElementById('lobbyName');
 		const playerListEl = document.getElementById('playerList');
 
-		lobbyNameEl.textContent = message.lobbyName;
+		// lobbyNameEl.textContent = message.lobbyName;
 		playerListEl.innerHTML = '';  // Vider la liste avant mise à jour
 
+
 		await Object.entries(message.players).forEach(async ([playerId, playerData]) => {
-		  await this.appendPlayerEntry(playerListEl, playerId, playerData, message.host);
+		  await this.appendPlayerEntry(playerListEl, playerId, playerData, message.host, isTnMatch);
 		});
 
 		// Gérer les slots libres
@@ -429,9 +450,13 @@ export default class MatchmakingView extends BaseView {
 		for (let i = players_len; i < message.settings.nbr_players; i++) {
 		  this.appendEmptySlotEntry(playerListEl, i === players_len);
 		}
+
+		await userManager.forceUpdate();
 	}
 
-	async appendPlayerEntry(tableElement, playerId, playerData, hostId) {
+
+
+	async appendPlayerEntry(tableElement, playerId, playerData, hostId, isTnMatch) {
 		const playerRow = document.createElement('tr');
 		let playerState;
 		if (playerData.is_ready) {
@@ -469,7 +494,8 @@ export default class MatchmakingView extends BaseView {
 
 		const actionCell = document.createElement('td');
 		actionCell.classList.add('right');
-		if (this.isHost && playerId !== hostId) {
+		if (this.isHost && playerId !== hostId && !isTnMatch) {
+			console.log("creating kick button");
 			const kickButton = document.createElement('button');
 			kickButton.className = 'btn btn-danger';
 			kickButton.textContent = 'Expulser';
@@ -542,6 +568,11 @@ export default class MatchmakingView extends BaseView {
 			this.displayFriends(friends);
 		})
 		.catch (error => this.errorHandler(error));
+	}
+
+	set_unready(message)
+	{
+		this.isReady = false;
 	}
 
 	beReady(playerId)
@@ -769,6 +800,8 @@ export default class MatchmakingView extends BaseView {
 	spectateLobby(lobby_id)
 	{
 		this.sendMessage({type : "spectate_game", lobby_id : lobby_id}, 500).then ((message) => {
+			if (message === undefined)
+				throw new Error("Invalid lobby");
 			const game_type = message.game_type;
 			window.location.hash = `#${game_type}?id=${message.lobby_id}`;
 		})
@@ -778,6 +811,7 @@ export default class MatchmakingView extends BaseView {
 
 	game_start(message)
 	{
+		console.log("WTF");
 		const websocket_id = message.websocket_id;
 		const game_type = message.game_type;
 		window.location.hash = `#${game_type}?id=${websocket_id}`;
@@ -797,7 +831,7 @@ export default class MatchmakingView extends BaseView {
 		}
 	}
 
-	updateUserInfos(username, userInfo) {
+	async updateUserInfos(username, userInfo) {
 		document.querySelectorAll(`.dynamicDisplayName.user-${username}`).forEach(el => {
 			el.textContent = userInfo.display_name;
 		});
@@ -806,10 +840,20 @@ export default class MatchmakingView extends BaseView {
 		});
 	}
 
+	async displayTournamentTree(id) {
+		new bootstrap.Modal(document.getElementById('tournamentModal')).show();
+		const tournamentDiv = document.getElementById('tournamentModalDiv');
+		const viewManager = new ViewManager(tournamentDiv);
+		viewManager.setErrorHandler(this.errorHandler);
+		await viewManager.loadView('./views/tournament.js', 'html/tournament.html');
+		// viewManager.v
+	}
+
     cleanupView() {
         if (this.socket) {
 			this.received_error = true;
             this.socket.close();
+			this.socket = undefined;
         }
 
 		this.showOnlinePLayersButton.removeEventListener('click', this.showOnlinePlayers);
@@ -824,4 +868,5 @@ export default class MatchmakingView extends BaseView {
         // this.startButton.removeEventListener('click', this.startMatchmaking);
     }
 }
+
 

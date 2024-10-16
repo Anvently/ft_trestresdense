@@ -8,8 +8,7 @@ from django.conf import settings
 # from matchmaking.common import tournament_creator
 import time, logging, random, string
 from matchmaking.common import online_players, PlayerStatus, lobbies, tournaments, tournament_creator
-
-
+from channels.layers import get_channel_layer
 
 def generate_id(public, spectate ,prefix=''):
 	""" Simplr => S
@@ -51,7 +50,10 @@ class Lobby():
 		self.started = False
 		self.game_type = settings.pop('game_type')
 		self.player_num = settings.pop('nbr_players')
-		self.settings = settings
+		if ('settings' in settings):
+			self.settings = settings['settings']
+		else:
+			self.settings = settings
 		self.settings['nbr_players'] = self.player_num
 		self.check_rules()
 		for n in range(settings.get('nbr_bots', 0)):
@@ -74,9 +76,9 @@ class Lobby():
 		""" Add a player  to a lobby. Return True is success.
 		 If player was bot it will mark himself has ready and possibly trigger
 		  game initialization. """
+		
 		if len(self.players) == self.player_num:
 			logging.warning(f"Trying to add a player ({player_id}) to a full lobby")
-			print(f"players = {self.players}")
 			return False
 
 		self.players[player_id] = {
@@ -119,17 +121,15 @@ class Lobby():
 		self.players[player_id]['has_joined'] = True
 
 	def remove_player(self, player_id):
-		print(f"before kick {self.players}")
 		if player_id in self.players:
 			del self.players[player_id]
 		if len(self.players) == 0:
 			self.delete()
-		print(f"after kick {self.players}")
 
 	def check_rules(self):
 		pass
 
-	def init_game(self) -> bool:
+	def init_game(self, extra_data: Dict[str, any] = None) -> bool:
 		""" Send HTTP request to pong backend and sent link to consumers. Update players status """
 		# This exception could be ignored and we could complete here missing player with bots
 		if len(self.players) != self.player_num:
@@ -138,9 +138,12 @@ class Lobby():
 		data = {
 			'game_name': self.game_type,
 			'game_id': self.id,
+			'hostname': self.hostname,
 			'settings': self.settings,
 			'player_list': list(self.players.keys())
 		}
+		if (extra_data):
+			data.update(extra_data)
 		try:
 			response = requests.post('http://pong:8002/init-game/?format=json',
 					data=json.dumps(data),
@@ -166,13 +169,14 @@ class Lobby():
 		for player_id, player in self.iterate_human_player():
 			if online_players[player_id]['lobby_id'] == self.id:
 				del online_players[player_id]
-		del lobbies[self.id]
+		if self.id in lobbies:
+			del lobbies[self.id]
 
 	def handle_results(self, results: dict[str, Any]):
 		""" register in database"""
 		if results['status'] != 'cancelled':
-			results.pop('status')
 			results['hostname'] = self.hostname
+			results['lobby_name'] = self.name
 			# results['scores_set'] = [el for el in results['scores_set'] if el['username'][0] != '!']
 			try:
 				response = requests.post('http://users_api:8001/post-result/?format=json',
@@ -233,7 +237,7 @@ class LocalMatchLobby(SimpleMatchLobby):
 
 	def check_rules(self):
 		match(self.game_type, self.player_num, self.settings['lives']):
-			case ("pong2d", 2, y) if y > 0:
+			case ("pong2d", x, y) if x in (2,4) and y > 0:
 				pass
 			case ("pong3d", 2, y) if y > 0:
 				pass
@@ -241,7 +245,7 @@ class LocalMatchLobby(SimpleMatchLobby):
 				raise KeyError("Wrong settings")
 
 
-class TurnamentInitialLobby(Lobby):
+class TournamentInitialLobby(Lobby):
 
 	def __init__(self, settings: Dict[str, Any]) -> None:
 		super().__init__(settings, prefix='I')
@@ -272,6 +276,7 @@ class TurnamentInitialLobby(Lobby):
 			'id': self.id,
 			'players': list(self.players.keys())
 		}):
+			print("error creating tournament")
 			return False
 		self.delete()
 		return True
@@ -280,21 +285,24 @@ class TurnamentInitialLobby(Lobby):
 		return "tournament_lobby"
 
 
-class TurnamentMatchLobby(Lobby):
+class TournamentMatchLobby(Lobby):
 
 	def __init__(self, settings: Dict[str, Any], id:str) -> None:
-		super().__init__(settings, id, 'T')
-		self.tournament_id = self.id[:self.id.find('.')]
-		self.tournament_name = self.settings.pop('tournament_name')
-		# self.tournament_name = settings.get('tournament_name')
+		self.tournament_id = id[:id.find('.')]
 		self.created_at = time.time()
+		self.hostname = None
+		super().__init__(settings, id, 'T')
 
 	def handle_results(self, results: Dict[str, Any]):
 		if self.tournament_id in tournaments: #Probably not necessary to check that
-			results['tournament_name'] = self.tournament_name
 			super().handle_results(results)
-			tournaments['tournament_id'].handle_result(results)
+			tournaments[self.tournament_id].handle_result(results)
 		self.delete()
+
+	def init_game(self, extra_data: Dict[str, Any] = None) -> bool:
+		return super().init_game({
+			'tournament_id': self.tournament_id
+		})
 
 	def __str__(self) -> str:
 		return "tournament_match"
@@ -303,49 +311,52 @@ class TurnamentMatchLobby(Lobby):
 	# 	if time.time() - self.created_at >
 
 
-lobby = SimpleMatchLobby({
-	'hostname': '!AI1',
-	'name': 'pouet_pouet',
-	'game_type': 'pong3d',
-	'nbr_players': 2,
-	'lives':20,
-	'allow_spectators':True,
-	'public': True
-})
+# lobby = SimpleMatchLobby({
+# 	'hostname': '!AI1',
+# 	'name': 'pouet_pouet',
+# 	'game_type': 'pong3d',
+# 	'nbr_players': 2,
+# 	'lives':20,
+# 	'allow_spectators':True,
+# 	'public': True
+# })
 
-lobby2 = SimpleMatchLobby({
-	'hostname': 'herve',
-	'name': "Herve's room",
-	'game_type': 'pong2d',
-	'nbr_players': 4,
-	'lives':20,
-	'allow_spectators':False,
-	'public': True
-})
+# lobby2 = SimpleMatchLobby({
+# 	'hostname': 'herve',
+# 	'name': "Herve's room",
+# 	'game_type': 'pong2d',
+# 	'nbr_players': 4,
+# 	'lives':20,
+# 	'allow_spectators':False,
+# 	'public': True
+# })
 
 
-lobby3 = TurnamentInitialLobby({
-	'hostname': 'john',
-	'name': "Tornois",
-	'game_type': 'pong2d',
-	'nbr_players': 8,
-	'lives':20,
-	'allow_spectators':False,
-	'public': True
-})
+# lobby3 = TournamentInitialLobby({
+# 	'hostname': 'john',
+# 	'name': "Tornois",
+# 	'game_type': 'pong2d',
+# 	'nbr_players': 8,
+# 	'nbr_bots': 8,
+# 	'lives':1,	
+# 	'allow_spectators': True,
+# 	'public': True
+# })
 
-lobby4 = SimpleMatchLobby({
-	'hostname': 'chloe',
-	'name': "Clhloe's room",
-	'game_type': 'pong2d',
-	'nbr_players': 4,
-	'nbr_bots': 4,
-	'lives':20,
-	'allow_spectators':True,
-	'public': True
-})
+# lobbies[lobby3.id] = lobby3
+# lobbies[lobby3.id].player_ready('john')
 
-lobbies[lobby4.id] = lobby4
+# lobby4 = SimpleMatchLobby({
+# 	'hostname': 'chloe',
+# 	'name': "Clhloe's room",
+# 	'game_type': 'pong2d',
+# 	'nbr_players': 4,
+# 	'nbr_bots': 4,
+# 	'lives':20,
+# 	'allow_spectators':True,
+# 	'public': True
+# })
+# lobbies[lobby4.id] = lobby4
 
 # lobby5 = SimpleMatchLobby({
 # 	'hostname': 'john',
@@ -357,11 +368,10 @@ lobbies[lobby4.id] = lobby4
 # 	'allow_spectators':True,
 # 	'public': True
 # })
-
 # lobbies[lobby5.id] = lobby5
-lobbies[lobby.id] = lobby
-lobbies[lobby2.id] = lobby2
-lobbies[lobby3.id] = lobby3
+
+# lobbies[lobby.id] = lobby
+# lobbies[lobby2.id] = lobby2
 
 # lobbies[lobby.id].add_bot()
 # lobbies["9"].add_bot()

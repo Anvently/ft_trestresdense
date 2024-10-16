@@ -16,7 +16,7 @@ application = ProtocolTypeRouter({
     ),
 })
 
-# from pong_server.consumers import lobbys_list
+# from pong_server.consumers import lobbies_list
 # from typing import List
 # import asyncio
 
@@ -27,7 +27,7 @@ application = ProtocolTypeRouter({
 # 		print("pouet")
 # 		if game_queue:
 # 			game_id = game_queue.pop()
-# 			if game_id in lobbys_list:
-# 				await lobbys_list[game_id].start_game_loop()
+# 			if game_id in lobbies_list:
+# 				await lobbies_list[game_id].start_game_loop()
 # 		await asyncio.sleep(0.5)
 

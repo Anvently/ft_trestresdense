@@ -18,7 +18,5 @@ class PostResultView(APIView):
 			lobbies[lobby_id].handle_results(request.data)
 			return Response(status=status.HTTP_200_OK)
 		else:
-			for lobby_id, lobby in lobbies.items():
-				print(lobby_id, lobby.id)
 			return Response({f'no associated lobby exists for lobby {lobby_id}'},
 				   status=status.HTTP_400_BAD_REQUEST)

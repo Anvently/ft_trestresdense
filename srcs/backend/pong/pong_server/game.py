@@ -12,6 +12,7 @@ from django.conf import settings
 import traceback
 from abc import abstractmethod
 import logging, threading
+from asgiref.sync import sync_to_async
 
 # Constants
 PADDLE_LENGTH = 0.16
@@ -81,6 +82,7 @@ class PongLobby:
 		self.waiting_for = len(players_list)
 		self.winner = None
 		self.game_type = None
+		self.counter = self.simple_call_counter()
 		print(f"game {lobby_id} initialized, await players {players_list}")
 
 	def check_game_start(self) -> bool:
@@ -102,7 +104,7 @@ class PongLobby:
 		self.loop = await self.game_loop()
 
 
-	async def player_join(self, player_id: str) -> bool:
+	def player_join(self, player_id: str) -> bool:
 		""" Template of player_list: ["user1", "user1_guest"] """
 		if not self.check_user(player_id):
 			return False
@@ -117,7 +119,7 @@ class PongLobby:
 		""" Template of player_list: ["user1", "user1_guest"] """
 		self.waiting_for += 1
 
-	def send_result(self):
+	async def send_result(self):
 		data = {}
 		data['lobby_id'] =  self.lobby_id
 		data['game_name'] = self.game_type
@@ -129,12 +131,14 @@ class PongLobby:
 			data['status'] = 'terminated'
 			data['scores_set'] = []
 			for player in self.players:
-				data['scores_set'].append({
-					'username': player.player_id,
-					'has_win': self.winner == player.player_id
-				})
+				if (player.player_id != '!wall'):
+					data['scores_set'].append({
+						'username': player.player_id,
+						'score': player.lives,
+						'has_win': self.winner == player.player_id
+					})
 		try:
-			response = requests.post('http://matchmaking:8003/result/?format=json',
+			response = await sync_to_async(requests.post)('http://matchmaking:8003/result/?format=json',
 					data=json.dumps(data),
 					headers = {
 						'Host': 'localhost',
@@ -143,7 +147,7 @@ class PongLobby:
 						}
 					)
 			if response.status_code != 200:
-				raise Exception(f"expected status 201 but got {response.status_code} ({response.content})")
+				raise Exception(f"expected status 201 but got {response.status_code}")
 		except Exception as e:
 			logging.error(f"Failed to send results of lobby {self.lobby_id}: {e}")
 		# API call to send result to matchmaking
@@ -154,6 +158,22 @@ class PongLobby:
 	@abstractmethod
 	def player_input(self, player_id, input):
 		pass
+
+	def simple_call_counter(self):
+		start_time = time.time()
+		call_count = 0
+
+		def count():
+			nonlocal call_count, start_time
+			current_time = time.time()
+			call_count += 1
+
+			if current_time - start_time >= 1:
+				# print(f"Appels par seconde : {call_count}")
+				call_count = 0
+				start_time = current_time
+
+		return count
 
 	async def	game_loop(self):
 		try:
@@ -171,7 +191,7 @@ class PongLobby:
 				await player_channel.group_send(self.lobby_id, {"type": "cancel",
 																"message": "A Player failed to load"
 																})
-				self.send_result()
+				await self.send_result()
 				self.loop.cancel()
 				return
 			await player_channel.group_send(self.lobby_id, {"type": "game_start"})
@@ -188,6 +208,7 @@ class PongLobby:
 			print("game has started")
 			while self.gameState == 2:
 				await asyncio.sleep(0.016)	# 0.16 -> 60Hz
+				self.counter()
 				data = self.compute_game()
 				await player_channel.group_send(self.lobby_id, data)
 			await player_channel.group_send(
@@ -196,7 +217,7 @@ class PongLobby:
 					"winner": self.winner
 				}
 			)
-			self.send_result()
+			await self.send_result()
 			await player_channel.group_send(
 				self.lobby_id, {
 					"type": "leave_lobby"
@@ -218,9 +239,9 @@ class PongLobby:
 		# 	self.gameState = 3
 		# 	self.winner = self.get_winner()
 
-		winner = self.check_winner()
-		if winner:
-			print(f"{winner} won the game")
+		self.winner = self.check_winner()
+		if self.winner:
+			print(f"{self.winner} won the game")
 			self.gameState = 3
 
 		return self.generate_JSON()

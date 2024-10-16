@@ -10,6 +10,7 @@ import json
 from django.conf import settings
 import traceback
 from pong_server.game import PongLobby, Player
+import copy
 
 # # Constants
 TABLE_LENGHT = 9 / 5
@@ -35,7 +36,7 @@ REBOUND_LINE_X = 0.4
 WEST = 0
 EAST = 1
 
-START_POS_3D = [{"x": -TABLE_LENGHT / 2 + PADDLE_THICKNESS / 2, "y": 0, "angle": math.pi, 'width': PADDLE_THICKNESS, 'height': PADDLE_LENGTH},
+START_POS = [{"x": -TABLE_LENGHT / 2 + PADDLE_THICKNESS / 2, "y": 0, "angle": math.pi, 'width': PADDLE_THICKNESS, 'height': PADDLE_LENGTH},
 			{"x": TABLE_LENGHT / 2 - PADDLE_THICKNESS / 2, "y": 0, "angle": 0,"width": PADDLE_THICKNESS,"height": PADDLE_LENGTH,},
 			]
 
@@ -47,7 +48,7 @@ class Player3D(Player):
 		super().__init__(player_id, position, lives)
 		self.destination = {"x": 0, "y": 0}
 		self.points = 0
-		self.coordinates = START_POS_3D[position]
+		self.coordinates = copy.deepcopy(START_POS[position])
 
 	def AI_behavior(self, ballX, ballY, ballSpeedX, ballSpeedY, is_service, service_direction) -> str:
 		if int(time.time()) != self.last_time:
@@ -124,7 +125,7 @@ class PongLobby3D(PongLobby):
 		for i in range(2):
 			self.players.append(Player3D(players_list[i], i, settings['lives']))
 			self.match_id_pos[players_list[i]] = i
-		self.ball = BALL_START
+		self.ball = copy.deepcopy(BALL_START)
 		self.gameState = 0
 		self.mut_lock = asyncio.Lock()
 		self.loop = None

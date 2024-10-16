@@ -22,5 +22,5 @@ urlpatterns = [
     path('admin/', admin.site.urls),
 	path('init-game/', PostGameView.as_view()),
 	path('lobby/<lobby_id>',RetrieveLobbyView.as_view()),
-	path('lobbys/', ListLobbyView.as_view()),
+	path('lobbies/', ListLobbyView.as_view()),
 ]

@@ -508,8 +508,7 @@ export default class Pong3DView extends BaseView {
 			const playerScoreGroup = new THREE.Group();
 
 			// get user info
-			var userInfoManager = new UserInfoManager();
-			var userInfo = await userInfoManager.getUserInfo(this.players[i].id);
+			var userInfo = await userManager.fetchUserInfo(this.players[i].id);
 
 			var displayName = "Cheval-Canard";
 			var avatarPath = "/image/chevalCanard.png";

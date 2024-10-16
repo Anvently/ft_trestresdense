@@ -1,15 +1,16 @@
+from adrf.serializers import Serializer
 from rest_framework import serializers
 from pong_server.game import PongLobby
 from pong_server.pong2d import PongLobby2D
 from pong_server.pong3d import PongLobby3D
-from pong_server.consumers import lobbys_list
+from pong_server.consumers import lobbies_list
 from asgiref.sync import async_to_sync
 from typing import Dict, List, Any
 from channels.layers import get_channel_layer
 from pong_server.consumers import check_lobby_id
 
 
-class GameSettingsSerializer(serializers.Serializer):
+class GameSettingsSerializer(Serializer):
 
 	lives = serializers.IntegerField(min_value = 1)
 	nbr_players = serializers.IntegerField(max_value = 4)
@@ -19,7 +20,7 @@ class GameSettingsSerializer(serializers.Serializer):
 		""" Return game_settings object """
 		pass
 
-class GameSerializer(serializers.Serializer):
+class GameSerializer(Serializer):
 
 	game_id = serializers.CharField()
 	game_name = serializers.ChoiceField(choices=('pong2d', 'pong3d'))
@@ -30,14 +31,14 @@ class GameSerializer(serializers.Serializer):
 	def save(self):
 		"""Append the game to the list of active games"""
 		if self.validated_data['game_name'] == 'pong2d':
-			lobbys_list[self.validated_data['game_id']] = PongLobby2D(
+			lobbies_list[self.validated_data['game_id']] = PongLobby2D(
 				lobby_id=self.validated_data['game_id'],
 				players_list=self.validated_data['player_list'],
 				settings=self.validated_data['settings'],
 				tournId=self.validated_data.get('tournament_id')
 			)
 		elif self.validated_data['game_name'] == 'pong3d':
-			lobbys_list[self.validated_data['game_id']] = PongLobby3D(
+			lobbies_list[self.validated_data['game_id']] = PongLobby3D(
 				lobby_id=self.validated_data['game_id'],
 				players_list=self.validated_data['player_list'],
 				settings=self.validated_data['settings'],
@@ -91,13 +92,13 @@ class GameSerializer(serializers.Serializer):
 		return data
 
 
-class ScoreSerializer(serializers.Serializer):
+class ScoreSerializer(Serializer):
 
 	username = serializers.CharField()
 	score = serializers.IntegerField()
 	has_win = serializers.BooleanField()
 
-class LobbyResultSerializer(serializers.Serializer):
+class LobbyResultSerializer(Serializer):
 
 	id = serializers.CharField()
 	tournament_id = serializers.CharField(allow_blank=True, required=False)

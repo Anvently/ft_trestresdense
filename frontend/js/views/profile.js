@@ -246,7 +246,7 @@ export default class ProfileView extends BaseView {
 		}
 	}
 
-	updateUserInfos(username, data) {
+	async updateUserInfos(username, data) {
 		const friend_el = document.querySelector(`.friend-element.user-${username}`);
 		const user = new User(username, data);
 

@@ -197,7 +197,11 @@
 								<th class="right">Action</th>
 							</tr>
 						</thead>
-						<tbody></tbody>
+						<tbody>
+							<tr>
+								<td colspan="5">Aucun résultat.</td>
+							</tr>
+						</tbody>
 					</table>
 				</div>
 			</div>
@@ -214,7 +218,11 @@
 								<th class="right">Action</th>
 							</tr>
 						</thead>
-						<tbody></tbody>
+						<tbody>
+							<tr>
+								<td colspan="5">Aucun résultat.</td>
+							</tr>
+						</tbody>
 					</table>
 				</div>
 			</div>
@@ -226,6 +234,7 @@
 						<button class="btn btn-primary mainView me-2" data-bs-toggle="modal" data-bs-target="#createLobbyModal">Créer un lobby</button>
 						<button class="btn btn-info mainView me-2" data-bs-toggle="modal" data-bs-target="#joinLobbyModal">Rejoindre un lobby</button>
 						<button id='buttonShowOnlinePlayers'class="btn btn-secondary mainView me-2">Joueurs en ligne</button>
+						<button id="testBracketButton" class="btn btn-secondary lobbyView me 2">Test view</button>
 					</div>
 				</div>
 			</div>
@@ -261,6 +270,7 @@
 					<div class="mainOptions">
 						<button id="inviteFriendsButton" class="btn btn-secondary lobbyView me-2">Inviter des amis</button>
 						<button id="leaveLobbyButton" class="btn btn-danger lobbyView">Quitter le lobby</button>
+						<button id="displayBracketButton" class="btn btn-secondary lobbyView me 2 d-none">Voir les resultats</button>
 					</div>
 				</div>
 			</div>
@@ -281,6 +291,23 @@
 				<div class="modal-footer">
 					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
 					<button id='joinLobbyButton' type="button" class="btn btn-primary">Rejoindre</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="modal fade" id="tournamentModal" tabindex="-1">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title">Tournoi</h5>
+					<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+				</div>
+				<div class="modal-body" id="tournamentModalDiv">
+			 
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
 				</div>
 			</div>
 		</div>
