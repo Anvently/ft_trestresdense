@@ -117,9 +117,10 @@ class Tournament:
 		}, id=id)
 		return id
 
-	def handle_result(self, results: Dict[str, Any]):
+	async def handle_result(self, results: Dict[str, Any]):
 		""" Instantiate the next lobby if any. Assign the winner
 		 to its and update loser's status. """
+		from matchmaking.consumers import MatchMakingConsumer
 		if results['status'] == 'cancelled':
 			self.delete()
 			return
@@ -131,6 +132,7 @@ class Tournament:
 				 and assign player to it. """
 				next_match_id = self.setup_next_match(stage, match_idx)
 				self.reassign_player(score['username'], next_match_id, PlayerStatus.IN_TOURNAMENT_LOBBY)
+				await MatchMakingConsumer.static_lobby_update(next_match_id)
 			else:
 				""" If someone lose or it was a final, it's up to the
 				 lobby result handler to update status of associated players. """

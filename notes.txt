@@ -15,10 +15,10 @@ TODO:
 	Frontend:
 	- implement 2FA 
 	- local turnament
-	- check how to implement tournament tree view as a pop-up 
 
 	Pong:
 		- display explicit message on the page when the lobby doesn't exist
+		- redirect (automatically ?) players to matchmaking at the end of a game
 
 
 BUGS:
@@ -27,5 +27,4 @@ BUGS:
 
 - the crash in pong is caused by an infinite loop in calculate_impact()
 
-- matchmaking: when refreshing page in tournament lobby (not initial), 
-	we can't reconnect to websocket because "a websocket connection is already opened"
+- when a host is invited to join a lobby, the lobby is not cancelled

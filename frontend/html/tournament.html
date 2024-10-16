@@ -8,56 +8,6 @@
         .container {
           max-width: 800px;
         }
-        .tournament-tree {
-          display: flex;
-          gap: 40px;
-          padding: 20px;
-          justify-content: center;
-        }
-        .round {
-          display: flex;
-          flex-direction: column;
-          gap: 20px;
-        }
-        .match-container {
-          /* position: relative; */
-          display: flex;
-          align-items: center;
-        }
-        .match {
-          border: 1px solid #ddd;
-          border-radius: 5px;
-          padding: 8px;
-          width: 200px;
-          background-color: white;
-          display: flex;
-          flex-direction: column;
-          gap: 5px;
-          height: 115px;
-        }
-        .match.not-completed {
-          justify-content: center;
-          text-align: center;
-          font-style: italic;
-        }
-        .match.not-completed p {
-          margin: 0;
-          color: rgb(107, 107, 107);
-        }
-        .player {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-        }
-        .winner {
-          font-weight: bold;
-          color: green;
-        }
-        .round-title {
-          text-align: center;
-          font-weight: bold;
-          margin-bottom: 10px;
-        }
         #tournamentHost {
           display: flex;
         }
@@ -103,19 +53,6 @@
           justify-content: right;
           /* width: 70%; */
         }
-        @media (min-width:480px) and (max-width:800px) {
-          .match {
-            width: 130px;
-          }
-        }
-        @media (max-width:480px) {
-          #tournamentTree {
-            display: grid;
-          }
-          .match-container {
-            margin-top: 0px !important;
-          }
-        }
       </style>
 </head>
 <body>
@@ -143,8 +80,8 @@
         </div>
     </div>
       <div class="row mt-4">  
-          <div class="col-12">
-            <div id="tournamentTree" class="tournament-tree"></div>
+          <div id="tournamentContainer" class="col-12">
+
           </div>
       </div>
   </div>

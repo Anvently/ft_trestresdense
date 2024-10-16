@@ -16,6 +16,7 @@ export class UserInfoManager {
 	 * If the request fails, return the cached information or default user if none.
 	 */
 	async fetchUserInfo(username) {
+		if (username.includes('.')) username = username.split('.')[0];
 		const userInfo = await this.backgroundUpdater.fetchUserFromAPI(username);
 		if (!userInfo) {
 			return this.userCache.getUser(username);
@@ -30,6 +31,7 @@ export class UserInfoManager {
 	 * Set a callback handler to have the view updated dynamically.
 	 */
 	getUserInfo(username, suscribe_changes = true) {
+		if (username.includes('.')) username = username.split('.')[0];
 		let userInfo = this.userCache.getUser(username);
 		if (suscribe_changes)
 			this.backgroundUpdater.addActiveUser(username);
@@ -47,6 +49,7 @@ export class UserInfoManager {
 	 * @param {suscribe_changes} suscribe_changes enable by default. disable to prevent user info to be refreshed at a set interval.
 	*/
 	getUserAttr(username, attr, dft = 'unknown', suscribe_changes = true) {
+		if (username.includes('.')) username = username.split('.')[0];
 		let userInfo = this.userCache.getUser(username);
 		if (suscribe_changes)
 			this.backgroundUpdater.addActiveUser(username);
