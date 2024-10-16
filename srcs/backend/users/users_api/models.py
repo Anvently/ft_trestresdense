@@ -126,6 +126,7 @@ class	Score(models.Model):
 	date = models.DateTimeField(auto_now_add=True, editable=False)
 	score = models.IntegerField(default=0)
 	has_win = models.BooleanField(default=False)
+	pseudo = models.CharField(null=True, blank=True)
 
 	def __str__(self) -> str:
 		return self.lobby_id.__str__()

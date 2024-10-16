@@ -15,10 +15,10 @@ TODO:
 	Frontend:
 	- implement 2FA 
 	- local turnament
-	- check how to implement tournament tree view as a pop-up 
 
 	Pong:
 		- display explicit message on the page when the lobby doesn't exist
+		- redirect (automatically ?) players to matchmaking at the end of a game
 
 
 BUGS:
