@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from rest_framework.views import APIView
+from adrf.views import APIView
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.parsers import JSONParser
@@ -12,10 +12,12 @@ class PostResultView(APIView):
 	authentication_classes = [ApiJWTAuthentication]
 	permission_classes = [IsApiAuthenticatedAs("pong")]
 
-	def post(self, request):
+	async def post(self, request):
 		lobby_id = request.data.get('lobby_id', None)
 		if lobby_id in lobbies:
-			lobbies[lobby_id].handle_results(request.data)
+			await lobbies[lobby_id].handle_results(request.data)
+			from matchmaking.consumers import MatchMakingConsumer
+			await MatchMakingConsumer.static_general_update()
 			return Response(status=status.HTTP_200_OK)
 		else:
 			return Response({f'no associated lobby exists for lobby {lobby_id}'},

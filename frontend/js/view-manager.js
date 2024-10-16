@@ -30,7 +30,7 @@ export class ViewManager {
             if (this.currentView) {
                 await this.currentView.cleanupView();
                 userManager.clearUsers();
-                userManager.setDynamicUpdateHandler(null);
+                userManager.setDynamicUpdateHandler(undefined);
                 this.container.innerHTML = '';
             }
 
@@ -112,4 +112,30 @@ export class BaseView {
     async cleanupView() {
         // À implémenter dans les classes filles
     }
+}
+
+
+export class ComponentView extends BaseView {
+
+    constructor() {
+        super('');
+        this.errorHandler = this.defautErrorHandler;
+        this.successHandler = this.defautSuccessHandler;
+        this.element = undefined;
+        this.htmlContent = '';
+    }
+
+    async init(parentContainer) {
+        this.element = parentContainer;
+        this.element.innerHTML = this.htmlContent;
+    }
+
+    async cleanup() {
+        this.element.innerHTML = '';
+    }
+
+    async refresh() {
+
+    }
+
 }

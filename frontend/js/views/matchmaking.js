@@ -1,5 +1,6 @@
 import { BaseView, ViewManager } from '../view-manager.js';
 import { authenticatedUser, userManager, User } from '../home.js'
+import TournamentTree from '../components/tournamentTree.js';
 
 export default class MatchmakingView extends BaseView {
     constructor() {
@@ -43,7 +44,10 @@ export default class MatchmakingView extends BaseView {
 		this.createLobbyButton.addEventListener('click', () => this.createLobby());
 		this.saveLobbyOptionsButton.addEventListener('click', () => this.saveLobbyOptions());
 
-		document.getElementById('testBracketButton').addEventListener('click', async () => await this.displayTournamentTree('efa18272fd22f393f157e374'));
+		document.getElementById('displayBracketButton').addEventListener('click', async () => {
+			if (this.lobbyData && this.lobbyData.tournament_id)
+				await this.displayTournamentTree(this.lobbyData.tournament_id);
+		});
 
 		userManager.setDynamicUpdateHandler(this.updateUserInfos);
 
@@ -94,7 +98,7 @@ export default class MatchmakingView extends BaseView {
 			  });
 
 		} catch (error) {
-			console.error("Error initialising websocket:", error);
+			console.error("Error initializing websocket:", error);
       		this.reconnect();
 		}
     }
@@ -103,14 +107,14 @@ export default class MatchmakingView extends BaseView {
 		if (this.reconnectAttempts < this.maxReconnectAttempts) {
 			this.reconnectAttempts++;
 			this.errorHandler(`Reconnection attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts} in ${this.reconnectInterval / 1000} seconds...`, true);
-			setTimeout(() => this.initWebSocket(), this.reconnectInterval);
+			setTimeout(async () => await this.initWebSocket(), this.reconnectInterval);
 		} else {
 			this.errorHandler(`Max reconnection attempts number reached.`, false);
 			// console.error('');
 		}
 	}
 
-	sendMessage(message, timeout = 0) {
+	async sendMessage(message, timeout = 0) {
 		return new Promise((resolve, reject) => {
 			if (!this.isConnected) {
 				reject(new Error("Unable to send message: websocket disconnected."));
@@ -404,6 +408,10 @@ export default class MatchmakingView extends BaseView {
 		modal.show();
 	}
 
+	in_tournament_lobby(content) {
+		this.joinLobby(content['lobby_id']);
+	}
+
 	be_kicked(content)
 	{
 		this.isReady = false ;
@@ -440,6 +448,7 @@ export default class MatchmakingView extends BaseView {
 		// lobbyNameEl.textContent = message.lobbyName;
 		playerListEl.innerHTML = '';  // Vider la liste avant mise à jour
 
+		this.lobbyData = message;
 
 		await Object.entries(message.players).forEach(async ([playerId, playerData]) => {
 		  await this.appendPlayerEntry(playerListEl, playerId, playerData, message.host, isTnMatch);
@@ -558,8 +567,6 @@ export default class MatchmakingView extends BaseView {
 
 		this.sendMessage({"type" : "kick_player", "player_target" : playerId});
 	}
-
-
 
 	inviteFriends() {
 		this.sendMessage({'type' : 'get_invite_list'}, 1000)
@@ -841,11 +848,12 @@ export default class MatchmakingView extends BaseView {
 	}
 
 	async displayTournamentTree(id) {
-		new bootstrap.Modal(document.getElementById('tournamentModal')).show();
-		const tournamentDiv = document.getElementById('tournamentModalDiv');
-		const viewManager = new ViewManager(tournamentDiv);
-		viewManager.setErrorHandler(this.errorHandler);
-		await viewManager.loadView('./views/tournament.js', 'html/tournament.html');
+		this.tournamentTree = new TournamentTree(id);
+		const container = document.getElementById('tournamentModalDiv');
+		this.tournamentTree.init(container);
+		let modal = new bootstrap.Modal(document.getElementById('tournamentModal'));
+		modal.show();
+
 		// viewManager.v
 	}
 
