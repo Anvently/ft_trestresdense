@@ -24,6 +24,7 @@ class UserInfosSerializer(serializers.ModelSerializer):
 			self.fields['username'].read_only = True
 
 	def validate_username(self, value):
+		User.username_validator(value)
 		if User.objects.filter(username=value).exists():
 			raise serializers.ValidationError({"username": "This username is already taken."})
 		return value

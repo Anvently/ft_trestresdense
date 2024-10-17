@@ -6,9 +6,9 @@ from django.utils.deconstruct import deconstructible
 
 @deconstructible
 class CustomValidator(UnicodeUsernameValidator):
-	regex = r"^(?!042)[\w.@+-]+\Z"
+	regex = r"^(?!042)[\w@+-]+\Z"
 	message = "Enter a valid username. This value may contain only letters, " \
-		"numbers, and @/./+/-/_ characters. It must not start with 042."
+		"numbers, and @/+/-/_ characters. It must not start with 042."
 	flags = 0
 
 class	User(AbstractUser):
