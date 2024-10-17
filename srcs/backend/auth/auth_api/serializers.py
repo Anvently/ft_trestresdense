@@ -1,6 +1,7 @@
 from auth_api.models import User
 from rest_framework import serializers
 from auth_api.requests import delete_user, post_new_user
+from auth_api.crypt import generate_totp_secret
 
 class UserInfosSerializer(serializers.ModelSerializer):
 	
@@ -22,6 +23,7 @@ class UserInfosSerializer(serializers.ModelSerializer):
 		super().__init__(*args, **kwargs)
 		if self.context['request'].method == 'PATCH':
 			self.fields['username'].read_only = True
+			self.fields['password'].required = False
 
 	def validate_username(self, value):
 		User.username_validator(value)
@@ -55,7 +57,7 @@ class UserInfosSerializer(serializers.ModelSerializer):
 			if validated_data['is_2fa_active'] == False:
 				instance.totp_secret = ""
 			elif instance.is_2fa_active == False:
-				instance.totp_secret = "pouet_pouet"
+				instance.totp_secret = generate_totp_secret()
 			instance.is_2fa_active = validated_data['is_2fa_active']
 		instance.save()
 		return instance

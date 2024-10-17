@@ -120,6 +120,16 @@
 		.friend-status:hover .remove-friend {
 			opacity: 1;
 		}
+		div#container-2FA {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			gap: 20px;
+			border: 1px solid #536dfe;
+			border-radius: 15px;
+			background-color: ghostwhite;
+			padding: 5px;
+		}
 		@media (min-width: 768px) {
 			.friend-avatar {
 				width: 80px;
@@ -230,9 +240,24 @@
 					Mots de passe non identiques.
 				</div>
 			</div>
+
+			<div class="mb-3">
+				<input type="checkbox" class="form-check-input" id="enable2FA">
+				<label for="enable2FA" class="form-check-label">Authentification a deux facteurs</label>
+			</div>
 			
 			<button type="submit" class="btn btn-primary">Mettre à jour les informations de connexion</button>
 		</form>
+		
+		<div id="container-2FA" class="my-5 d-none">
+			<form>
+				<h2 class="mb-4">Authentification a deux facteurs</h2>
+				<label for="totp-secret" class="form-label">Secret</label>
+				<input class="form-control" id="totp-secret" type="text" placeholder="Disabled input" disabled>
+			</form>
+			<div id="qrcode" class="mb-3">
+			</div>
+		</div>
 	</div>
 </body>
 </html>
