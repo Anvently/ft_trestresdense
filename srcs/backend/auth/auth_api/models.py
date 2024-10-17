@@ -27,9 +27,11 @@ class	User(AbstractUser):
 		error_messages={
 			"unique": "A user with that username already exists.",
 		},
+		editable=False,
 	)
 	email = models.EmailField("email address", blank=True, null=True, unique=True)
+	is_2fa_active = models.BooleanField("is 2fa activated", default=False)
+	totp_secret = models.CharField(max_length=32, blank=True, null=True)
 
 	def __str__(self) -> str:
 		return self.username
-	

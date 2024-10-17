@@ -1,12 +1,13 @@
 from django.contrib.auth import logout
 from rest_framework import status
 from rest_framework.views import APIView
+from rest_framework import mixins, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.parsers import JSONParser
+from rest_framework.parsers import JSONParser, MultiPartParser
 from django.conf import settings
-from auth_api.serializers import UserSerializer, UserInfosSerializer
-from auth_api.authentication import CookieJWTAuthentication, HeaderJWTAuthentication
+from auth_api.serializers import UserInfosSerializer
+from auth_api.authentication import CookieJWTAuthentication, HeaderJWTAuthentication, UserPermission
 from auth_api.crypt import generate_jwt_token
 from auth_api.models import User
 from auth_api.requests import delete_user, post_new_user, obtain_oauth_token, retrieve_user_infos
@@ -26,56 +27,26 @@ def	get_or_create_user(infos: dict[str, Any]) -> User:
 		serializer=UserInfosSerializer(data=infos)
 		if not serializer.is_valid():
 			return None
-		serializer.validated_data["username"] = "042{0}".format(serializer.validated_data["username"])
-		post_new_user(serializer.validated_data["username"], infos.get("url_avatar"), infos.get("display_name", infos["username"]))
-		return serializer.save() 
+		serializer.validated_data["username"] = "042{0}".format(infos["username"])
+		return serializer.save()
 
-# class UserView(APIView):
-
-# 	permission_classes = [IsAuthenticated]
-# 	authentication_classes = [CookieJWTAuthentication, HeaderJWTAuthentication]
-
-# 	def get(self, request):
-# 		users = User.objects.all()
-# 		serializer = UserSerializer(users, many=True)
-# 		return Response(serializer.data)
-	
-class DeleteView(APIView):
-
-	permission_classes = [IsAuthenticated]
+class UserViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixins.UpdateModelMixin,
+				mixins.DestroyModelMixin, mixins.CreateModelMixin):
+	permission_classes = [UserPermission]
 	authentication_classes = [CookieJWTAuthentication, HeaderJWTAuthentication]
+	parser_classes = [JSONParser, MultiPartParser,]
+	serializer_class = UserInfosSerializer
+	
+	def get_object(self):
+		return self.request.user
 
-	def delete(self, request):
+	def destroy(self, request, *args, **kwargs):
 		delete_user(request.user.username)
 		request.user.delete()
 		logout(request)
 		response = Response(status=status.HTTP_204_NO_CONTENT)
 		response.delete_cookie('auth-token')
 		return response
-
-class UpdateView(APIView):
-
-	permission_classes = [IsAuthenticated]
-	authentication_classes = [CookieJWTAuthentication, HeaderJWTAuthentication]
-	parser_classes = [JSONParser]
-
-	def patch(self, request):
-		serializer = UserInfosSerializer(data=request.data, instance=request.user)
-		if not serializer.is_valid():
-			return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-		serializer.save()
-		return Response(serializer.data, status=status.HTTP_200_OK)
-
-class RegisterView(APIView):
-	 
-	def post(self, request):
-		serializer = UserInfosSerializer(data=request.data)
-		if not serializer.is_valid():
-			return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-		post_new_user(request.data["username"], request.data.get("url_avatar"),
-				request.data.get("display_name", request.data["username"]))
-		serializer.save()
-		return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 class GenerateToken(APIView):
 

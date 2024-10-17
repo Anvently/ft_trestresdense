@@ -49,7 +49,11 @@ export class UserInfoManager {
 	 * @param {suscribe_changes} suscribe_changes enable by default. disable to prevent user info to be refreshed at a set interval.
 	*/
 	getUserAttr(username, attr, dft = 'unknown', suscribe_changes = true) {
-		if (username.includes('.')) username = username.split('.')[0];
+		if (username.includes('.')) {
+			if (attr === 'display_name')
+				return username.split('.')[1];
+			username = username.split('.')[0];
+		}
 		let userInfo = this.userCache.getUser(username);
 		if (suscribe_changes)
 			this.backgroundUpdater.addActiveUser(username);
