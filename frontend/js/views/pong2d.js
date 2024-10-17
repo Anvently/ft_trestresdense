@@ -266,7 +266,7 @@ export default class Pong2DView extends BaseView {
 	}
 
 	isGuestId(id) {
-		if (id.includes("!") && id.indexOf("!") > 0)
+		if (id.includes(".") && id.indexOf(".") > 0)
 			return true;
 		return false;
 	}
@@ -275,7 +275,7 @@ export default class Pong2DView extends BaseView {
 		for (let i = 0; i < this.number_of_players; i++) {
 				var geometry = new TextGeometry('', {
 					font: this.font,
-					size: 0.5,
+					size: 0.75,
 					depth: 0,
 					curveSegments: 24
 				});
@@ -297,9 +297,10 @@ export default class Pong2DView extends BaseView {
 		for (let i = 0; i < this.number_of_players; i++) {
 			const score = this.players[i].lives; // Access player score
 			if (this.previous_score[i] !== score) {
+				console.log("updateScoreBoard");
 				const geometry = new TextGeometry(score.toString(), {
 					font: this.font,
-					size: 0.5,
+					size: 0.75,
 					depth: 0,
 					curveSegments: 24
 				});
@@ -309,7 +310,7 @@ export default class Pong2DView extends BaseView {
 					oldMesh.geometry.dispose();
 				}
 				oldMesh.geometry = centeredGeometry;
-				this.previous_score = score;
+				this.previous_score[i] = score;
 			}
 		}
 	}
@@ -362,7 +363,7 @@ export default class Pong2DView extends BaseView {
 		}
 	}
 
-	draw3D()
+	async draw3D()
 	{
 		// update ball position
 		this.objects.ball.position.x = this.ball.x * 10;
@@ -403,55 +404,73 @@ export default class Pong2DView extends BaseView {
 		this.updateScoreBoard();
 
 		if (this.game_state === 3) {
-			console.log("game_state === 3");
 			if (this.objects.winnerDisplay == null) {
-				const winnerDisplay = this.createGameOver();
+				const winnerDisplay = await this.createGameOver();
+				window.addEventListener('keydown', returnToIndex);
+
+				function returnToIndex(event) {
+					if (event.code === 'Space') {
+						window.removeEventListener('keydown', returnToIndex);
+						window.location.href = '#';
+					}
+				}
+
 				this.objects.winnerDisplay = winnerDisplay;
 				this.scene.add(this.objects.winnerDisplay);
+			} else {
+				if (this.objects.winnerDisplay.position.x < -20)
+					this.objects.winnerDisplay.position.x = 20;
+				this.objects.winnerDisplay.position.x -= 0.1;
 			}
-
 		}
 
 		this.renderer.render(this.scene, this.camera);
 	}
 
-	createGameOver() {
+	async createGameOver() {
+
+		{
+			var geometry = new TextGeometry(`[press SPACE to continue]`, {
+				font: this.font,
+				size: 0.5,
+				depth: 0,
+				curveSegments: 24
+			});
+			geometry = centerTextGeometry(geometry);
+			const material = new THREE.MeshBasicMaterial({ color: 0xffffff });
+			const mesh = new THREE.Mesh(geometry, material);
+			mesh.position.set(0, -2, 1);
+
+			this.scene.add(mesh);
+		}
+
 		var winner = 'AI';
 		var winner_idx = 0;
-		// for (winner_idx = 0; winner_idx < this.number_of_players; winner_idx++) {
-		// 	if (this.players[winner_idx].lives != 0) {
-		// 		// get winner name...
-		// 		var userInfo = await userManager.getUserInfo(this.players[winner_idx].id);
-		// 		if (userInfo && userInfo.display_name)
-		// 			winner = userInfo.display_name;
-		// 		break;
-		// 	}
-		// }
-		console.log(winner, " WON THE GAME !");
-
+		for (winner_idx = 0; winner_idx < this.number_of_players; winner_idx++) {
+			if (this.players[winner_idx].lives != 0) {
+				var userInfo = await userManager.getUserInfo(this.players[winner_idx].id);
+				console.log(userInfo);
+				if (userInfo && userInfo.display_name)
+					winner = userInfo.display_name;
+				break;
+			}
+		}
 		var geometry = new TextGeometry(`${winner} won the game !`, {
 			font: this.font,
-			size: 3,
+			size: 2,
 			depth: 0.5,
 			curveSegments: 24
 		});
-
 		geometry = centerTextGeometry(geometry);
-
-		const material = new THREE.MeshBasicMaterial({ color: PADDLE_INIT.COLOR[winner_idx] });
+		const material = new THREE.MeshStandardMaterial({ color: PADDLE_INIT.COLOR[winner_idx] });
 		const mesh = new THREE.Mesh(geometry, material);
 
-		if (mesh instanceof THREE.Object3D) {
-			console.log('the mesh is an instance of THREE.Object3D');
-			mesh.position.set(0, 0, 1);
-			return mesh;
-		} else {
-			console.log('The generated mesh is not an instance of THREE.Object3D');
-			return null; // Return null if there's an issue
-		}
+		mesh.position.set(20, 0.5, 2);
 
+		mesh.castShadow = true;
+		mesh.receiveShadow = true;
+		return mesh;
 	}
-
 
 	setupResizeListener() {
 		window.addEventListener('resize', () => {this.resize()});
@@ -489,7 +508,6 @@ export default class Pong2DView extends BaseView {
 		}
 
 	}
-
 
 	handleKeyDown(e, player, direction) {
 		console.log("handleKeyDown");
@@ -539,7 +557,7 @@ export default class Pong2DView extends BaseView {
 			pixelRatio = 400 / newWidth;
 		}
 		this.renderer.setPixelRatio( window.devicePixelRatio * pixelRatio);
-		console.log(this.renderer.getPixelRatio());
+		console.log("pixelRatio = " + this.renderer.getPixelRatio());
 		this.renderer.setSize(newWidth, newHeight);
 	}
 

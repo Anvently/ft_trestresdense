@@ -72,12 +72,14 @@ class Player2D(Player):
 		else:
 			self.destination -= (PADDLE_LENGTH / 2 ) * 0.9
 
+	# grosse function de merde
 	def calculate_impact(self, ballX, ballY, ballSpeedX, ballSpeedY):
 		fpos_x, fpos_y, fspeed_x, fspeed_y = ballX, ballY, ballSpeedX, ballSpeedY
 
 		while True:
+			print("calculate_impact loop")
 			if abs(fspeed_x) < 1e-6 and abs(fspeed_y) < 1e-6:
-				break
+				return 0
 			fpos_x += fspeed_x
 			fpos_y += fspeed_y
 
@@ -86,13 +88,14 @@ class Player2D(Player):
 					return fpos_y
 				else:
 					fspeed_x *= -1 
-			# Si il y a un probleme, le responsable est ci dessous 
-			elif not (-0.5 + BALL_RADIUS < fpos_y < 0.5 - BALL_RADIUS):
+			if not (-0.5 + BALL_RADIUS < fpos_y < 0.5 - BALL_RADIUS):
 				if self.side == NORTH or self.side == SOUTH:
 					return fpos_x
 				else:
 					fspeed_y *= -1 
-		return 0
+				
+			if not (-0.5 + BALL_RADIUS < fpos_x < 0.5 - BALL_RADIUS) and not (-0.5 + BALL_RADIUS < fpos_y < 0.5 - BALL_RADIUS):
+				return 0
 
 class PongLobby2D(PongLobby):
 	service_direction = 0
