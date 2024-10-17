@@ -111,8 +111,8 @@ export default class LoginView extends BaseView {
 		for (const error of errors) {
 			try {
 				const field = error[0].charAt(0).toUpperCase() + error[0].slice(1);
-				const detail = error[1][0];
-				console.log(field, detail);
+				const value = error[1][error[0]];
+				const detail = Array.isArray(value) ? value[0] : value;
 				const el = document.getElementById(`feedback-${error[0]}`);
 				if (el) {
 					el.textContent = detail;
@@ -140,7 +140,9 @@ export default class LoginView extends BaseView {
 				})
 			});
 			if (response.status === 400) {
-				this.showErrorRegister(Object.entries(await response.json()));
+				const res = await response.json();
+				console.log(res);
+				this.showErrorRegister(Object.entries(res));
 				return;
 			}
 			if (!response.ok)
