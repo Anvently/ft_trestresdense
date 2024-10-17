@@ -76,8 +76,15 @@ class Player2D(Player):
 	def calculate_impact(self, ballX, ballY, ballSpeedX, ballSpeedY):
 		fpos_x, fpos_y, fspeed_x, fspeed_y = ballX, ballY, ballSpeedX, ballSpeedY
 
+		iterations = 0
+
 		while True:
-			print("calculate_impact loop")
+			iterations += 1
+			if iterations > 10000:
+				print("calculate_impact loop detected")
+				print(f"ballX = ${ballX}, ballY = ${ballY}, ballSpeedX = ${ballSpeedX}, ballSpeedY = ${ballSpeedY}")
+				return 0
+
 			if abs(fspeed_x) < 1e-6 and abs(fspeed_y) < 1e-6:
 				return 0
 			fpos_x += fspeed_x
