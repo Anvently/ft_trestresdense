@@ -5,20 +5,29 @@ import { FontLoader } from "https://cdn.jsdelivr.net/npm/three@0.168.0/examples/
 import { BaseView } from '../view-manager.js';
 import { authenticatedUser, User, userManager } from '../home.js';
 
+
+// TODO
+//	- Revoir les event listeners ( 1 seul pour keyup, 1 seul pour keydown )
+//	- afficher pseudo et/ou avatar
+//	- ameliorer les controles souris (mieux centrer le curseur sur le paddle, ou cacher le curseur)
+// - TOUJOURS CRASH DE CHECK IMPACT MACHIN TRUC
+
 // Constants
-const WEST = 0;
-const EAST = 1;
-const NORTH = 2;
-const SOUTH = 3;
+const DIRECTIONS = {
+	WEST: 0,
+	EAST: 1,
+	NORTH: 2,
+	SOUTH: 3
+}
 
 const PADDLE_LENGTH = 0.16
 const PADDLE_THICKNESS = 0.05;
 const BALL_RADIUS = 0.015
+const PLAYER_SPEED = 0.016
 
 const PADDLE_INIT = {
 	WIDTH: [PADDLE_THICKNESS * 10, PADDLE_THICKNESS * 10, PADDLE_LENGTH * 10, PADDLE_LENGTH * 10],
 	HEIGHT: [PADDLE_LENGTH * 10, PADDLE_LENGTH * 10, PADDLE_THICKNESS * 10, PADDLE_THICKNESS * 10],
-	// Blue, Red, Green, Magenta
 	COLOR: [0x0000ff, 0xff0000, 0x00ff00, 0xff00ff]
 };
 
@@ -58,17 +67,28 @@ const CONTROLS = [
 export default class Pong2DView extends BaseView {
 	constructor() {
 		super("pong2d-view");
+		this.initialize();
+	}
 
-		this.start = false;
+	initialize() {
+		this.gameHasStarted = false;
 		this.socket = null;
-
-		this.playerInfos = [];
-
 		this.isLocalMatch = false;
-
-		this.scene = null;
-		this.camera = null;
-		this.renderer = null;
+		this.players = [
+			{type: "wall", lives: 0, x: 0, y: 0, width: 0, height: 0, id: ''},
+			{type: "wall", lives: 0, x: 0, y: 0, width: 0, height: 0, id: ''},
+			{type: "wall", lives: 0, x: 0, y: 0, width: 0, height: 0, id: ''},
+			{type: "wall", lives: 0, x: 0, y: 0, width: 0, height: 0, id: ''}
+		];
+		this.ball = {x: 0, y: 0, r: 0, speedX: 0, speedY: 0, last_hit: -1};
+		this.username = authenticatedUser.username;
+		this.direction = -1;
+		this.pressKey = [
+			{ key_up: false, key_down: false },
+			{ key_up: false, key_down: false }
+		];
+		this.mousePosition = null;
+		this.previousTimestamp = 0;
 		this.objects = {
 			ball: null,
 			paddle:[],
@@ -82,136 +102,63 @@ export default class Pong2DView extends BaseView {
 			environment: {field: null, corner: [], wall: []},
 			winnerDisplay: null
 		};
+		this.font = null;
 
-		this.players = [
-			{type: "wall", lives: 0, x: 0, y: 0, width: 0, height: 0, id: ''},
-			{type: "wall", lives: 0, x: 0, y: 0, width: 0, height: 0, id: ''},
-			{type: "wall", lives: 0, x: 0, y: 0, width: 0, height: 0, id: ''},
-			{type: "wall", lives: 0, x: 0, y: 0, width: 0, height: 0, id: ''}
-		];
-		this.ball = {x: 0, y: 0, r: 0, speedX: 0, speedY: 0, last_hit: -1};
+		this.playerInfos = [];
+		this.scene = null;
+		this.camera = null;
+		this.renderer = null;
 		this.number_of_players;
 		this.game_state;
 		this.previous_score = [0, 0, 0, 0];
-		this.username = authenticatedUser.username;
-		this.pressKey = [
-			{ key_up: false, key_down: false },
-			{ key_up: false, key_down: false }
-		];
-		// this.intervalId;
-		this.font = null;
-
-		this.previousTimestamp = 0;
+		
 		this.animationId = undefined;
+		this.eventListeners = [];
 	}
 
+
 	async initView() {
-		await this.initFont();
+		await this.loadFont();
 		this.createScene();
 		this.initWebSocket();
-		// this.startGameLoop();
 		this.setupResizeListener();
+	}
+
+	async loadFont() {
+		const fontLoader = new FontLoader();
+		this.font = await new Promise((resolve, reject) => {
+			fontLoader.load(
+				'https://cdn.jsdelivr.net/npm/three@0.136.0/examples/fonts/droid/droid_sans_regular.typeface.json',
+				resolve,
+				undefined,
+				reject
+			);
+		});
 	}
 
 	initWebSocket() {
 		console.log("initWebSocket");
 		const sockAdd = this.urlParams.get('id');
-		if (sockAdd === undefined)
-			window.location.hash = '#';
+		if (!sockAdd) window.location.hash = '#';
 
 		this.socket = new WebSocket(`wss://${location.hostname}:8083/ws/pong/${sockAdd}/`);
 
-		// wait for the WebSocket to open
 		this.socket.onopen = () => {
 			console.log("WebSocket is now open");
-
-			this.startGameLoop();
+			// this.startGameLoop();
 		}
 
-		this.socket.onmessage = (e) => {
-			const msg = JSON.parse(e.data);
-			if (!msg["type"]) {
-				return ;
-			}
-			if (msg["type"] == "ping") {
-				this.socket.send(
-					JSON.stringify({ type: "join_game", username: `${authenticatedUser.username}` })
-				);
-			} else if (msg["type"] === "send_game_state") {
-				this.updateGameState(msg);
-				// this.draw3D();
-			}
-		};
-
-		// Handle WebSocket errors
-		this.socket.onerror = (error) => {
-			console.error('WebSocket error:', error);
-		};
-	
-		// Handle WebSocket closure
-		this.socket.onclose = () => {
-			console.log('WebSocket is closed now.');
-		};
+		this.socket.onmessage = (e) => this.handleWebSocketMessage(JSON.parse(e.data));
+		this.socket.onerror = (error) => console.error('WebSocket error:', error);
+		this.socket.onclose = () => console.log('WebSocket is closed now.');
 	}
 
-	async initFont() {
-		const fontLoader = new FontLoader();
-
-		// Return a promise to be awaited
-		this.font = await new Promise((resolve, reject) => {
-			fontLoader.load(
-				'https://cdn.jsdelivr.net/npm/three@0.136.0/examples/fonts/droid/droid_sans_regular.typeface.json',
-				(loadedFont) => {
-					resolve(loadedFont); // Resolve the promise with the loaded font
-				},
-				undefined,
-				(error) => reject(error) // Reject if there's an error
-			);
-		});
-	}
-
-	createScene() {
-		console.log("createScene");
-		this.scene = new THREE.Scene();
-		console.log("-> scene created");
-
-		this.camera = new THREE.PerspectiveCamera( 75, 1, 0.1, 1000);
-		this.camera.position.z = 10;
-		this.camera.lookAt(0, 0, 0);
-		console.log("-> camera created");
-
-		this.renderer = new THREE.WebGLRenderer();
-		console.log("-> renderer created");
-
-		this.renderer.setSize(1200, 1200);
-		this.renderer.shadowMap.enabled = true;
-		this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-		document.getElementById('container-canva').appendChild(this.renderer.domElement);
-
-		this.resize();
-		console.log("-> resized");
-
-		this.scene.add(createSpotLight({x: 0, y: 0, z: 5}));
-		console.log("-> spotlight created");
-
-		this.createEnvironment(this.scene);
-		console.log("-> environment created");
-
-		this.objects.ball = createBall();
-		this.scene.add(this.objects.ball);
-		console.log("-> ball created");
-
-		for (let i = 0; i < 4; i++) {
-			this.objects.paddle.push(createPaddle(PADDLE_INIT.WIDTH[i],
-												PADDLE_INIT.HEIGHT[i],
-												0.5,
-												PADDLE_INIT.COLOR[i]));
-			this.scene.add(this.objects.paddle[i]);
-			this.objects.paddleLight.push(createPaddleLight(PADDLE_INIT.COLOR[i]));
-			this.scene.add(this.objects.paddleLight[i]);
-			console.log("-> paddle created");
-		}
-
+	handleWebSocketMessage(msg) {
+		if (!msg["type"]) return;
+		if (msg["type"] == "ping")
+			this.socket.send(JSON.stringify({ type: "join_game", username: `${authenticatedUser.username}` }));
+		else if (msg["type"] === "send_game_state")
+			this.updateGameState(msg);
 	}
 
 	updateGameState(msg) {
@@ -236,33 +183,45 @@ export default class Pong2DView extends BaseView {
 			};
 		}
 
-		// if game hasnt started yet
-		if (this.start === false) {
-			// if all players are present
-			for (let i = 0; i < this.number_of_players; i++) {
-				if (this.players[i].id == '')
-					return;
+		if (this.gameHasStarted === false) {
+			if (this.allPlayersPresent()) {
+				this.gameHasStarted = true;
+				this.onGameStart();
 			}
-			this.start = true;
-			this.onGameStart();
 		}
+	}
+
+	allPlayersPresent() {
+		for (let i = 0; i < this.number_of_players; i++) {
+			if (this.players[i].id == '')
+				return false;
+		}
+		return true;
 	}
 
 	onGameStart() {
 		console.log("onGameStart");
 		this.createScoreBoard();
+		this.isLocalMatch = this.checkIfLocalMatch();
+		this.findPlayerDirection();
+		this.setupInputListeners();
+		this.startGameLoop();
+	}
 
-		// check if is LocalMatch
+	findPlayerDirection() {
+		for (let i = 0; i < this.number_of_players; i++) {
+			if (this.username == this.players[i].id)
+				this.direction = i;
+		}
+	}
+
+	checkIfLocalMatch() {
 		for (let i = 0; i < this.number_of_players; i++) {
 			if (this.isGuestId(this.players[i].id)) {
-				this.isLocalMatch = true;
-				break;
+				return true;
 			}
 		}
-
-		this.setupInputListeners();
-
-
+		return false;
 	}
 
 	isGuestId(id) {
@@ -271,77 +230,32 @@ export default class Pong2DView extends BaseView {
 		return false;
 	}
 
-	createScoreBoard() {
-		for (let i = 0; i < this.number_of_players; i++) {
-				var geometry = new TextGeometry('', {
-					font: this.font,
-					size: 0.75,
-					depth: 0,
-					curveSegments: 24
-				});
-
-				geometry = centerTextGeometry(geometry);
-
-				const material = new THREE.MeshBasicMaterial({ color: PADDLE_INIT.COLOR[i] });
-				const mesh = new THREE.Mesh(geometry, material);
-
-				this.objects.scoreBoard[i].lives = mesh;
-				mesh.position.set(SCORE_POSITION[i].X, SCORE_POSITION[i].Y, 0);
-				this.scene.add(mesh);
-		}
-	}
-
-
-	// METHOD CALLED TO MUCH... REWORK NEEDED
-	updateScoreBoard() {
-		for (let i = 0; i < this.number_of_players; i++) {
-			const score = this.players[i].lives; // Access player score
-			if (this.previous_score[i] !== score) {
-				console.log("updateScoreBoard");
-				const geometry = new TextGeometry(score.toString(), {
-					font: this.font,
-					size: 0.75,
-					depth: 0,
-					curveSegments: 24
-				});
-				const centeredGeometry = centerTextGeometry(geometry);
-				const oldMesh = this.objects.scoreBoard[i].lives;
-				if (oldMesh.geometry) {
-					oldMesh.geometry.dispose();
-				}
-				oldMesh.geometry = centeredGeometry;
-				this.previous_score[i] = score;
-			}
-		}
-	}
-
 	startGameLoop() {
 		console.log("startGameLoop");
 		const loop = (timestamp) => {
-			// Calculate time delta
-			if (this.previousTimestamp !== 0) {
-				const deltaTime = timestamp - this.previousTimestamp;
-
-				// Check if websocket is open before sending data
-				if (this.socket && this.socket.readyState === WebSocket.OPEN) {
-					this.sendInput();
-				} else {
-					if (this.game_state != 3) {
-						console.log("Error: Socket is not open !");
-						cancelAnimationFrame(this.animationId);
-						return;
-					}
-				}
-
+			if (this.previousTimestamp !== 0) { // ?
+				const deltaTime = timestamp - this.previousTimestamp; // ?
+				this.handleInput();
 				this.draw3D();
 			}
 
-			this.previousTimestamp = timestamp;
+			this.previousTimestamp = timestamp; // ?
 			trackFrequency();
 
 			this.animationId = requestAnimationFrame(loop);
 		};
 		this.animationId = requestAnimationFrame(loop);
+	}
+
+	handleInput() {
+		if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+			this.sendInput();
+		}
+		else if (this.game_state != 3) {
+			console.log("Error: Socket is not open !");
+			cancelAnimationFrame(this.animationId);
+			return;
+		}
 	}
 
 	sendInput() {		
@@ -356,79 +270,36 @@ export default class Pong2DView extends BaseView {
 			if (this.pressKey[1].key_down === true)
 				this.socket.send(JSON.stringify({ type: 'key_input', username: this.players[1].id, input: "down" }));
 		} else {
-			if (this.pressKey[1].key_up === true)
+			// Mouse control
+			var player_position;
+			console.log("this.direction = ", this.direction);
+			if (this.direction == DIRECTIONS.EAST || this.direction == DIRECTIONS.WEST)
+				player_position = this.players[this.direction].y;
+			else
+				player_position = -this.players[this.direction].x;
+
+			console.log("player_position = ", player_position);
+			console.log("mouse pose = ", this.mousePosition);
+
+
+			if (this.mousePosition) {
+				if (this.mousePosition > player_position + PLAYER_SPEED)
+					this.socket.send(JSON.stringify({ type: 'key_input', username: this.username, input: "up" }));
+				else if (this.mousePosition < player_position - PLAYER_SPEED)
+					this.socket.send(JSON.stringify({ type: 'key_input', username: this.username, input: "down" }));
+			}
+			if (this.pressKey[1].key_up === true) {
 				this.socket.send(JSON.stringify({ type: 'key_input', username: this.username, input: "up" }));
-			if (this.pressKey[1].key_down === true)
+				this.mousePosition = null;
+			}
+			if (this.pressKey[1].key_down === true) {
 				this.socket.send(JSON.stringify({ type: 'key_input', username: this.username, input: "down" }));
-		}
-	}
-
-	async draw3D()
-	{
-		// update ball position
-		this.objects.ball.position.x = this.ball.x * 10;
-		this.objects.ball.position.y = this.ball.y * 10;
-
-		//update ball color
-		var color = 0xffffff;
-		if (this.ball.last_hit !== -1)
-			color = PADDLE_INIT.COLOR[this.ball.last_hit];
-		this.objects.ball.traverse((child) => {
-			if (child.isMesh) {
-				child.material.color.set(color);
-			} else if (child.isLight) {
-				child.color.set(color);
-			}
-		});
-
-		// update paddles position
-		for (var dir = 0; dir < 4; dir++) {
-			if (this.players[dir].type == "Player") {
-				this.objects.paddle[dir].position.x = this.players[dir].x * 10;
-				this.objects.paddle[dir].position.y = this.players[dir].y * 10;
-				this.objects.paddle[dir].position.z = 0;
-				this.objects.environment.wall[dir].position.z = -0.5
-
-				this.objects.paddleLight[dir].position.x = this.players[dir].x * 10;
-				this.objects.paddleLight[dir].position.y = this.players[dir].y * 10;
-				this.objects.paddleLight[dir].position.z = 0.5;
-			} else {
-				this.objects.environment.wall[dir].position.z = 0
-				this.objects.paddle[dir].position.z = -1;
-
-				this.objects.paddleLight[dir].position.z = -1;
+				this.mousePosition = null;
 			}
 		}
-
-		// update scoreBoard
-		this.updateScoreBoard();
-
-		if (this.game_state === 3) {
-			if (this.objects.winnerDisplay == null) {
-				const winnerDisplay = await this.createGameOver();
-				window.addEventListener('keydown', returnToIndex);
-
-				function returnToIndex(event) {
-					if (event.code === 'Space') {
-						window.removeEventListener('keydown', returnToIndex);
-						window.location.href = '#';
-					}
-				}
-
-				this.objects.winnerDisplay = winnerDisplay;
-				this.scene.add(this.objects.winnerDisplay);
-			} else {
-				if (this.objects.winnerDisplay.position.x < -20)
-					this.objects.winnerDisplay.position.x = 20;
-				this.objects.winnerDisplay.position.x -= 0.1;
-			}
-		}
-
-		this.renderer.render(this.scene, this.camera);
 	}
 
 	async createGameOver() {
-
 		{
 			var geometry = new TextGeometry(`[press SPACE to continue]`, {
 				font: this.font,
@@ -473,7 +344,9 @@ export default class Pong2DView extends BaseView {
 	}
 
 	setupResizeListener() {
-		window.addEventListener('resize', () => {this.resize()});
+		const resizeListener = () => this.resize();
+		window.addEventListener('resize', resizeListener);
+		this.eventListeners.push({ type: 'resize', listener: resizeListener });
 	}
 
 	setupInputListeners() {
@@ -481,33 +354,80 @@ export default class Pong2DView extends BaseView {
 
 		if (this.isLocalMatch) {
 			console.log("-> is localMatch");
-			if (this.isGuestId(this.players[WEST].id)) {
-				window.addEventListener("keydown", (e) => this.handleKeyDown(e, 0, WEST));
-				window.addEventListener("keyup", (e) => this.handleKeyUp(e, 0, WEST));
+			if (this.isGuestId(this.players[DIRECTIONS.WEST].id)) {
+				const keydownListener = (e) => this.handleKeyDown(e, 0, DIRECTIONS.WEST);
+				window.addEventListener("keydown", keydownListener);
+				this.eventListeners.push({ type: 'keydown', listener: keydownListener });
+			
+				const keyupListener = (e) => this.handleKeyUp(e, 0, DIRECTIONS.WEST);
+				window.addEventListener("keyup", keyupListener);
+				this.eventListeners.push({ type: 'keyup', listener: keyupListener });
 			}
-			if (this.isGuestId(this.players[EAST].id)) {
-				window.addEventListener("keydown", (e) => this.handleKeyDown(e, 1, EAST));
-				window.addEventListener("keyup", (e) => this.handleKeyUp(e, 1, EAST));
+			
+			if (this.isGuestId(this.players[DIRECTIONS.EAST].id)) {
+				const keydownListener = (e) => this.handleKeyDown(e, 1, DIRECTIONS.EAST);
+				window.addEventListener("keydown", keydownListener);
+				this.eventListeners.push({ type: 'keydown', listener: keydownListener });
+			
+				const keyupListener = (e) => this.handleKeyUp(e, 1, DIRECTIONS.EAST);
+				window.addEventListener("keyup", keyupListener);
+				this.eventListeners.push({ type: 'keyup', listener: keyupListener });
 			}
-
 		} else {
-			// find player direction
-			console.log("-> is not localMatch");
-			let direction = 0;
-			for (let i = 0; i < 4; i++) {
-				if (this.username === this.players[i].id) {
-					direction = i;
-					break;
-				}
-			}
-			console.log("direction is = ", direction);
-			console.log("Key Down:", CONTROLS[1][direction].down);
-			console.log("Key Up:", CONTROLS[1][direction].up);
-			window.addEventListener("keydown", (e) => this.handleKeyDown(e, 1, direction));
-			window.addEventListener("keyup", (e) => this.handleKeyUp(e, 1, direction));
+			const keydownListener = (e) => this.handleKeyDown(e, 1, this.direction);
+			window.addEventListener("keydown", keydownListener);
+			this.eventListeners.push({ type: 'keydown', listener: keydownListener });
+		
+			const keyupListener = (e) => this.handleKeyUp(e, 1, this.direction);
+			window.addEventListener("keyup", keyupListener);
+			this.eventListeners.push({ type: 'keyup', listener: keyupListener });
+		
+			// MOUSE MOVEMENT TEST
+			const mouseMoveListener = (e) => this.handleMouseMove(e);
+			window.addEventListener("mousemove", mouseMoveListener);
+			this.eventListeners.push( {type: 'mousemove', listener: mouseMoveListener});
+		
 		}
+	}
+
+	handleMouseMove(event) {
+		if (this.direction == DIRECTIONS.WEST || this.direction == DIRECTIONS.EAST)
+			this.mousePosition = (event.clientY / window.innerHeight - 0.5) * -1.5;
+		else
+			this.mousePosition = (event.clientX / window.innerWidth - 0.5) * -1.5;
 
 	}
+
+	// setupInputListeners() {
+	// 	console.log("setupInputListeners");
+
+	// 	if (this.isLocalMatch) {
+	// 		console.log("-> is localMatch");
+	// 		if (this.isGuestId(this.players[DIRECTIONS.WEST].id)) {
+	// 			window.addEventListener("keydown", (e) => this.handleKeyDown(e, 0, DIRECTIONS.WEST));
+	// 			window.addEventListener("keyup", (e) => this.handleKeyUp(e, 0, DIRECTIONS.WEST));
+	// 		}
+	// 		if (this.isGuestId(this.players[DIRECTIONS.EAST].id)) {
+	// 			window.addEventListener("keydown", (e) => this.handleKeyDown(e, 1, DIRECTIONS.EAST));
+	// 			window.addEventListener("keyup", (e) => this.handleKeyUp(e, 1, DIRECTIONS.EAST));
+	// 		}
+	// 	} else {
+	// 		// find player direction
+	// 		console.log("-> is not localMatch");
+	// 		let direction = 0;
+	// 		for (let i = 0; i < 4; i++) {
+	// 			if (this.username === this.players[i].id) {
+	// 				direction = i;
+	// 				break;
+	// 			}
+	// 		}
+	// 		console.log("direction is = ", direction);
+	// 		console.log("Key Down:", CONTROLS[1][direction].down);
+	// 		console.log("Key Up:", CONTROLS[1][direction].up);
+	// 		window.addEventListener("keydown", (e) => this.handleKeyDown(e, 1, direction));
+	// 		window.addEventListener("keyup", (e) => this.handleKeyUp(e, 1, direction));
+	// 	}
+	// }
 
 	handleKeyDown(e, player, direction) {
 		console.log("handleKeyDown");
@@ -521,27 +441,7 @@ export default class Pong2DView extends BaseView {
 		else if (e.key === CONTROLS[player][direction].down) this.pressKey[player].key_down = false;
 	}
 
-	// handleKeyDown(e) {
-	// 	if (e.key === "ArrowUp") this.pressKey.key_up = true;
-	// 	else if (e.key === "ArrowDown") this.pressKey.key_down = true;
-	// 	// else if (e.key === "ArrowLeft") this.pressKey.key_left = true;
-	// 	// else if (e.key === "ArrowRight") this.pressKey.key_right = true;
-	// }
-
-	// handleKeyUp(e) {
-	// 	if (e.key === "ArrowUp") this.pressKey.key_up = false;
-	// 	else if (e.key === "ArrowDown") this.pressKey.key_down = false;
-	// 	// else if (e.key === "ArrowLeft") this.pressKey.key_left = false;
-	// 	// else if (e.key === "ArrowRight") this.pressKey.key_right = false;
-	// }
-
 	resize() {
-
-		// this.renderer.setPixelRatio(0.5);
-		// console.log("window.devicePixelRatio = ", window.devicePixelRatio);
-		// this.renderer.setPixelRatio( window.devicePixelRatio * 0.75 );
-		// console.log(this.renderer.getPixelRatio());
-
 		var newWidth = window.innerWidth;
 		var newHeight = window.innerWidth;
 		if (window.innerHeight < window.innerWidth) {
@@ -561,18 +461,161 @@ export default class Pong2DView extends BaseView {
 		this.renderer.setSize(newWidth, newHeight);
 	}
 
-	cleanupView() {
-		// Cleanup on exit (e.g., WebSocket and intervals)
-		// if (this.intervalId) clearInterval(this.intervalId);
-		console.log("Cleaning view");
-		if (this.animationId) {
-			cancelAnimationFrame(this.animationId);
+
+	draw3D()
+	{
+		this.updateBall();
+		this.updatePaddles();
+		this.updateScoreBoard();
+		if (this.game_state === 3)
+			this.drawGameOver();
+
+		this.renderer.render(this.scene, this.camera);
+	}
+
+	updateBall() {
+		// update ball position
+		this.objects.ball.position.x = this.ball.x * 10;
+		this.objects.ball.position.y = this.ball.y * 10;
+
+		//update ball color
+		var color = 0xffffff;
+		if (this.ball.last_hit !== -1)
+			color = PADDLE_INIT.COLOR[this.ball.last_hit];
+		this.objects.ball.traverse((child) => {
+			if (child.isMesh) {
+				child.material.color.set(color);
+			} else if (child.isLight) {
+				child.color.set(color);
+			}
+		});
+	}
+
+	updatePaddles() {
+		// update paddles position
+		for (var dir = 0; dir < 4; dir++) {
+			if (this.players[dir].type == "Player") {
+				this.objects.paddle[dir].position.x = this.players[dir].x * 10;
+				this.objects.paddle[dir].position.y = this.players[dir].y * 10;
+				this.objects.paddle[dir].position.z = 0;
+				this.objects.environment.wall[dir].position.z = -0.5
+				this.objects.paddleLight[dir].position.x = this.players[dir].x * 10;
+				this.objects.paddleLight[dir].position.y = this.players[dir].y * 10;
+				this.objects.paddleLight[dir].position.z = 0.5;
+			} else {
+				this.objects.environment.wall[dir].position.z = 0
+				this.objects.paddle[dir].position.z = -1;
+				this.objects.paddleLight[dir].position.z = -1;
+			}
 		}
+	}
+
+	createScoreBoard() {
+		for (let i = 0; i < this.number_of_players; i++) {
+				var geometry = new TextGeometry('', {
+					font: this.font,
+					size: 0.75,
+					depth: 0,
+					curveSegments: 24
+				});
+
+				geometry = centerTextGeometry(geometry);
+				const material = new THREE.MeshBasicMaterial({ color: PADDLE_INIT.COLOR[i] });
+				const mesh = new THREE.Mesh(geometry, material);
+
+				this.objects.scoreBoard[i].lives = mesh;
+				mesh.position.set(SCORE_POSITION[i].X, SCORE_POSITION[i].Y, 0);
+				this.scene.add(mesh);
+		}
+	}
+
+	updateScoreBoard() {
+		for (let i = 0; i < this.number_of_players; i++) {
+			const score = this.players[i].lives;
+			if (this.previous_score[i] !== score) {
+				console.log("updateScoreBoard");
+				const geometry = new TextGeometry(score.toString(), {
+					font: this.font,
+					size: 0.75,
+					depth: 0,
+					curveSegments: 24
+				});
+				const centeredGeometry = centerTextGeometry(geometry);
+				const oldMesh = this.objects.scoreBoard[i].lives;
+				if (oldMesh.geometry) {
+					oldMesh.geometry.dispose();
+				}
+				oldMesh.geometry = centeredGeometry;
+				this.previous_score[i] = score;
+			}
+		}
+	}
+
+	async drawGameOver() {
+		if (this.objects.winnerDisplay == null) {
+			const winnerDisplay = await this.createGameOver();
+
+			const  returnToIndex = (event) => {
+				if (event.code === 'Space') {
+					window.removeEventListener('keydown', returnToIndex);
+					window.location.href = '#';
+				}
+			}
+
+			window.addEventListener('keydown', returnToIndex);
+			this.eventListeners.push( {type: 'keydown', returnToIndex} );
+
+			this.objects.winnerDisplay = winnerDisplay;
+			this.scene.add(this.objects.winnerDisplay);
+		} else {
+			if (this.objects.winnerDisplay.position.x < -20)
+				this.objects.winnerDisplay.position.x = 20;
+			this.objects.winnerDisplay.position.x -= 0.1;
+		}
+	}
+
+	cleanupView() {
+		console.log("Cleaning view");
+		if (this.animationId) cancelAnimationFrame(this.animationId);
 		if (this.socket) this.socket.close();
+		this.cleanupListeners();
+	}
+
+	cleanupListeners() {
+		for (const { type, listener } of this.eventListeners) {
+			console.log("type: " + type + ", listener: " + listener + " removed;")
+			window.removeEventListener(type, listener);
+		}
+		this.eventListeners = []; // Clear the array after removing
+	}
+
+////// CREATE SCENE ////////////////////////////////////////////////////////////
+	createScene() {
+		this.scene = new THREE.Scene();
+		this.createCamera();
+		this.createRenderer();
+		this.createEnvironment(this.scene);
+		this.createBall();
+		this.createPaddles();
+
+		this.resize();
+	}
+
+	createCamera() {
+		this.camera = new THREE.PerspectiveCamera( 75, 1, 0.1, 1000);
+		this.camera.position.z = 10;
+		this.camera.lookAt(0, 0, 0);
+	}
+
+	createRenderer() {
+		this.renderer = new THREE.WebGLRenderer();
+		this.renderer.setSize(1200, 1200);
+		this.renderer.shadowMap.enabled = true;
+		this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+		document.getElementById('container-canva').appendChild(this.renderer.domElement);
 	}
 
 	createEnvironment() {
-
 		const planeGeometry = new THREE.PlaneGeometry( 30, 30 );
 		const planeMaterial = new THREE.MeshStandardMaterial( {color: 0x666666, roughness: 0.7, metalness: 0.5 } );
 		this.objects.environment.field = new THREE.Mesh(planeGeometry, planeMaterial);
@@ -580,6 +623,8 @@ export default class Pong2DView extends BaseView {
 		this.objects.environment.field.receiveShadow = true;
 		this.objects.environment.field.position.z -= 0.15; // minus ball radius
 		this.scene.add(this.objects.environment.field);
+
+		this.scene.add(createSpotLight({x: 0, y: 0, z: 5})); // light
 
 		for (var i = 0; i < 4; i++) {
 			//corners
@@ -603,19 +648,42 @@ export default class Pong2DView extends BaseView {
 			}
 		}
 	}
+
+	createBall() {
+		const group = new THREE.Group();
+	
+		// create ball
+		const geometry = new THREE.SphereGeometry( BALL_RADIUS * 10, 48, 48 );
+		const material = new THREE.MeshBasicMaterial({ color: 0xff0000});
+		const sphere = new THREE.Mesh( geometry, material );
+		group.add(sphere);
+	
+		//create light
+		const light = new THREE.PointLight( 0xffff00, 5, 0, 1 ); 
+		light.position.z = BALL_RADIUS*10;
+		group.add(light);
+
+		this.objects.ball = group;
+		this.scene.add(this.objects.ball);
+	}
+
+	createPaddles() {
+		for (let i = 0; i < 4; i++) {
+			this.objects.paddle.push(createPaddle(PADDLE_INIT.WIDTH[i],
+												PADDLE_INIT.HEIGHT[i],
+												0.5,
+												PADDLE_INIT.COLOR[i]));
+			this.scene.add(this.objects.paddle[i]);
+			this.objects.paddleLight.push(createPaddleLight(PADDLE_INIT.COLOR[i]));
+			this.scene.add(this.objects.paddleLight[i]);
+		}
+	}
+
+////////////////////////////////////////////////////////////////////////////////
+
+
+
 }
-
-// registerCleanup('pong2d', () => {
-// 	console.log("cleanup pong2d");
-// 	renderer.dispose();
-// 	scene.clear();
-// 	webSocket.close();
-// });
-
-// registerInit('pong2d', () => {
-// 	console.log('init pong2d');
-// 	initGame();
-// });
 
 function centerTextGeometry(geometry) {
 	geometry.computeBoundingBox();
@@ -630,8 +698,6 @@ function centerTextGeometry(geometry) {
 	return geometry;
 }
 
-// MESH CREATORS ///////////////////////////////////////////////////////////////
-
 function createSpotLight(position) {
 	const light = new THREE.SpotLight(0xffffff, 3, 0, Math.PI / 3, 0.5, 0.5);
 	light.position.set(position.x, position.y, position.z);
@@ -643,22 +709,6 @@ function createSpotLight(position) {
 	light.shadow.camera.far = 500;
 	light.shadow.camera.fov = 60;
 	return light
-}
-
-function createBall() {
-	const group = new THREE.Group();
-
-	// create ball
-	const geometry = new THREE.SphereGeometry( BALL_RADIUS * 10, 48, 48 );
-	const material = new THREE.MeshBasicMaterial({ color: 0xff0000});
-	const sphere = new THREE.Mesh( geometry, material );
-	group.add(sphere);
-
-	//create light
-	const light = new THREE.PointLight( 0xffff00, 5, 0, 1 ); 
-	light.position.z = BALL_RADIUS*10;
-	group.add(light);
-	return group;
 }
 
 function createPaddleLight(color) {
@@ -682,14 +732,14 @@ var callCount = 0;
 var lastTimestamp = 0;
 
 function trackFrequency() {
-    callCount++;
-    const currentTime = performance.now();
-    const elapsedTime = currentTime - lastTimestamp;
+	callCount++;
+	const currentTime = performance.now();
+	const elapsedTime = currentTime - lastTimestamp;
 
-    // Check if one second has passed
-    if (elapsedTime >= 1000) {
-        console.log(`Function called ${callCount} times in the last second`);
-        callCount = 0; // Reset call count
-        lastTimestamp = currentTime; // Reset the timestamp
-    }
+	// Check if one second has passed
+	if (elapsedTime >= 1000) {
+		console.log(`Function called ${callCount} times in the last second`);
+		callCount = 0; // Reset call count
+		lastTimestamp = currentTime; // Reset the timestamp
+	}
 }
