@@ -185,7 +185,6 @@ export default class Pong2DView extends BaseView {
 
 		if (this.gameHasStarted === false) {
 			if (this.allPlayersPresent()) {
-				this.gameHasStarted = true;
 				this.onGameStart();
 			}
 		}
@@ -206,6 +205,8 @@ export default class Pong2DView extends BaseView {
 		this.findPlayerDirection();
 		this.setupInputListeners();
 		this.startGameLoop();
+
+		this.gameHasStarted = true;
 	}
 
 	findPlayerDirection() {
@@ -297,50 +298,6 @@ export default class Pong2DView extends BaseView {
 				this.mousePosition = null;
 			}
 		}
-	}
-
-	async createGameOver() {
-		{
-			var geometry = new TextGeometry(`[press SPACE to continue]`, {
-				font: this.font,
-				size: 0.5,
-				depth: 0,
-				curveSegments: 24
-			});
-			geometry = centerTextGeometry(geometry);
-			const material = new THREE.MeshBasicMaterial({ color: 0xffffff });
-			const mesh = new THREE.Mesh(geometry, material);
-			mesh.position.set(0, -2, 1);
-
-			this.scene.add(mesh);
-		}
-
-		var winner = 'AI';
-		var winner_idx = 0;
-		for (winner_idx = 0; winner_idx < this.number_of_players; winner_idx++) {
-			if (this.players[winner_idx].lives != 0) {
-				var userInfo = await userManager.getUserInfo(this.players[winner_idx].id);
-				console.log(userInfo);
-				if (userInfo && userInfo.display_name)
-					winner = userInfo.display_name;
-				break;
-			}
-		}
-		var geometry = new TextGeometry(`${winner} won the game !`, {
-			font: this.font,
-			size: 2,
-			depth: 0.5,
-			curveSegments: 24
-		});
-		geometry = centerTextGeometry(geometry);
-		const material = new THREE.MeshStandardMaterial({ color: PADDLE_INIT.COLOR[winner_idx] });
-		const mesh = new THREE.Mesh(geometry, material);
-
-		mesh.position.set(20, 0.5, 2);
-
-		mesh.castShadow = true;
-		mesh.receiveShadow = true;
-		return mesh;
 	}
 
 	setupResizeListener() {
@@ -594,7 +551,7 @@ export default class Pong2DView extends BaseView {
 		this.scene = new THREE.Scene();
 		this.createCamera();
 		this.createRenderer();
-		this.createEnvironment(this.scene);
+		this.createEnvironment();
 		this.createBall();
 		this.createPaddles();
 
@@ -677,6 +634,50 @@ export default class Pong2DView extends BaseView {
 			this.objects.paddleLight.push(createPaddleLight(PADDLE_INIT.COLOR[i]));
 			this.scene.add(this.objects.paddleLight[i]);
 		}
+	}
+
+	async createGameOver() {
+		{
+			var geometry = new TextGeometry(`[press SPACE to continue]`, {
+				font: this.font,
+				size: 0.5,
+				depth: 0,
+				curveSegments: 24
+			});
+			geometry = centerTextGeometry(geometry);
+			const material = new THREE.MeshBasicMaterial({ color: 0xffffff });
+			const mesh = new THREE.Mesh(geometry, material);
+			mesh.position.set(0, -2, 1);
+
+			this.scene.add(mesh);
+		}
+
+		var winner = 'AI';
+		var winner_idx = 0;
+		for (winner_idx = 0; winner_idx < this.number_of_players; winner_idx++) {
+			if (this.players[winner_idx].lives != 0) {
+				var userInfo = await userManager.getUserInfo(this.players[winner_idx].id);
+				console.log(userInfo);
+				if (userInfo && userInfo.display_name)
+					winner = userInfo.display_name;
+				break;
+			}
+		}
+		var geometry = new TextGeometry(`${winner} won the game !`, {
+			font: this.font,
+			size: 2,
+			depth: 0.5,
+			curveSegments: 24
+		});
+		geometry = centerTextGeometry(geometry);
+		const material = new THREE.MeshStandardMaterial({ color: PADDLE_INIT.COLOR[winner_idx] });
+		const mesh = new THREE.Mesh(geometry, material);
+
+		mesh.position.set(20, 0.5, 2);
+
+		mesh.castShadow = true;
+		mesh.receiveShadow = true;
+		return mesh;
 	}
 
 ////////////////////////////////////////////////////////////////////////////////
