@@ -20,8 +20,9 @@ class UserInfosSerializer(serializers.ModelSerializer):
 		# password = serializers.CharField()
 	
 	def __init__(self, *args, **kwargs):
+		self.request = kwargs.pop('request')
 		super().__init__(*args, **kwargs)
-		if self.context['request'].method == 'PATCH':
+		if self.request.method == 'PATCH':
 			self.fields['username'].read_only = True
 			self.fields['password'].required = False
 
@@ -32,7 +33,7 @@ class UserInfosSerializer(serializers.ModelSerializer):
 		return value
 	
 	def validate_email(self, value):
-		if User.objects.filter(email=value).exclude(id=self.context['request'].user.id).exists():
+		if User.objects.filter(email=value).exclude(id=self.request.user.id).exists():
 			raise serializers.ValidationError({"email": "An account with this email already exists."})
 		return value
 
