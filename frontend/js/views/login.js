@@ -49,11 +49,15 @@ export default class LoginView extends BaseView {
 		this.twoFactorForm.addEventListener('submit', async (e) => {
 			e.preventDefault();
 			await this.submitTwoFactor();
-	});
+		});
 		this.twoFactorForm.querySelector('#cancel2FA').addEventListener('click', (e) => {
 			e.preventDefault();
 			this.hide2FASection();
 		})
+
+		if (document.cookie.includes('2fa-token')) {
+			this.show2FASection();
+		}
 
     }
 

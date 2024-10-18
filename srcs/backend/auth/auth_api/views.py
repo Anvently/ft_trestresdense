@@ -167,15 +167,17 @@ class SignIn42CallbackView(APIView):
 			return Response({'error':'register_failed',
 							'error_description':'We failed to register a new user with the provided informations.'},
 						status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-		try:
-			data = {"username": user.username}
-			token = generate_jwt_token(data, ttl_based=True)
-		except Exception as e:
-			return Response(
-				{"error": f"Failed to generate token: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
-			)
 		response = HttpResponseRedirect(f'https://{request.META["HTTP_HOST"]}:8083/')
-		# response = Response({"token":token}, status=status.HTTP_200_OK)
-		response.set_cookie('auth-token', token, expires=time.time() + settings.RSA_KEY_EXPIRATION)
+		if user.is_2fa_active:
+			token = generate_2fa_token(user)
+			response.set_cookie('2fa-token', token, max_age=900)
+		else:
+			try:
+				data = {"username": user.username}
+				token = generate_jwt_token(data, ttl_based=True)
+				response.set_cookie('auth-token', token, expires=time.time() + settings.RSA_KEY_EXPIRATION)
+			except Exception as e:
+				return Response(
+					{"error": f"Failed to generate token: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+				)
 		return response
-		# return Response(token.content, status=status.HTTP_200_OK)
