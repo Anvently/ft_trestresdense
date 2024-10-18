@@ -104,12 +104,12 @@ class PongLobby:
 	
 
 	async def stop_game_loop(self):
-		if self.loop:
-			self.loop.cancel()
+		self.gameState = -1
 
 	async def start_game_loop(self):
-		self.loop = await self.game_loop()
-
+		from pong_server.consumers import lobbies_list
+		await self.game_loop()
+		del lobbies_list[self.lobby_id]
 
 	def player_join(self, player_id: str) -> bool:
 		""" Template of player_list: ["user1", "user1_guest"] """
@@ -133,7 +133,7 @@ class PongLobby:
 		data['game_name'] = self.game_type
 		if self.tournId:
 			data['tournament_id'] = self.tournId
-		if self.gameState == 0:
+		if self.gameState <= 0:
 			data['status'] = 'canceled'
 		else:
 			data['status'] = 'terminated'
@@ -196,12 +196,11 @@ class PongLobby:
 				# print("waiting for = ", self.waiting_for)
 				if self.waiting_for == 0:
 					self.gameState = 1
-			if self.gameState == 0:
+			if self.gameState <= 0:
 				await player_channel.group_send(self.lobby_id, {"type": "cancel",
 																"message": "A Player failed to load"
 																})
 				await self.send_result()
-				self.loop.cancel()
 				return
 			await player_channel.group_send(self.lobby_id, {"type": "game_start"})
 			loop_start = time.time()
@@ -220,12 +219,17 @@ class PongLobby:
 				self.counter()
 				data = self.compute_game()
 				await player_channel.group_send(self.lobby_id, data)
-			await player_channel.group_send(
-				self.lobby_id, {
-					"type": "game_finish",
-					"winner": self.winner
-				}
-			)
+			if self.gameState < 0:
+				await player_channel.group_send(self.lobby_id, {"type": "cancel",
+																"message": "Cancel by matchmaking."
+																})
+			else:
+				await player_channel.group_send(
+					self.lobby_id, {
+						"type": "game_finish",
+						"winner": self.winner
+					}
+				)
 			await self.send_result()
 			await player_channel.group_send(
 				self.lobby_id, {

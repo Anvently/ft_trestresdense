@@ -120,20 +120,20 @@ export default class Pong3DView extends BaseView {
 			// this.startGameLoop();
 		}
 
-		this.socket.onmessage = (e) => this.handleWebSocketMessage(JSON.parse(e.data));
+		this.socket.onmessage = async (e) => this.handleWebSocketMessage(JSON.parse(e.data));
 		this.socket.onerror = (error) => console.error('WebSocket error:', error);
 		this.socket.onclose = () => console.log('WebSocket is closed now.');
 	}
 
-	handleWebSocketMessage(msg) {
+	async handleWebSocketMessage(msg) {
 		if (!msg["type"]) return;
 		if (msg["type"] == "ping")
 			this.socket.send(JSON.stringify({ type: "join_game", username: `${authenticatedUser.username}` }));
 		else if (msg["type"] === "send_game_state")
-			this.updateGameState(msg);
+			await this.updateGameState(msg);
 	}
 
-	updateGameState(msg) {
+	async updateGameState(msg) {
 		this.is_service = msg.is_service;
 		this.ball.x = parseFloat(msg.ball_x);
 		this.ball.y = parseFloat(msg.ball_y);
@@ -159,7 +159,7 @@ export default class Pong3DView extends BaseView {
 
 		if (this.gameHasStarted === false) {
 			if(this.allPlayersPresent()) {
-				this.onGameStart();
+				await this.onGameStart();
 			}
 		}
 	}
@@ -168,15 +168,15 @@ export default class Pong3DView extends BaseView {
 		return this.players[0].id != '' && this.players[1].id != '';
 	}
 
-	onGameStart() {
+	async onGameStart() {
 		console.log("onGameStart");
-		this.createScoreBoard(-49, 0, 5, 0);
-		this.createScoreBoard(49, 0, 5, Math.PI);
+		this.gameHasStarted = true;
+		await this.createScoreBoard(-49, 0, 5, 0);
+		await this.createScoreBoard(49, 0, 5, Math.PI);
 		this.findPlayerDirection();
 		this.setupInputListeners();
 		this.startGameLoop();
 
-		this.gameHasStarted = true;
 	}
 
 	findPlayerDirection() {
@@ -193,7 +193,7 @@ export default class Pong3DView extends BaseView {
 				const deltaTime = timestamp - this.previousTimestamp; // ?
 				this.handleInput();
 				this.draw3D();
-				// this.audio();
+				this.audio();
 			}
 			this.previousTimestamp = timestamp; // ?
 			trackFrequency()
@@ -231,7 +231,7 @@ export default class Pong3DView extends BaseView {
 
 		this.updateBall();
 		this.updatePaddles();
-		this.updateScoreBoard(); //need to update only when there is a goal
+		// this.updateScoreBoard(); //need to update only when there is a goal
 
 		this.renderer.render(this.scene, this.camera);
 	}
