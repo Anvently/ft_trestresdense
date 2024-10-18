@@ -18,14 +18,14 @@ from typing import Any
 
 import time
 
-def	get_or_create_user(infos: dict[str, Any]) -> User:
+def	get_or_create_user(infos: dict[str, Any], request) -> User:
 	try:
 		user = User.objects.get(username="042{0}".format(infos['username']))
 		return user
 	except:
 		infos["password"]= get_random_string(length=30)
-		serializer=UserInfosSerializer(data=infos)
-		if not serializer.is_valid():
+		serializer=UserInfosSerializer(data=infos, request=request)
+		if not serializer.is_valid():	
 			return None
 		serializer.validated_data["username"] = "042{0}".format(infos["username"])
 		return serializer.save()
@@ -72,15 +72,21 @@ class LoginView(APIView):
 			return Response({"Missing password."}, status=status.HTTP_400_BAD_REQUEST)
 		if user.check_password(request.data["password"]) == False:
 			return Response({"Invalid credentials."}, status=status.HTTP_400_BAD_REQUEST)
-		try:
-			data = {"username": user.username}
-			token = generate_jwt_token(data, ttl_based=True)
-		except Exception as e:
-			return Response(
-				{"error": f"Failed to generate token: {e}"}, status=status.HTTP_400_BAD_REQUEST
-			)
-		response = Response({"token":token}, status=status.HTTP_200_OK)
-		response.set_cookie('auth-token', token, expires=time.time() + settings.RSA_KEY_EXPIRATION)
+		if user.is_2fa_active:
+
+			response = Response({'message': "2fa required"}, status= status.HTTP_202_ACCEPTED)
+			response.set_cookie('2fa-token', token, max_age=900, httponly=True)
+			response.data['validity']
+		else:
+			try:
+				data = {"username": user.username}
+				token = generate_jwt_token(data, ttl_based=True)
+				response = Response({'token': token}, status= status.HTTP_200_OK)
+				response.set_cookie('auth-token', token, expires=time.time() + settings.RSA_KEY_EXPIRATION)
+			except Exception as e:
+				return Response(
+					{"error": f"Failed to generate token: {e}"}, status=status.HTTP_400_BAD_REQUEST
+				)
 		return response
 
 class LogoutView(APIView):
@@ -120,7 +126,7 @@ class SignIn42CallbackView(APIView):
 			return Response({'error':'invalid_infos',
 							'error_description': "User infos were received from 42 api but some information were missing."},
 						status=status.HTTP_503_SERVICE_UNAVAILABLE)
-		user = get_or_create_user(infos)
+		user = get_or_create_user(infos, request)
 		if not user:
 			return Response({'error':'register_failed',
 							'error_description':'We failed to register a new user with the provided informations.'},

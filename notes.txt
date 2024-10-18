@@ -1,6 +1,6 @@
 Failles possibles :
 	- si on obtient un token valide pour un user "xyz", on supprime le compte, et quelqu'un recreait le compte "xyz", notre token est toujours valide.
-	
+
 TODO:
 
 	Backend:
@@ -13,8 +13,9 @@ TODO:
 	- dig into production server
 
 	Frontend:
-	- implement 2FA 
+	- implement 2FA
 	- local turnament
+	- check how to implement tournament tree view as a pop-up
 
 	Pong:
 		- display explicit message on the page when the lobby doesn't exist
@@ -27,4 +28,5 @@ BUGS:
 
 - the crash in pong is caused by an infinite loop in calculate_impact()
 
-- when a host is invited to join a lobby, the lobby is not cancelled
+- matchmaking: when refreshing page in tournament lobby (not initial),
+	we can't reconnect to websocket because "a websocket connection is already opened"

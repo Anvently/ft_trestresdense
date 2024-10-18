@@ -47,6 +47,8 @@ def jsonize_lobby(lobby : Lobby):
 	lobby_data['slots'] = f"{len(lobby.players)}/{lobby.player_num}"
 	lobby_data['players'] = copy.deepcopy(lobby.players)
 	lobby_data['settings'] = lobby.settings
+	if (lobby.game_type == "local_match"):
+		lobby_data['host'] = lobby.hostnickname
 	return lobby_data
 
 def jsonize_player(player_dict):
@@ -233,12 +235,12 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		if self._messageId != None:
 			content['id'] = self._messageId
 		self._messageId = None
-		# print(f"\n SENDING {content} \n")
+		print(f"\n SENDING {content} \n")
 		return await super().send_json(content, close)
 
 	async def receive_json(self, content, **kwargs):
 		# perform some basic checks ?
-		# print(f"\n RECEIVED : {content} \n")
+		print(f"\n RECEIVED : {content} \n")
 		try:
 			if 'id' in content:
 				self._messageId = content['id']
@@ -513,6 +515,16 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		await self.send_general_update()
 
 
+	async def add_local_player(self, content):
+		if self.get_status() != PlayerStatus.IN_LOBBY or self._lobby_id[0] != 'L':
+			return
+		lobbies[self._lobby_id].player_not_ready(self.username)
+		player_id = self.username + '.' + content['nickname']
+		print(f"trying to add {player_id} to localLobby")
+		if not lobbies[self._lobby_id].add_local_player(player_id):
+			await self._send_error("Could not add a player to lobby")
+		await self.send_lobby_update(self._lobby_id)
+		await self.send_general_update()
 
 
 	async def invite_player(self, content):
