@@ -235,6 +235,7 @@ class LocalMatchLobby(SimpleMatchLobby):
 		super().__init__(settings, prefix='L')
 		self.remove_player(self.hostname)
 		self.hostnickname = self.hostname + '.' + settings['nickname']
+		print(f"registering hostnickname {self.hostnickname}")
 		self.add_player(self.hostnickname)
 
 	async def handle_results(self, results: Dict[str, Any]):
