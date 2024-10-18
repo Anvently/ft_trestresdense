@@ -32,10 +32,19 @@ def tournament_creator(data: Dict[str, Any]) -> bool:
 
 
 """
+FIRST LETTER
 Simple Match => S
 TournamentInit => I
+LocalTournamentInit => J
 TournamentLobbyMatch T
+LocalTournamentLobbyMatch => U
 LocalLobby => L
 
+SECOND LETTER
+O => Public == Open to be joined
+C => Private == Cannot join without invite/id
 
+THIRD LETTER
+A => Public == Can Spectate
+D => Private == Deny Spectating
  """
