@@ -47,8 +47,10 @@ def jsonize_lobby(lobby : Lobby):
 	lobby_data['slots'] = f"{len(lobby.players)}/{lobby.player_num}"
 	lobby_data['players'] = copy.deepcopy(lobby.players)
 	lobby_data['settings'] = lobby.settings
-	if (lobby.game_type == "local_match"):
+	if (str(lobby) == "local_match"):
+		print("changing hostid")
 		lobby_data['host'] = lobby.hostnickname
+	print("lobby data is", lobby_data)
 	return lobby_data
 
 def jsonize_player(player_dict):
