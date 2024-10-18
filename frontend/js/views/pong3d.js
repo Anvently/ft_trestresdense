@@ -193,7 +193,7 @@ export default class Pong3DView extends BaseView {
 				const deltaTime = timestamp - this.previousTimestamp; // ?
 				this.handleInput();
 				this.draw3D();
-				this.audio();
+				// this.audio();
 			}
 			this.previousTimestamp = timestamp; // ?
 			trackFrequency()
@@ -231,7 +231,7 @@ export default class Pong3DView extends BaseView {
 
 		this.updateBall();
 		this.updatePaddles();
-		this.updateScoreBoard();
+		this.updateScoreBoard(); //need to update only when there is a goal
 
 		this.renderer.render(this.scene, this.camera);
 	}

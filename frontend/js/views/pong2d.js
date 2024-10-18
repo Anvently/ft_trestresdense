@@ -280,14 +280,11 @@ export default class Pong2DView extends BaseView {
 		} else {
 			// Mouse control
 			var player_position;
-			console.log("this.direction = ", this.direction);
 			if (this.direction == DIRECTIONS.EAST || this.direction == DIRECTIONS.WEST)
 				player_position = this.players[this.direction].y;
 			else
 				player_position = -this.players[this.direction].x;
 
-			console.log("player_position = ", player_position);
-			console.log("mouse pose = ", this.mousePosition);
 
 
 			if (this.mousePosition) {
