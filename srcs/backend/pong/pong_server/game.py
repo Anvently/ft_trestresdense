@@ -106,6 +106,7 @@ class PongLobby:
 
 	def player_join(self, player_id: str) -> bool:
 		""" Template of player_list: ["user1", "user1_guest"] """
+
 		if not self.check_user(player_id):
 			return False
 		if self.players[self.match_id_pos[player_id]].has_joined:
@@ -185,6 +186,7 @@ class PongLobby:
 				await asyncio.sleep(0.016)
 				data = self.compute_game()
 				await player_channel.group_send(self.lobby_id, data)
+				# print("waiting for = ", self.waiting_for)
 				if self.waiting_for == 0:
 					self.gameState = 1
 			if self.gameState == 0:

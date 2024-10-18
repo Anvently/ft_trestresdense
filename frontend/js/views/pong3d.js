@@ -159,7 +159,6 @@ export default class Pong3DView extends BaseView {
 
 		if (this.gameHasStarted === false) {
 			if(this.allPlayersPresent()) {
-				this.gameHasStarted = true;
 				this.onGameStart();
 			}
 		}
@@ -176,6 +175,8 @@ export default class Pong3DView extends BaseView {
 		this.findPlayerDirection();
 		this.setupInputListeners();
 		this.startGameLoop();
+
+		this.gameHasStarted = true;
 	}
 
 	findPlayerDirection() {
@@ -223,34 +224,112 @@ export default class Pong3DView extends BaseView {
 			this.socket.send(JSON.stringify({type: 'key_input', username: this.username,  input: "left" }));
 		if (this.pressKey.key_right === true)
 			this.socket.send(JSON.stringify({type: 'key_input', username: this.username,  input: "right" }));
-	
 	}
 
-
-
-
-
-
 	draw3D() {
-		this.setCamera();
+		this.updateCamera();
 
-		// Update ball position
+		this.updateBall();
+		this.updatePaddles();
+		this.updateScoreBoard();
+
+		this.renderer.render(this.scene, this.camera);
+	}
+
+	updateBall() {
 		this.objects.ball.position.x = this.ball.x * 10;
 		this.objects.ball.position.y = this.ball.y * 10;
 		this.objects.ball.position.z = this.setBallHeight();
+	}
 
-		// Update paddle positions
+	updatePaddles() {
 		this.objects.paddle.forEach((paddle, i) => {
 			paddle.position.x = this.players[i].x * 10;
 			paddle.position.y = this.players[i].y * 10;
 			this.setPaddleHeight(i);
 			paddle.rotation.z = this.players[i].angle + Math.PI / 2;
 		});
+	}
 
-		// Update scoreboards
-		this.updateScoreBoard();
+	updateCamera() {
+		if (this.direction == -1 || this.game_state == 3)
+			this.spectatorCamera()
+		else
+			this.POVCamera()
+	}
 
-		this.renderer.render(this.scene, this.camera);
+	spectatorCamera() {
+		const radius = 20;
+
+		this.angle += 0.005;
+		this.camera.position.x = radius * Math.cos(this.angle);
+		this.camera.position.y = radius * Math.sin(this.angle);
+		this.camera.position.z = 10;
+		this.camera.lookAt(0, 0, 0);
+	}
+
+	POVCamera() {
+		// calculate camera destination
+		var camera_destination = {x: 0, y: 0, z: 0}
+
+		var radius = 15;
+		var camera_angle = 0;
+		var player_angle = this.players[this.direction].angle;
+		var middle_angle = 0
+
+		if (this.direction == WEST)
+			middle_angle = Math.PI
+		else if (this.direction == EAST)
+			player_angle += Math.PI;
+
+		radius = Math.abs(this.players[this.direction].x**2 + this.players[this.direction].y**2) * 5 + 10
+		player_angle = normalizeAngle(player_angle);
+		camera_angle = middle_angle + player_angle / 2;
+
+		camera_destination.x = radius * Math.cos(camera_angle);
+		camera_destination.y = radius * Math.sin(camera_angle);
+
+		this.camera.position.z = 5;
+
+		// Move camera + smoothness
+		if (this.camera.position.x < camera_destination.x)
+			this.camera.position.x += (camera_destination.x - this.camera.position.x) * CAMERA_SPEED
+		else if (this.camera.position.x > camera_destination.x)
+			this.camera.position.x -= (this.camera.position.x - camera_destination.x) * CAMERA_SPEED
+
+		if (this.camera.position.y < camera_destination.y)
+			this.camera.position.y += (camera_destination.y - this.camera.position.y) * CAMERA_SPEED
+		else if (this.camera.position.y > camera_destination.y)
+			this.camera.position.y -= (this.camera.position.y - camera_destination.y) * CAMERA_SPEED
+
+		this.camera.lookAt(0, 0, 0);
+	}
+
+	updateScoreBoard() {
+		for (let scoreBoardIndex = 0; scoreBoardIndex < 2; scoreBoardIndex++) {
+			for (let i = 0; i < 2; i++) {
+				if (this.objects.scoreBoard[i][scoreBoardIndex]) {
+					const score = this.players[i].points; // Access player score
+					const geometry = new TextGeometry(score.toString(), {
+						font: this.font,
+						size: 3.4,
+						depth: 0.05,
+						curveSegments: 12
+					});
+	
+					const centeredGeometry = centerTextGeometry(geometry);
+					const oldMesh = this.objects.scoreBoard[i][scoreBoardIndex];
+	
+					// Clean up old geometry
+					if (oldMesh.geometry) {
+						oldMesh.geometry.dispose();
+					}
+	
+					// Set new geometry
+					oldMesh.geometry = centeredGeometry;
+				}
+			}
+		}
 	}
 
 	audio() {
@@ -272,13 +351,21 @@ export default class Pong3DView extends BaseView {
 	}
 
 	setupResizeListener() {
-		window.addEventListener('resize', () => {this.resize()});
+		const resizeListener = () => this.resize();
+		window.addEventListener('resize', resizeListener);
+		this.eventListeners.push({ type: 'resize', listener: resizeListener });
 	}
 
 	setupInputListeners() {
 		console.log("setupInputListeners");
-		window.addEventListener("keydown", (e) => this.handleKeyDown(e));
-		window.addEventListener("keyup", (e) => this.handleKeyUp(e));
+
+
+		const keydownListener = (e) => this.handleKeyDown(e);
+		window.addEventListener("keydown", (e) => keydownListener);
+		this.eventListeners.push( {type: 'keydown', listener: keydownListener});
+		const keyupListener = (e) => this.handleKeyUp(e);
+		window.addEventListener("keyup", (e) => keyupListener);
+		this.eventListeners.push( {type: 'keyup', listener: keyupListener });
 	}
 
 	resize() {
@@ -318,93 +405,7 @@ export default class Pong3DView extends BaseView {
 		if (this.socket) this.socket.close();
 	}
 
-	setCamera() {
-		// // find my position // Find a better way to avoid recalculation ? eventOnFirstMessage ?
-		// for (var i = 0; i < 2; i++) {
-		// 	if (this.players[i].id == this.username)
-		// 		this.direction = i;
-		// }
 
-		if (this.direction == -1 || this.game_state == 3)
-			this.spectatorCamera()
-		else
-			this.setPOVCamera()
-	}
-
-	updateScoreBoard() {
-		for (let scoreBoardIndex = 0; scoreBoardIndex < 2; scoreBoardIndex++) {
-			for (let i = 0; i < 2; i++) {
-				if (this.objects.scoreBoard[i][scoreBoardIndex]) {
-					const score = this.players[i].points; // Access player score
-					const geometry = new TextGeometry(score.toString(), {
-						font: this.font,
-						size: 3.4,
-						depth: 0.05,
-						curveSegments: 12
-					});
-	
-					const centeredGeometry = centerTextGeometry(geometry);
-					const oldMesh = this.objects.scoreBoard[i][scoreBoardIndex];
-	
-					// Clean up old geometry
-					if (oldMesh.geometry) {
-						oldMesh.geometry.dispose();
-					}
-	
-					// Set new geometry
-					oldMesh.geometry = centeredGeometry;
-				}
-			}
-		}
-	}
-
-
-	spectatorCamera() {
-		const radius = 20;
-
-		this.angle += 0.005;
-		this.camera.position.x = radius * Math.cos(this.angle);
-		this.camera.position.y = radius * Math.sin(this.angle);
-		this.camera.position.z = 10;
-		this.camera.lookAt(0, 0, 0);
-	}
-
-	setPOVCamera() {
-		// calculate camera destination
-		var camera_destination = {x: 0, y: 0, z: 0}
-
-		var radius = 15;
-		var camera_angle = 0;
-		var player_angle = this.players[this.direction].angle;
-		var middle_angle = 0
-
-		if (this.direction == WEST)
-			middle_angle = Math.PI
-		else if (this.direction == EAST)
-			player_angle += Math.PI;
-
-		radius = Math.abs(this.players[this.direction].x**2 + this.players[this.direction].y**2) * 5 + 10
-		player_angle = normalizeAngle(player_angle);
-		camera_angle = middle_angle + player_angle / 2;
-
-		camera_destination.x = radius * Math.cos(camera_angle);
-		camera_destination.y = radius * Math.sin(camera_angle);
-
-		this.camera.position.z = 5;
-
-		// Move camera + smoothness
-		if (this.camera.position.x < camera_destination.x)
-			this.camera.position.x += (camera_destination.x - this.camera.position.x) * CAMERA_SPEED
-		else if (this.camera.position.x > camera_destination.x)
-			this.camera.position.x -= (this.camera.position.x - camera_destination.x) * CAMERA_SPEED
-
-		if (this.camera.position.y < camera_destination.y)
-			this.camera.position.y += (camera_destination.y - this.camera.position.y) * CAMERA_SPEED
-		else if (this.camera.position.y > camera_destination.y)
-			this.camera.position.y -= (this.camera.position.y - camera_destination.y) * CAMERA_SPEED
-
-		this.camera.lookAt(0, 0, 0);
-	}
 
 	setPaddleHeight(direction) {
 		if ((this.ball.x < 0 && direction == WEST) || (this.ball.x > 0 && direction == EAST) ) {
@@ -463,39 +464,57 @@ export default class Pong3DView extends BaseView {
 	}
 
 	createScene() {
-		console.log("createScene");
 		this.scene = new THREE.Scene();
 
+		createCamera();
+		createRenderer();
+		createEnvironment();
+		createLights();
+		createBall();
+		createPaddles();
+
+		this.resize();
+	}
+
+	createCamera() {
 		this.camera = new THREE.PerspectiveCamera( 60, 4/3, 0.1, 100);
 		this.camera.up.set(0, 0, 1); // Set Z as the up direction
 		this.camera.position.set(0, 0, 1);
+	}
 
+	createRenderer() {
 		this.renderer = new THREE.WebGLRenderer();
-		this.resize();
 		this.renderer.shadowMap.enabled = true;
 		this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 		document.getElementById('container-canva').appendChild(this.renderer.domElement);
+	}
 
-		this.scene.add(createSpotLight({x: -5, y: 2, z: 15}));
-		this.scene.add(createSpotLight({x: 7, y: -10, z: 5}));
-
-		const ambientLight = new THREE.AmbientLight( 0x404040 , 6);
-		this.scene.add( ambientLight );
-
+	createEnvironment() {
 		this.objects.environment.room = createRoom();
 		this.scene.add(this.objects.environment.room);
 
 		this.objects.environment.table = createTable();
 		this.scene.add(this.objects.environment.table);
+	}
 
+	createLights() {
+		this.scene.add(createSpotLight({x: -5, y: 2, z: 15}));
+		this.scene.add(createSpotLight({x: 7, y: -10, z: 5}));
+		
+		const ambientLight = new THREE.AmbientLight( 0x404040 , 6);
+		this.scene.add( ambientLight );
+	}
+
+	createBall() {
 		this.objects.ball = createBall();
 		this.scene.add(this.objects.ball);
+	}
 
+	createPaddles() {
 		this.objects.paddle.push(createPaddle(0xf00000)); // West paddle
 		this.objects.paddle.push(createPaddle(0x0000f0)); // East paddle
 		this.objects.paddle.forEach(paddle => this.scene.add(paddle))
 	}
-
 
 	async createScoreBoard(x, y, z, rot) {
 		const group = new THREE.Group();
@@ -522,7 +541,6 @@ export default class Pong3DView extends BaseView {
 				if (userInfo.display_name)	displayName = userInfo.display_name;
 				if (userInfo.avatar)	avatarPath = userInfo.avatar;
 			}
-
 
 			// truncate name
 			if (displayName.length > 13) {
@@ -572,29 +590,21 @@ export default class Pong3DView extends BaseView {
 					depth: 0.05,
 					curveSegments: 12
 				});
-
 				// center the text
 				geometry = centerTextGeometry(geometry);
-
 				const material = new THREE.MeshStandardMaterial({ color: 0xff0000 });
 				const mesh = new THREE.Mesh(geometry, material);
 				mesh.rotation.y = Math.PI /2;
 				mesh.rotation.z = Math.PI /2;
 				mesh.position.x += 0.5
 				mesh.position.z -= 3
-
 				// save the object
 				this.objects.scoreBoard[i].push(mesh);
-
 				playerScoreGroup.add(mesh);
 			}
 
-
-			if (i == WEST) {
-				playerScoreGroup.position.y -= 5;
-			} else {
-				playerScoreGroup.position.y += 5;
-			}
+			if (i == WEST) playerScoreGroup.position.y -= 5;
+			else playerScoreGroup.position.y += 5;
 			group.add(playerScoreGroup);
 		}
 
@@ -838,14 +848,14 @@ let callCount = 0;
 let lastTimestamp = performance.now();
 
 function trackFrequency() {
-    callCount++;
-    const currentTime = performance.now();
-    const elapsedTime = currentTime - lastTimestamp;
+	callCount++;
+	const currentTime = performance.now();
+	const elapsedTime = currentTime - lastTimestamp;
 
-    // Check if one second has passed
-    if (elapsedTime >= 1000) {
-        console.log(`Function called ${callCount} times in the last second`);
-        callCount = 0; // Reset call count
-        lastTimestamp = currentTime; // Reset the timestamp
-    }
+	// Check if one second has passed
+	if (elapsedTime >= 1000) {
+		console.log(`Function called ${callCount} times in the last second`);
+		callCount = 0; // Reset call count
+		lastTimestamp = currentTime; // Reset the timestamp
+	}
 }
