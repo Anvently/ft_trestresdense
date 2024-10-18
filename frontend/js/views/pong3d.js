@@ -361,10 +361,11 @@ export default class Pong3DView extends BaseView {
 
 
 		const keydownListener = (e) => this.handleKeyDown(e);
-		window.addEventListener("keydown", (e) => keydownListener);
+		window.addEventListener("keydown", keydownListener);
 		this.eventListeners.push( {type: 'keydown', listener: keydownListener});
+		
 		const keyupListener = (e) => this.handleKeyUp(e);
-		window.addEventListener("keyup", (e) => keyupListener);
+		window.addEventListener("keyup", keyupListener);
 		this.eventListeners.push( {type: 'keyup', listener: keyupListener });
 	}
 
@@ -386,6 +387,7 @@ export default class Pong3DView extends BaseView {
 	}
 
 	handleKeyDown(e) {
+		console.log("handleKeyDown");
 		if (e.key === "ArrowUp") this.pressKey.key_up = true;
 		else if (e.key === "ArrowDown") this.pressKey.key_down = true;
 		else if (e.key === "ArrowLeft") this.pressKey.key_left = true;
@@ -393,6 +395,7 @@ export default class Pong3DView extends BaseView {
 	}
 
 	handleKeyUp(e) {
+		console.log("handleKeyUp");
 		if (e.key === "ArrowUp") this.pressKey.key_up = false;
 		else if (e.key === "ArrowDown") this.pressKey.key_down = false;
 		else if (e.key === "ArrowLeft") this.pressKey.key_left = false;
@@ -466,12 +469,12 @@ export default class Pong3DView extends BaseView {
 	createScene() {
 		this.scene = new THREE.Scene();
 
-		createCamera();
-		createRenderer();
-		createEnvironment();
-		createLights();
-		createBall();
-		createPaddles();
+		this.createCamera();
+		this.createRenderer();
+		this.createEnvironment();
+		this.createLights();
+		this.createBall();
+		this.createPaddles();
 
 		this.resize();
 	}
