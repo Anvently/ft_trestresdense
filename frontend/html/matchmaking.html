@@ -269,6 +269,7 @@
 					</div>
 					<div class="mainOptions">
 						<button id="inviteFriendsButton" class="btn btn-secondary lobbyView me-2">Inviter des amis</button>
+						<button id="addLocalPlayerButton" class="btn btn-secondary lobbyView me-2 d-none">Ajouter un joueur</button>
 						<button id="leaveLobbyButton" class="btn btn-danger lobbyView">Quitter le lobby</button>
 						<button id="displayBracketButton" class="btn btn-secondary lobbyView me 2 d-none">Voir les resultats</button>
 					</div>
@@ -304,7 +305,7 @@
 					<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
 				</div>
 				<div class="modal-body" id="tournamentModalDiv">
-			 
+
 				</div>
 				<div class="modal-footer">
 					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
@@ -470,6 +471,21 @@
     </div>
 </div>
 
+<div class="modal fade" id="nicknameModal" tabindex="-1" aria-labelledby="nicknameModalLabel" aria-hidden="true">
+	<div class="modal-dialog modal-dialog-centered">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title" id="nicknameModalLabel">Enter Your Nickname</h5>
+			</div>
+			<div class="modal-body p-3">
+				<input type="text" id="nicknameInput" class="form-control mb-3" placeholder="Enter your nickname">
+				<button type="button" class="btn btn-primary" id="submitNicknameButton">Submit</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+
 
 	<!-- Modale pour changer les options du lobby -->
 	<div class="modal fade" id="lobbyOptionsModal" tabindex="-1">
@@ -508,3 +524,8 @@
 
 </body>
 </html>
+
+
+
+
+

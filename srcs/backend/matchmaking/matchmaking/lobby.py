@@ -76,7 +76,7 @@ class Lobby():
 		""" Add a player  to a lobby. Return True is success.
 		 If player was bot it will mark himself has ready and possibly trigger
 		  game initialization. """
-		
+
 		if len(self.players) == self.player_num:
 			logging.warning(f"Trying to add a player ({player_id}) to a full lobby")
 			return False
@@ -226,8 +226,11 @@ class SimpleMatchLobby(Lobby):
 class LocalMatchLobby(SimpleMatchLobby):
 
 	def __init__(self, settings: Dict[str, Any]) -> None:
+		settings['public'] = False
 		super().__init__(settings, prefix='L')
-		self.settings['public'] = False
+		self.remove_player(self.hostname)
+		self.hostnickname = self.hostname + '.' + settings['nickname']
+		self.add_player(self.hostnickname)
 
 	def handle_results(self, results: Dict[str, Any]):
 		self.delete()
@@ -243,6 +246,80 @@ class LocalMatchLobby(SimpleMatchLobby):
 				pass
 			case _:
 				raise KeyError("Wrong settings")
+
+	def add_local_player(self, player_id):
+		print("addlocalplayer")
+		if len(self.players) == self.player_num:
+			return False
+		if player_id in self.players:
+			return False
+		self.players[player_id] = {
+			'has_joined': True,
+			'is_ready': True,
+			'is_bot': False
+		}
+		print(self.players)
+		return True
+
+	def player_not_ready(self, player_id):
+		if player_id != self.hostname:
+			return
+		self.players[self.hostnickname]['is_ready'] = False
+
+	def player_ready(self, player_id) -> bool:
+		""" Mark a player as ready and return True if it was the last player
+		 and the game was initiated with success. """
+		if self.started == True:
+			logging.warning(f"{player_id} marked as ready but game has already started.")
+			return False
+		if player_id != self.hostname:
+			return False
+		self.players[self.hostnickname]['is_ready'] = True
+		if len(self.players) != self.player_num or any(not player['is_ready'] for (player_id, player) in self.players.items()):
+			return False
+		if not self.init_game():
+			return False
+		return True
+
+	def init_game(self, extra_data: Dict[str, any] = None) -> bool:
+		""" Send HTTP request to pong backend and sent link to consumers. Update players status """
+		# This exception could be ignored and we could complete here missing player with bots
+		if len(self.players) != self.player_num:
+			raise Exception("Can't init game. Actual number of players does not match set number of players.")
+		# Send request
+		data = {
+			'game_name': self.game_type,
+			'game_id': self.id,
+			'hostname': self.hostname,
+			'settings': self.settings,
+			'player_list': list(self.players.keys())
+		}
+		if (extra_data):
+			data.update(extra_data)
+		try:
+			response = requests.post('http://pong:8002/init-game/?format=json',
+					data=json.dumps(data),
+					headers = {
+						'Host': 'localhost',
+						'Content-type': 'application/json',
+						'Authorization': "Bearer {0}".format(settings.API_TOKEN.decode('ASCII'))
+						}
+					)
+			if response.status_code != 201:
+				raise Exception(f"expected status 201 got {response.status_code} ({response.content})")
+		except Exception as e:
+			print(f"ERROR: Failed to post game initialization to pong api: {e}")
+			return False
+		# Update player status
+		online_players[self.hostname]['status'] = PlayerStatus.IN_GAME
+		self.started = True
+		return True
+
+	def player_joined(self, player_id):
+		if player_id != self.hostname:
+			raise Exception(f"{player_id} try to join lobby {self.id} but does not belong to it.")
+		self.players[self.hostnickname]['has_joined'] = True
+
 
 
 class TournamentInitialLobby(Lobby):
@@ -338,7 +415,7 @@ class TournamentMatchLobby(Lobby):
 # 	'game_type': 'pong2d',
 # 	'nbr_players': 8,
 # 	'nbr_bots': 8,
-# 	'lives':1,	
+# 	'lives':1,
 # 	'allow_spectators': True,
 # 	'public': True
 # })

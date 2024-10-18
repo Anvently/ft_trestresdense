@@ -16,6 +16,7 @@ export default class MatchmakingView extends BaseView {
 		this.reconnectInterval = 2000; // 5 secondes
 		this.messageQueue = new Map();
 		this.messageId = 0;
+		this.nickName = "";
     }
 
 
@@ -28,12 +29,13 @@ export default class MatchmakingView extends BaseView {
 		this.openLobbyOptionsButton = document.getElementById('buttonOptionsLobby');
 		//this.startGameButton = document.getElementById('startGameButton');
 		this.inviteFriendsButton = document.getElementById('inviteFriendsButton');
+		this.addLocalPlayerButton = document.getElementById('addLocalPlayerButton');
 		this.beReadyButton = document.getElementById('beReadyButton');
 		this.leaveLobbyButton = document.getElementById('leaveLobbyButton');
+		this.submitNicknameButton = document.getElementById('submitNicknameButton');
 		this.joinLobbyButton = document.getElementById('joinLobbyButton');
 		this.createLobbyButton = document.getElementById('createLobbyButton');
 		this.saveLobbyOptionsButton = document.getElementById("saveLobbyOptionsButton");
-
 		this.showOnlinePLayersButton.addEventListener('click', () => this.showOnlinePlayers());
 		this.openLobbyOptionsButton.addEventListener('click', (e) => this.openLobbyOptions());
 		//this.startGameButton.addEventListener('click', () => this.startGame());
@@ -42,10 +44,16 @@ export default class MatchmakingView extends BaseView {
 		this.joinLobbyButton.addEventListener('click', () => this.joinLobbyById());
 		this.createLobbyButton.addEventListener('click', () => this.createLobby());
 		this.saveLobbyOptionsButton.addEventListener('click', () => this.saveLobbyOptions());
+		this.submitNicknameButton.addEventListener('click', () => this.submitNickname());
+		this.addLocalPlayerButton.addEventListener('click', () => this.addLocalPlayer());
 
 		document.getElementById('testBracketButton').addEventListener('click', async () => await this.displayTournamentTree('efa18272fd22f393f157e374'));
 
 		userManager.setDynamicUpdateHandler(this.updateUserInfos);
+
+		document.getElementById('nicknameModal').addEventListener('hidden.bs.modal', function () {
+            document.getElementById('nicknameInput').value = '';});
+
 
 	}
 
@@ -239,8 +247,21 @@ export default class MatchmakingView extends BaseView {
 	}
 
 
+	async submitNickname() {
+
+		const nicknameInput = document.getElementById('nicknameInput');
+		const nickname = nicknameInput.value.trim();
+		if (nickname === "")
+		{
+			nickname = this.username + "." + this.username;
+		}
+		this.nickName = nickname;
+		bootstrap.Modal.getInstance(document.getElementById('nicknameModal')).hide();
+	}
+
 	async createLobby() {
 		const form = document.getElementById('createLobbyForm');
+		const modal = bootstrap.Modal.getInstance(document.getElementById('createLobbyModal'));
 		document.querySelectorAll('.form-errors').forEach(function(el) {
 			el.style.display = 'none';
 		});
@@ -310,8 +331,17 @@ export default class MatchmakingView extends BaseView {
 			spectators,
 			nbrLives
 		});
+		modal.hide();
+		if (matchType === "local_match")
+		{
 
-		const modal = bootstrap.Modal.getInstance(document.getElementById('createLobbyModal'));
+			const nicknameModal = new bootstrap.Modal(document.getElementById('nicknameModal'));
+            nicknameModal.show();
+			await new Promise(resolve => {
+				document.getElementById('nicknameModal').addEventListener('hidden.bs.modal', resolve, { once: true });
+			});
+			nicknameModal.hide();
+		}
 		try {
 			await this.sendMessage({
 				type: 'create_lobby',
@@ -322,17 +352,18 @@ export default class MatchmakingView extends BaseView {
 				game_type: gameType,
 				public: (lobbyPrivacy === 'public' ? true : false),
 				allow_spectators: (spectators === 'allowed' ? true: false),
-				lives: nbrLives});
+				lives: nbrLives,
+				nickname: this.nickName,
+			});
 		} catch (error) {
 			this.errorHandler(error);
 		}
 		this.isHost = true;
-
-
-		// Fermer la modale
-		modal.hide();
-
+		this.nickName = "";
 	}
+
+
+
 
 	joinLobbyById() {
 		const lobbyId = document.getElementById('lobbyIdInput').value;
@@ -424,14 +455,26 @@ export default class MatchmakingView extends BaseView {
 	async lobby_update(message) {
 		console.log(message)
 		let isTnMatch = false;
+		let isLoc = false;
 		if (message.match_type === "tournament_match")
 		{
 			this.isHost = false;
 			isTnMatch = true;
 			document.getElementById('displayBracketButton').classList.remove('d-none');
 			document.getElementById('inviteFriendsButton').classList.add('d-none');
-		} else {
+			document.getElementById('addLocalPlayerButton').classList.add("d-none");
+		}
+		else if(message.match_type === "local_match")
+		{
+			isLoc = true;
+			document.getElementById('inviteFriendsButton').classList.add('d-none');
+			document.getElementById('addLocalPlayerButton').classList.remove('d-none');
+			document.getElementById('displayBracketButton').classList.add('d-none');
+		}
+		else {
 			document.getElementById('inviteFriendsButton').classList.remove('d-none');
+			document.getElementById('displayBracketButton').classList.add('d-none');
+			document.getElementById('addLocalPlayerButton').classList.add("d-none");
 		}
 		document.getElementById('lobbyName').textContent = message.name;
 		const lobbyNameEl = document.getElementById('lobbyName');
@@ -442,7 +485,8 @@ export default class MatchmakingView extends BaseView {
 
 
 		await Object.entries(message.players).forEach(async ([playerId, playerData]) => {
-		  await this.appendPlayerEntry(playerListEl, playerId, playerData, message.host, isTnMatch);
+
+			await this.appendPlayerEntry(playerListEl, playerId, playerData, message.host, isTnMatch, isLoc);
 		});
 
 		// Gérer les slots libres
@@ -456,7 +500,7 @@ export default class MatchmakingView extends BaseView {
 
 
 
-	async appendPlayerEntry(tableElement, playerId, playerData, hostId, isTnMatch) {
+	async appendPlayerEntry(tableElement, playerId, playerData, hostId, isTnMatch, isLoc) {
 		const playerRow = document.createElement('tr');
 		let playerState;
 		if (playerData.is_ready) {
@@ -559,7 +603,16 @@ export default class MatchmakingView extends BaseView {
 		this.sendMessage({"type" : "kick_player", "player_target" : playerId});
 	}
 
-
+	async addLocalPlayer()
+	{
+		const nicknameModal = new bootstrap.Modal(document.getElementById('nicknameModal'));
+		this.nickName = "";
+        nicknameModal.show();
+		await new Promise(resolve => {
+			document.getElementById('nicknameModal').addEventListener('hidden.bs.modal', resolve, { once: true });
+		});
+		this.sendMessage({'type' : 'add_local_player', 'nickname' : this.nickName});
+	}
 
 	inviteFriends() {
 		this.sendMessage({'type' : 'get_invite_list'}, 1000)
@@ -848,6 +901,9 @@ export default class MatchmakingView extends BaseView {
 		await viewManager.loadView('./views/tournament.js', 'html/tournament.html');
 		// viewManager.v
 	}
+
+
+
 
     cleanupView() {
         if (this.socket) {
