@@ -548,7 +548,7 @@ export default class MatchmakingView extends BaseView {
 
 		const actionCell = document.createElement('td');
 		actionCell.classList.add('right');
-		if (this.isHost && playerId !== hostId && !isTnMatch) {
+		if (playerId !== hostId && !isTnMatch) {
 			console.log("creating kick button");
 			const kickButton = document.createElement('button');
 			kickButton.className = 'btn btn-danger';
