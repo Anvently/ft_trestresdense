@@ -29,3 +29,13 @@ def tournament_creator(data: Dict[str, Any]) -> bool:
 		logging.error(e)
 		return False
 	return True
+
+
+"""
+Simple Match => S
+TournamentInit => I
+TournamentLobbyMatch T
+LocalLobby => L
+
+
+ """
