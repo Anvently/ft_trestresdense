@@ -8,7 +8,8 @@ from rest_framework.parsers import JSONParser, MultiPartParser
 from django.conf import settings
 from auth_api.serializers import UserInfosSerializer
 from auth_api.authentication import CookieJWTAuthentication, HeaderJWTAuthentication, UserPermission
-from auth_api.crypt import generate_jwt_token
+from auth_api.crypt import generate_jwt_token, generate_2fa_token, verify_2fa_token, verify_totp_token
+from django.core.cache import cache
 from auth_api.models import User
 from auth_api.requests import delete_user, post_new_user, obtain_oauth_token, retrieve_user_infos
 from auth_api.requests import post_new_user
@@ -73,10 +74,9 @@ class LoginView(APIView):
 		if user.check_password(request.data["password"]) == False:
 			return Response({"Invalid credentials."}, status=status.HTTP_400_BAD_REQUEST)
 		if user.is_2fa_active:
-
-			response = Response({'message': "2fa required"}, status= status.HTTP_202_ACCEPTED)
+			token = generate_2fa_token(user)
+			response = Response({'message': "2fa required. A token valid for 15min was transmitted in a cookie."}, status= status.HTTP_202_ACCEPTED)
 			response.set_cookie('2fa-token', token, max_age=900, httponly=True)
-			response.data['validity']
 		else:
 			try:
 				data = {"username": user.username}
@@ -88,6 +88,42 @@ class LoginView(APIView):
 					{"error": f"Failed to generate token: {e}"}, status=status.HTTP_400_BAD_REQUEST
 				)
 		return response
+	
+class TwoFactorAuthView(APIView):
+	def post(self, request):
+		two_factor_code = request.data.get('code')
+		two_factor_token = request.COOKIES.get('2fa_token')
+		
+		if not two_factor_token:
+			return Response({"error": "No 2FA token found"}, status=status.HTTP_400_BAD_REQUEST)
+		
+		user_id = verify_2fa_token(two_factor_token)
+		if not user_id:
+			return Response({"error": "Invalid or expired 2FA token"}, status=status.HTTP_401_UNAUTHORIZED)
+		
+		try:
+			user=User.objects.get(id=user_id)
+		except:
+			return Response({"error": "The given 2FA token doesn't match any user."}, status=status.HTTP_401_UNAUTHORIZED)
+
+		if user.is_2fa_active == False:
+			return Response({"error": "2FA is not needed for this user."}, status=status.HTTP_400_BAD_REQUEST)
+
+		if verify_totp_token(user.totp_secret, two_factor_code):
+			cache.delete(f"2fa_token_{two_factor_token}")
+			try:
+				data = {"username": user.username}
+				token = generate_jwt_token(data, ttl_based=True)
+				response = Response({'token': token}, status= status.HTTP_200_OK)
+				response.set_cookie('auth-token', token, expires=time.time() + settings.RSA_KEY_EXPIRATION)
+				response.delete_cookie('2fa_token')
+				return response
+			except Exception as e:
+				return Response(
+					{"error": f"Failed to generate token: {e}"}, status=status.HTTP_400_BAD_REQUEST
+				)
+		else:
+			return Response({"error": "Invalid 2FA code"}, status=status.HTTP_401_UNAUTHORIZED)
 
 class LogoutView(APIView):
 
