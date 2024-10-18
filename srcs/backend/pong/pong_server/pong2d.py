@@ -72,24 +72,37 @@ class Player2D(Player):
 		else:
 			self.destination -= (PADDLE_LENGTH / 2 ) * 0.9
 
+	# grosse function de merde
 	def calculate_impact(self, ballX, ballY, ballSpeedX, ballSpeedY):
 		fpos_x, fpos_y, fspeed_x, fspeed_y = ballX, ballY, ballSpeedX, ballSpeedY
 
+		iterations = 0
+
 		while True:
-			""" !!! THE BUG IS HERE !!! (>-<), the loop never exit """
+			iterations += 1
+			if iterations > 10000:
+				print("calculate_impact loop detected")
+				print(f"ballX = ${ballX}, ballY = ${ballY}, ballSpeedX = ${ballSpeedX}, ballSpeedY = ${ballSpeedY}")
+				return 0
+
+			if abs(fspeed_x) < 1e-6 and abs(fspeed_y) < 1e-6:
+				return 0
 			fpos_x += fspeed_x
 			fpos_y += fspeed_y
 
-			if not -0.5 + BALL_RADIUS < fpos_x < 0.5 - BALL_RADIUS:
+			if not (-0.5 + BALL_RADIUS < fpos_x < 0.5 - BALL_RADIUS):
 				if self.side == WEST or self.side == EAST:
 					return fpos_y
 				else:
 					fspeed_x *= -1 
-			if not -0.5 + BALL_RADIUS < fpos_y < 0.5 - BALL_RADIUS:
+			if not (-0.5 + BALL_RADIUS < fpos_y < 0.5 - BALL_RADIUS):
 				if self.side == NORTH or self.side == SOUTH:
 					return fpos_x
 				else:
 					fspeed_y *= -1 
+				
+			if not (-0.5 + BALL_RADIUS < fpos_x < 0.5 - BALL_RADIUS) and not (-0.5 + BALL_RADIUS < fpos_y < 0.5 - BALL_RADIUS):
+				return 0
 
 class PongLobby2D(PongLobby):
 	service_direction = 0
@@ -234,15 +247,19 @@ class PongLobby2D(PongLobby):
 		if self.ball['x'] < -1.2 and self.players[WEST].type == "Player":
 			self.players[WEST].lives -= 1
 			goal_scored = True
+			print("WEST lost a life :", self.players[WEST].lives)
 		elif self.ball['x'] > 1.2 and self.players[EAST].type == "Player":
 			self.players[EAST].lives -= 1
 			goal_scored = True
+			print("EAST lost a life :", self.players[EAST].lives)
 		elif self.ball['y'] > 1.2 and self.players[NORTH].type == "Player":
 			self.players[NORTH].lives -= 1
 			goal_scored = True
+			print("NORTH lost a life :", self.players[NORTH].lives)
 		elif self.ball['y'] < -1.2 and self.players[SOUTH].type == "Player":
 			self.players[SOUTH].lives -= 1
 			goal_scored = True
+			print("SOUTH lost a life :", self.players[SOUTH].lives)
 
 		if goal_scored:
 			self.check_eliminated_players()
@@ -325,4 +342,3 @@ class PongLobby2D(PongLobby):
 			json[f"player{index}_width"] = self.players[index].coordinates['width']
 			json[f"player{index}_height"] = self.players[index].coordinates['height']
 		return json
-	

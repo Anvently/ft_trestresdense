@@ -100,7 +100,7 @@ services:
     container_name: pong_c
     build:
       context: ./srcs/django_builds
-      target: django_pongapi
+      target: django_websocketapi
     ports:
       - "8002:8002"
     # command: python3 manage.py runserver 0.0.0.0:8002

@@ -54,6 +54,9 @@ class ScoreSerializer(DynamicFieldsSerializer):
 		if instance.user == None:
 			ret['username'] = "!bot"
 			ret['display_name'] = "BotUser"
+		elif instance.pseudo:
+			ret['username'] = f"{instance.user.username}.{instance.pseudo}"
+			ret['display_name'] = instance.pseudo
 		return ret
 
 
@@ -108,10 +111,14 @@ class LobbySerializer(DynamicFieldsSerializer):
 		scores_list = validated_data.pop('scores_set')
 		for score_data in scores_list:
 			try:
+				pseudo = None
 				if score_data['user']['username'][0] == '!':
 					user = None
 				else:
-					user = User.objects.get(username=score_data['user']['username'])
+					username = score_data['user']['username']
+					if '.' in username:
+						username, pseudo = username.split('.', 1)
+					user = User.objects.get(username=username)
 			except Exception as e:
 				raise serializers.ValidationError({"username": [f"Not provided or user {score_data['user']['username']} does not exists."]})
 			Score.objects.create(
@@ -119,6 +126,7 @@ class LobbySerializer(DynamicFieldsSerializer):
 				lobby=lobby,
 				score=score_data.get('score', 0),
 				has_win=score_data['has_win'],
+				pseudo=pseudo,
 			)
 		return lobby
 

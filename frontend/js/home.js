@@ -29,11 +29,15 @@ const viewManager = new ViewManager(document.getElementById('content'));
 export class User {
 	constructor(username, objToAssign = undefined) {
 		if (username.startsWith('!')) return new BotUser(username);
+		else if (username.includes('.')) {
+			this.pseudo = username.split('.')[1];
+			username = username.split('.')[0];
+		}
 		// this.avatar = `https://${window.location.host}/avatars/__default__.jpg`;
 		this.avatar = `https://robohash.org/${username}?set=set4&bgset=&size=80x80`;
 		this.friends = [];
 		this.last_visit = "2024-09-25T11:33:00.563109Z";
-		this.display_name = "UnknownName";
+		this._display_name = "UnknownName";
 		this.username = username;
 		this.scores_set = [];
 		if (objToAssign) {
@@ -42,6 +46,15 @@ export class User {
 		} else {
 			this.valid_info = false;
 		}
+	}
+
+	get display_name() {
+		if (this.pseudo) return this.pseudo;
+		return this._display_name;
+	}
+
+	set display_name(value) {
+		this._display_name = value;
 	}
 
 	get is_online() {
@@ -195,7 +208,7 @@ function errorHandler(error, attemptReconnect = false) {
 	setTimeout(() => {
 		errorPopup.style.display = 'none';
 	}, 5000); // Masquer après 5 secondes
-	// throw error; //UNCOMMENT TO TRACK ERROR IN CONSOLE
+	throw error; //UNCOMMENT TO TRACK ERROR IN CONSOLE
 }
 
 // Fonction pour fermer le pop-up

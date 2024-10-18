@@ -39,6 +39,9 @@ def jsonize_lobby(lobby : Lobby):
 	lobby_data = {}
 	lobby_data['game_type'] = lobby.game_type
 	lobby_data['match_type'] = str(lobby)
+	lobby_data['lobby_id'] = lobby.id
+	if (hasattr(lobby, 'tournament_id')):
+		lobby_data['tournament_id'] = lobby.tournament_id
 	lobby_data['name'] = lobby.name
 	lobby_data['host'] = lobby.hostname
 	lobby_data['slots'] = f"{len(lobby.players)}/{lobby.player_num}"
@@ -118,6 +121,21 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 	# list all available lobbies to send to front
 
 
+	@staticmethod
+	async def static_general_update():
+		channel_layer = get_channel_layer()
+		data = await MatchMakingConsumer.generate_update_data(None)
+		await channel_layer.group_send(MatchMakingConsumer.matchmaking_group, data)
+
+	@staticmethod
+	async def static_lobby_update(id):
+		channel_layer = get_channel_layer()
+		if id not in lobbies:
+			return
+		data = jsonize_lobby(lobbies[id])
+		data['type'] = 'lobby_update'
+		await channel_layer.group_send(id, data)
+
 	def __init__(self, *args, **kwargs):
 
 		self.username = None
@@ -164,7 +182,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		if not self._auth_client():
 			return False
 		async with MatchMakingConsumer.matchmaking_lock:
-			if self.username in online_players and online_players[self.username]["status"] != PlayerStatus.IN_GAME:
+			if self.username in online_players and online_players[self.username]["status"] not in (PlayerStatus.IN_GAME, PlayerStatus.IN_TOURNAMENT_LOBBY):
 				self.scope['error'] = "an websocket connection for is already opened"
 				self.scope['error_code'] = Errors.AUTH_ERROR
 				return False
@@ -172,8 +190,12 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 
 	async def check_infos(self):
 		if self.username in online_players:
-			self._lobby_id = online_players[self.username]['lobby_id']
-			await self.send_json({"type": "in_game", "lobby_id": self._lobby_id, 'game_type' : lobbies[self._lobby_id].game_type})
+			if online_players[self.username]["status"] == PlayerStatus.IN_GAME:
+				self._lobby_id = online_players[self.username]['lobby_id']
+				await self.send_json({"type": "in_game", "lobby_id": self._lobby_id, 'game_type' : lobbies[self._lobby_id].game_type})
+			if online_players[self.username]["status"] == PlayerStatus.IN_TOURNAMENT_LOBBY:
+				self._lobby_id = online_players[self.username]['lobby_id']
+				await self.send_json({"type": "in_tournament_lobby", "lobby_id": self._lobby_id})
 		else:
 			online_players[self.username] = copy.deepcopy(default_status)
 			await self.channel_layer.group_add(self.username, self.channel_name)
@@ -257,8 +279,6 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 			await self._send_error(msg=f'Can\'t join the lobby {target_lobby}: already started', code=Errors.JOIN_ERROR, close=False)
 		elif self.get_status() == PlayerStatus.IN_LOBBY:
 			await self.switch_lobby(target_lobby)
-		elif self.get_status() == PlayerStatus.IN_TOURNAMENT_LOBBY:
-			await self._send_error(msg='Already in tournament lobby.', code=Errors.JOIN_ERROR, close=False)
 		else:
 			if lobbies[target_lobby].add_player(self.username):
 				await self.channel_layer.group_add(target_lobby, self.channel_name)

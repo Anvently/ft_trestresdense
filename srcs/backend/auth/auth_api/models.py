@@ -6,9 +6,9 @@ from django.utils.deconstruct import deconstructible
 
 @deconstructible
 class CustomValidator(UnicodeUsernameValidator):
-	regex = r"^(?!042)[\w.@+-]+\Z"
+	regex = r"^(?!042)[\w@+-]+\Z"
 	message = "Enter a valid username. This value may contain only letters, " \
-		"numbers, and @/./+/-/_ characters. It must not start with 042."
+		"numbers, and @/+/-/_ characters. It must not start with 042."
 	flags = 0
 
 class	User(AbstractUser):
@@ -27,9 +27,11 @@ class	User(AbstractUser):
 		error_messages={
 			"unique": "A user with that username already exists.",
 		},
+		editable=False,
 	)
 	email = models.EmailField("email address", blank=True, null=True, unique=True)
+	is_2fa_active = models.BooleanField("is 2fa activated", default=False)
+	totp_secret = models.CharField(max_length=32, blank=True, null=True)
 
 	def __str__(self) -> str:
 		return self.username
-	

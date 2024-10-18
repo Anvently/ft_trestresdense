@@ -22,7 +22,7 @@ class IsApiAuthentificated(BasePermission):
 	def __init__(self):
 		pass
 
-	def has_permission(self, request, view):
+	async def has_permission(self, request, view):
 		if not hasattr(request, 'api_name'):
 			return False
 		if self.restrict_api and request.api_name not in self.restrict_api:
@@ -38,7 +38,7 @@ def IsApiAuthenticatedAs(required_api: List[str]):
 	return CustomIsApiAuthenticated
 
 class ApiJWTAuthentication(BaseAuthentication):
-	def authenticate(self, request):
+	async def authenticate(self, request):
 		token = request.headers.get("Authorization")
 		if not token:
 			raise AuthenticationFailed("Token not provided")

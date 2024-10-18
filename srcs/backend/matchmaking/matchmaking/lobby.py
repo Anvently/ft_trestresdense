@@ -9,6 +9,7 @@ from django.conf import settings
 import time, logging, random, string
 from matchmaking.common import online_players, PlayerStatus, lobbies, tournaments, tournament_creator
 from channels.layers import get_channel_layer
+from asgiref.sync import sync_to_async
 
 def generate_id(public, spectate ,prefix=''):
 	""" Simplr => S
@@ -76,6 +77,10 @@ class Lobby():
 		""" Add a player  to a lobby. Return True is success.
 		 If player was bot it will mark himself has ready and possibly trigger
 		  game initialization. """
+
+
+		if player_id in self.players:
+			return True
 
 		if len(self.players) == self.player_num:
 			logging.warning(f"Trying to add a player ({player_id}) to a full lobby")
@@ -172,14 +177,14 @@ class Lobby():
 		if self.id in lobbies:
 			del lobbies[self.id]
 
-	def handle_results(self, results: dict[str, Any]):
+	async def handle_results(self, results: dict[str, Any]):
 		""" register in database"""
 		if results['status'] != 'cancelled':
 			results['hostname'] = self.hostname
 			results['lobby_name'] = self.name
 			# results['scores_set'] = [el for el in results['scores_set'] if el['username'][0] != '!']
 			try:
-				response = requests.post('http://users_api:8001/post-result/?format=json',
+				response = await sync_to_async(requests.post)('http://users_api:8001/post-result/?format=json',
 						data=json.dumps(results),
 						headers = {
 							'Host': 'localhost',
@@ -205,8 +210,8 @@ class SimpleMatchLobby(Lobby):
 		super().__init__(settings, prefix=prefix)
 		self.add_player(self.hostname)
 
-	def handle_results(self, results: Dict[str, Any]):
-		super().handle_results(results)
+	async def handle_results(self, results: Dict[str, Any]):
+		await super().handle_results(results)
 		self.delete()
 
 	def __str__(self) -> str:
@@ -232,7 +237,7 @@ class LocalMatchLobby(SimpleMatchLobby):
 		self.hostnickname = self.hostname + '.' + settings['nickname']
 		self.add_player(self.hostnickname)
 
-	def handle_results(self, results: Dict[str, Any]):
+	async def handle_results(self, results: Dict[str, Any]):
 		self.delete()
 
 	def __str__(self) -> str:
@@ -338,7 +343,7 @@ class TournamentInitialLobby(Lobby):
 			raise KeyError(f"Wrong lives, {self.settings['lives']}")
 
 
-	def handle_results(self, results: Dict[str, Any]):
+	async def handle_results(self, results: Dict[str, Any]):
 		pass
 
 	def init_game(self) -> bool:
@@ -370,10 +375,10 @@ class TournamentMatchLobby(Lobby):
 		self.hostname = None
 		super().__init__(settings, id, 'T')
 
-	def handle_results(self, results: Dict[str, Any]):
+	async def handle_results(self, results: Dict[str, Any]):
 		if self.tournament_id in tournaments: #Probably not necessary to check that
-			super().handle_results(results)
-			tournaments[self.tournament_id].handle_result(results)
+			await super().handle_results(results)
+			await tournaments[self.tournament_id].handle_result(results)
 		self.delete()
 
 	def init_game(self, extra_data: Dict[str, Any] = None) -> bool:

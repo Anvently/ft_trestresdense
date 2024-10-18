@@ -19,6 +19,7 @@ TODO:
 
 	Pong:
 		- display explicit message on the page when the lobby doesn't exist
+		- redirect (automatically ?) players to matchmaking at the end of a game
 
 
 BUGS:
@@ -29,5 +30,3 @@ BUGS:
 
 - matchmaking: when refreshing page in tournament lobby (not initial),
 	we can't reconnect to websocket because "a websocket connection is already opened"
-
-- Local match should not be "joinable" in matchmaking ?

@@ -1,5 +1,6 @@
 import { BaseView } from '../view-manager.js';
 import { authenticatedUser, User, userManager } from '../home.js';
+import QrCreator from 'https://cdn.jsdelivr.net/npm/qr-creator/dist/qr-creator.es6.min.js';
 
 export default class ProfileView extends BaseView {
     constructor() {
@@ -56,17 +57,39 @@ export default class ProfileView extends BaseView {
 		});
 
 		this.resetForm();
+		await this.retrieveAuthInfos();
+		await this.initSecurityForm();
+		await this.init2FA();
+		
+		userManager.setDynamicUpdateHandler(this.updateUserInfos);
+		await this.updateFriendsList();
+		await userManager.forceUpdate();
+
+		
+	}
+
+	async retrieveAuthInfos() {
+		try {
+			const response = await fetch(this.patchCredentialsUrl, {method: 'GET'});
+			console.log(response.status);
+			if (!response.ok) {
+				throw new Error("Error retrieving authentication informations");
+			}
+			this.credentialsInfos = await response.json();
+			console.log(this.credentialsInfos);
+		} catch (error) {
+			this.errorHandler(error);
+		}
+	}
+
+	async initSecurityForm() {
+		this.securityForm.email.value = this.credentialsInfos.email;
 		if (authenticatedUser.username.startsWith('042'))
 			this.disableSecurityForm();
 		else {
-			this.enableSeciurityForm();
+			this.enableSecurityForm();
 			this.onPasswordChange();
 		}
-
-		userManager.setDynamicUpdateHandler(this.updateUserInfos);
-		this.updateFriendsList();
-		userManager.forceUpdate();
-		
 	}
 
 	resetForm() {
@@ -77,10 +100,7 @@ export default class ProfileView extends BaseView {
 	}
 
 	onPasswordChange() {
-		if (!this.password.value) {
-			this.password.setCustomValidity("Password must be non-empty.")
-		}
-		else if (this.password.value !== this.confirmPassword.value) {
+		if (this.password.value !== this.confirmPassword.value) {
 			this.password.setCustomValidity("");
 			this.confirmPassword.setCustomValidity("Passwords must match.")
 		} else {
@@ -110,7 +130,7 @@ export default class ProfileView extends BaseView {
 		inputs.forEach(input => input.disabled = true);
 	}
 
-	enableSeciurityForm() {
+	enableSecurityForm() {
 		const form = document.getElementById('securityForm');
 		const securityMessage = document.querySelector('.security-message');
 		
@@ -176,14 +196,17 @@ export default class ProfileView extends BaseView {
 				body: JSON.stringify({
 					username: authenticatedUser.username,
 					email: this.securityForm.email.value,
-					password: this.securityForm.password.value
+					password: (this.securityForm.password.value ? this.securityForm.password.value: undefined),
+					is_2fa_active: this.securityForm.enable2FA.checked
 				})
 			});
 			if (response.status === 400)
 				throw new Error(Object.entries(await response.json())[0]);
 			if (!response.ok)
 				throw new Error("Failed to updated informations.");
+			this.credentialsInfos = await response.json();
 			this.successHandler("Informations de connexion mises a jour !");
+			this.init2FA();
 		} catch (error) {
 			this.errorHandler(error);
 		}
@@ -243,6 +266,31 @@ export default class ProfileView extends BaseView {
 			this.friendInput.value = '';
 			this.successHandler(`${newFriendName} est desormais votre ami.`);
 			await this.updateFriendsList();
+		}
+	}
+
+	async init2FA() {
+		const container = document.querySelector('#qrcode')
+		if (this.credentialsInfos.is_2fa_active) {
+			document.getElementById('container-2FA').classList.remove('d-none');
+			this.securityForm.enable2FA.checked = true;
+			try {
+				container.innerHTML = '';
+				document.getElementById("totp-secret").value = this.credentialsInfos.totp_secret;
+				QrCreator.render({
+					text: `otpauth://totp/${authenticatedUser.username}?secret=${this.credentialsInfos.totp_secret}&issuer=ft-trestresdense`,
+					radius: 0.5, // 0.0 to 0.5
+					ecLevel: 'H', // L, M, Q, H
+					fill: '#536DFE', // foreground color
+					background: null, // color or null for transparent
+					size: 256 // in pixels
+				  }, document.querySelector('#qrcode'));
+			} catch (error) {
+				this.errorHandler("Error loading 2FA qr-code");
+			}
+		} else {
+			document.getElementById('container-2FA').classList.add('d-none');
+			container.innerHTML = "";
 		}
 	}
 
