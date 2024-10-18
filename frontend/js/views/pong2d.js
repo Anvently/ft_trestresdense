@@ -155,10 +155,25 @@ export default class Pong2DView extends BaseView {
 
 	handleWebSocketMessage(msg) {
 		if (!msg["type"]) return;
-		if (msg["type"] == "ping")
-			this.socket.send(JSON.stringify({ type: "join_game", username: `${authenticatedUser.username}` }));
+		if (msg["type"] === "ping") 
+			this.sendJoinGame(msg);
 		else if (msg["type"] === "send_game_state")
 			this.updateGameState(msg);
+	}
+
+	sendJoinGame(msg) {
+		for (let i = 0; i < 4; i++) {
+			if (this.isGuestId(msg.player_list[i])) {
+				this.isLocalMatch = true;
+				console.log(`${msg.player_list[i]} joined the game`);
+				this.socket.send(JSON.stringify({ type: "join_game", username: `${msg.player_list[i]}` }));
+			}
+		}
+
+		if (!this.isLocalMatch) {
+			console.log(`${authenticatedUser.username} joined the game`);
+			this.socket.send(JSON.stringify({ type: "join_game", username: `${authenticatedUser.username}` }));
+		}
 	}
 
 	updateGameState(msg) {
@@ -201,7 +216,6 @@ export default class Pong2DView extends BaseView {
 	onGameStart() {
 		console.log("onGameStart");
 		this.createScoreBoard();
-		this.isLocalMatch = this.checkIfLocalMatch();
 		this.findPlayerDirection();
 		this.setupInputListeners();
 		this.startGameLoop();
@@ -216,14 +230,7 @@ export default class Pong2DView extends BaseView {
 		}
 	}
 
-	checkIfLocalMatch() {
-		for (let i = 0; i < this.number_of_players; i++) {
-			if (this.isGuestId(this.players[i].id)) {
-				return true;
-			}
-		}
-		return false;
-	}
+
 
 	isGuestId(id) {
 		if (id.includes(".") && id.indexOf(".") > 0)
@@ -387,13 +394,15 @@ export default class Pong2DView extends BaseView {
 	// }
 
 	handleKeyDown(e, player, direction) {
-		console.log("handleKeyDown");
-		if (e.key === CONTROLS[player][direction].up) this.pressKey[player].key_up = true;
-		else if (e.key === CONTROLS[player][direction].down) this.pressKey[player].key_down = true;
+		console.log("handleKeyDown : " + e.key);
+		if (e.key === CONTROLS[player][direction].up) 
+			this.pressKey[player].key_up = true;
+		else if (e.key === CONTROLS[player][direction].down) 
+			this.pressKey[player].key_down = true;
 	}
 
 	handleKeyUp(e, player, direction) {
-		console.log("handleKeyUp");
+		console.log("handleKeyUp : " + e.key);
 		if (e.key === CONTROLS[player][direction].up) this.pressKey[player].key_up = false;
 		else if (e.key === CONTROLS[player][direction].down) this.pressKey[player].key_down = false;
 	}

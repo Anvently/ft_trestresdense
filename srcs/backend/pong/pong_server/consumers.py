@@ -110,7 +110,9 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 			await self._send_error(self.scope['error'], self.scope['error_code'], True)
 			print("Connection rejected because: {0}".format(self.scope['error']))
 			return
-		await self.send_json({'type':'ping'})
+		
+		player_list = [player.player_id for player in lobbies_list[self.lobby_id].players]
+		await self.send_json({'type':'ping', 'player_list': player_list})
 
 	async def disconnect(self, close_code):
 		if not self.is_spectator:
@@ -139,6 +141,7 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 			await self.close(code, msg)
 
 	async def join_game(self, content):
+		print(content)
 		if self.is_spectator:
 			return
 		if not PongConsumer.DISABLE_AUTH and content['username'].split('.')[0] != self.username:
