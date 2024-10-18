@@ -30,3 +30,7 @@ BUGS:
 
 - matchmaking: when refreshing page in tournament lobby (not initial),
 	we can't reconnect to websocket because "a websocket connection is already opened"
+
+-quand on se fait inviter alors quon est host il y a des soucis
+
+-check les general et lobbby update lors ajout de bot
