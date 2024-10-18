@@ -92,7 +92,7 @@ class LoginView(APIView):
 class TwoFactorAuthView(APIView):
 	def post(self, request):
 		two_factor_code = request.data.get('code')
-		two_factor_token = request.COOKIES.get('2fa_token')
+		two_factor_token = request.COOKIES.get('2fa-token')
 		
 		if not two_factor_token:
 			return Response({"error": "No 2FA token found"}, status=status.HTTP_400_BAD_REQUEST)
@@ -116,7 +116,7 @@ class TwoFactorAuthView(APIView):
 				token = generate_jwt_token(data, ttl_based=True)
 				response = Response({'token': token}, status= status.HTTP_200_OK)
 				response.set_cookie('auth-token', token, expires=time.time() + settings.RSA_KEY_EXPIRATION)
-				response.delete_cookie('2fa_token')
+				response.delete_cookie('2fa-token')
 				return response
 			except Exception as e:
 				return Response(

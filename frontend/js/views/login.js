@@ -46,9 +46,9 @@ export default class LoginView extends BaseView {
 		})
 
 		this.twoFactorForm = document.getElementById('twoFactorForm');
-		this.twoFactorForm.addEventListener('submit', (e) => {
+		this.twoFactorForm.addEventListener('submit', async (e) => {
 			e.preventDefault();
-			this.submitTwoFactor();
+			await this.submitTwoFactor();
 	});
 		this.twoFactorForm.querySelector('#cancel2FA').addEventListener('click', (e) => {
 			e.preventDefault();
@@ -179,13 +179,36 @@ export default class LoginView extends BaseView {
 	}
 
 	async submitTwoFactor() {
-
+		try {
+			const response = await fetch(this.twoFactorUrl, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({ code: this.twoFactorForm.twoFactorCode.value }),
+			})
+			if (!response.ok) {
+				const data = await response.json();
+				throw new Error(data.error || data.message);
+			}
+			console.log('Connexion réussie');
+			authenticatedUser.getInfos();
+			// Rediriger vers la page principale ou effectuer d'autres actions
+			window.location.hash = '#';
+		} catch (error) {
+			const errorDiv = document.getElementById('message2FA');
+			errorDiv.className = "alert alert-danger";
+			errorDiv.innerText = error;
+		}
 	}
 
 	show2FASection() {
 		const twoFactorSection = document.getElementById('twoFactorAuth');
 		twoFactorSection.classList.add('show');
 		document.getElementById('authTabsContent').classList.add('d-none');
+		const errorDiv = document.getElementById('message2FA');
+		errorDiv.className = "alert alert-success";
+		errorDiv.innerText = "Veuillez saisir votre second facteur d'authentification.";
 		this.startTimer();
 	}
 
