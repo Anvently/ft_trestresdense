@@ -494,22 +494,91 @@ export default class MatchmakingView extends BaseView {
 		this.lobbyData = message;
 
 		await Object.entries(message.players).forEach(async ([playerId, playerData]) => {
-
-			await this.appendPlayerEntry(playerListEl, playerId, playerData, message.host, isTnMatch, isLoc);
+			if (isLoc){
+				await this.appendLocPlayerEntry(playerListEl, playerId, playerData, message.host, isTnMatch);
+			}
+			else{
+				await this.appendPlayerEntry(playerListEl, playerId, playerData, message.host, isTnMatch, isLoc);}
 		});
 
 		// Gérer les slots libres
 		let players_len = Object.keys(message.players).length;
 		for (let i = players_len; i < message.settings.nbr_players; i++) {
-		  this.appendEmptySlotEntry(playerListEl, i === players_len);
+			this.appendEmptySlotEntry(playerListEl, i === players_len);
 		}
 
 		await userManager.forceUpdate();
 	}
 
+	async appendLocPlayerEntry(tableElement, playerId, playerData, hostId, isTnMatch) {
+		const playerRow = document.createElement('tr');
+		let playerState;
+		if (playerData.is_ready) {
+			playerState = 'Prêt';
+			playerRow.classList.add('player-ready')
+		} else if (playerData.has_joined) {
+			playerState = 'A rejoint';
+		} else {
+			playerState = 'N\'a pas encore rejoint';
+			playerRow.classList.add('text-muted');
+		}
+
+		const user = new User(playerId, await userManager.getUserInfo(playerId));
+
+		const nameCell = document.createElement('td');
+		nameCell.classList.add('left');
+		const linkBlock = document.createElement('a');
+		linkBlock.classList.add('user-link', 'd-flex', 'align-items-center', 'text-decoration-none');
+		const userAvatar = document.createElement('img');
+		userAvatar.classList.add('rounded-circle', 'me-2', 'dynamicAvatarUrl', `user-${user.username}`);
+		const userNameSpan = document.createElement('span');
+		userNameSpan.classList.add('dynamicDisplayName', `user-${user.username}`);
+		userNameSpan.textContent = user.display_name;
+		userAvatar.src = user.avatar;
+		linkBlock.href = !user.is_bot ? `https://${window.location.host}/#user?username=${playerId}` : "javascript:void(0)";
+		linkBlock.appendChild(userAvatar);
+		linkBlock.appendChild(userNameSpan);
+		nameCell.appendChild(linkBlock);
+		playerRow.appendChild(nameCell);
+
+		const stateCell = document.createElement('td');
+		stateCell.classList.add('center');
+		stateCell.textContent = playerState;
+		playerRow.appendChild(stateCell);
+
+		const actionCell = document.createElement('td');
+		actionCell.classList.add('right');
+		if (this.isHost && playerId !== hostId && !isTnMatch) {
+			console.log("creating kick button");
+			const kickButton = document.createElement('button');
+			kickButton.className = 'btn btn-danger';
+			kickButton.textContent = 'Expulser';
+			kickButton.onclick = () => this.kickPlayer(playerId);
+			actionCell.appendChild(kickButton);
+		} else if (playerId === hostId) {
+			const beReadyButton = document.createElement('button');
+			beReadyButton.className = 'btn btn-warning';
+			beReadyButton.textContent = this.isReady ? 'Unready' : 'Ready-Up';
+			beReadyButton.onclick = () => {
+				if (this.isReady == false){
+					this.beReady(playerId);
+					this.isReady = true;
+				}
+				else{
+					this.unready(playerId);
+					this.isReady = false;
+				}
+				}
+			actionCell.appendChild(beReadyButton);
+		}
+		playerRow.appendChild(actionCell);
+
+		tableElement.appendChild(playerRow);
+	}
 
 
-	async appendPlayerEntry(tableElement, playerId, playerData, hostId, isTnMatch, isLoc) {
+
+	async appendPlayerEntry(tableElement, playerId, playerData, hostId, isTnMatch) {
 		const playerRow = document.createElement('tr');
 		let playerState;
 		if (playerData.is_ready) {
