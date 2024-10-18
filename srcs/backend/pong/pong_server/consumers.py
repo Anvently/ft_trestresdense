@@ -89,7 +89,7 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 			return False
 		if not self._auth_client():
 			return False
-		if self.username and lobbies_list[self.lobby_id].check_user(self.username):
+		if self.username and lobbies_list[self.lobby_id].check_user_authentication(self.username):
 			self.is_spectator = False
 		elif self.DISABLE_AUTH:
 			pass
@@ -141,7 +141,6 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 			await self.close(code, msg)
 
 	async def join_game(self, content):
-		print(content)
 		if self.is_spectator:
 			return
 		if not PongConsumer.DISABLE_AUTH and content['username'].split('.')[0] != self.username:

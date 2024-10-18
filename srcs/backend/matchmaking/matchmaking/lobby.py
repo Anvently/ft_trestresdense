@@ -252,6 +252,13 @@ class LocalMatchLobby(SimpleMatchLobby):
 				pass
 			case _:
 				raise KeyError("Wrong settings")
+			
+	def delete(self):
+		""" Delete players from online_players and remove lobby from list of lobbies """
+		if online_players[self.hostname]['lobby_id'] == self.id:
+			del online_players[self.hostname]
+		if self.id in lobbies:
+			del lobbies[self.id]
 
 	def add_local_player(self, player_id):
 		print("addlocalplayer")

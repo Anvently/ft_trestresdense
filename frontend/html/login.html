@@ -11,10 +11,32 @@
 		height: 20px;
 		margin-right: 10px;
 	}
+	#twoFactorAuth {
+		display: none;
+		overflow: hidden;
+		transition: max-height 0.5s ease-out;
+		max-height: 0;
+	}
+	#twoFactorAuth.show {
+		display: block;
+		max-height: 300px;
+	}
+	#twoFactorAuth .button-div {
+		display: flex;
+		flex-direction: row;
+		gap: 20px;
+	}
+	#twoFactorAuth .button-div button {
+		width: 50%;
+	}
+	#timer {
+		font-weight: bold;
+		margin-top: 10px;
+	}
 </style>
 <div class="container mt-5">
 	<div class="row">
-		<div class="col-md-6 offset-md-3">
+		<div class="col-md-6 offset-md-3" id="loginRegisterSection">
 			<ul class="nav nav-tabs" id="authTabs" role="tablist">
 				<li class="nav-item" role="presentation">
 					<button class="nav-link active" id="login-tab" data-bs-toggle="tab" data-bs-target="#login" type="button" role="tab" aria-controls="login" aria-selected="true">Connexion</button>
@@ -77,6 +99,21 @@
 					<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/42_Logo.svg/240px-42_Logo.svg.png" alt="logo-42" id="button-logo">
 					Se connecter avec 42
 				</button>
+			</div>
+			<div id="twoFactorAuth" class="mt-3">
+				<h4>Validation en deux étapes</h4>
+				<form id="twoFactorForm">
+					<div id="message2FA" class="alert alert-success">Veuillez saisir votre second facteur d'authentification.</div>
+					<div class="mb-3">
+						<label for="twoFactorCode" class="form-label">Code à 6 chiffres</label>
+						<input type="text" class="form-control" id="twoFactorCode" required pattern="\d{6}" maxlength="6">
+					</div>
+					<div class="button-div">
+						<button type="submit" class="btn btn-primary">Valider</button>
+						<button id="cancel2FA" class="btn btn-secondary">Retour</button>
+					</div>
+				</form>
+				<div id="timer" class="text-center"></div>
 			</div>
 		</div>
 	</div>

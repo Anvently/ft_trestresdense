@@ -68,11 +68,11 @@ class LoginView(APIView):
 		try:
 			user = User.objects.get(username=request.data["username"])
 		except:
-			return Response({"Invalid username."}, status=status.HTTP_400_BAD_REQUEST)
+			return Response({"error": "Invalid username."}, status=status.HTTP_400_BAD_REQUEST)
 		if not "password" in request.data:
-			return Response({"Missing password."}, status=status.HTTP_400_BAD_REQUEST)
+			return Response({"error":"Missing password."}, status=status.HTTP_400_BAD_REQUEST)
 		if user.check_password(request.data["password"]) == False:
-			return Response({"Invalid credentials."}, status=status.HTTP_400_BAD_REQUEST)
+			return Response({"error":"Invalid credentials."}, status=status.HTTP_400_BAD_REQUEST)
 		if user.is_2fa_active:
 			token = generate_2fa_token(user)
 			response = Response({'message': "2fa required. A token valid for 15min was transmitted in a cookie."}, status= status.HTTP_202_ACCEPTED)
