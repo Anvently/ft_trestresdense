@@ -363,7 +363,7 @@ export default class Pong3DView extends BaseView {
 		const keydownListener = (e) => this.handleKeyDown(e);
 		window.addEventListener("keydown", keydownListener);
 		this.eventListeners.push( {type: 'keydown', listener: keydownListener});
-		
+
 		const keyupListener = (e) => this.handleKeyUp(e);
 		window.addEventListener("keyup", keyupListener);
 		this.eventListeners.push( {type: 'keyup', listener: keyupListener });
@@ -402,12 +402,22 @@ export default class Pong3DView extends BaseView {
 		else if (e.key === "ArrowRight") this.pressKey.key_right = false;	
 	}
 
-	cleanup() {
+	cleanupView() {
+		console.log("Cleaning Pong3d view");
 		// Cleanup on exit (e.g., WebSocket and intervals)
 		// if (this.intervalId) clearInterval(this.intervalId);
+		if (this.animationId) cancelAnimationFrame(this.animationId);
 		if (this.socket) this.socket.close();
+		this.cleanupListeners();
 	}
 
+	cleanupListeners() {
+		for (const { type, listener } of this.eventListeners) {
+			console.log("type: " + type + ", listener: " + listener + " removed;")
+			window.removeEventListener(type, listener);
+		}
+		this.eventListeners = []; // Clear the array after removing
+	}
 
 
 	setPaddleHeight(direction) {
