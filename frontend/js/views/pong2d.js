@@ -10,7 +10,7 @@ import { authenticatedUser, User, userManager } from '../home.js';
 //	- Revoir les event listeners ( 1 seul pour keyup, 1 seul pour keydown )
 //	- afficher pseudo et/ou avatar
 //	- ameliorer les controles souris (mieux centrer le curseur sur le paddle, ou cacher le curseur)
-// - TOUJOURS CRASH DE CHECK IMPACT MACHIN TRUC
+//	- la balle change de couleur sur des paddles de joueurs elimines
 
 // Constants
 const DIRECTIONS = {
@@ -541,7 +541,7 @@ export default class Pong2DView extends BaseView {
 	}
 
 	cleanupView() {
-		console.log("Cleaning view");
+		console.log("Cleaning Pong2d view");
 		if (this.animationId) cancelAnimationFrame(this.animationId);
 		if (this.socket) this.socket.close();
 		this.cleanupListeners();
