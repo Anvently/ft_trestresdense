@@ -6,6 +6,9 @@ import time
 import struct
 import base64
 import secrets
+from datetime import timedelta
+from django.core.cache import cache
+from django.utils import timezone
 
 from django.conf import settings
 
@@ -25,6 +28,39 @@ def verify_jwt(token, is_ttl_based=False, ttl_key="exp"):
 		if data[ttl_key] < time.time():
 			raise ValueError("Token expired")
 	return data
+
+def generate_2fa_token(user):
+	"""
+	Génère un token 2FA unique pour l'utilisateur.
+	"""
+	token = secrets.token_hex(16)  # Génère un token hexadécimal de 32 caractères
+	expiration = timezone.now() + timedelta(minutes=15)
+	
+	# Stocke le token et son expiration dans le cache
+	cache_key = f"2fa_token_{token}"
+	cache.set(cache_key, {
+		'user_id': user.id,
+		'expiration': expiration
+	}, timeout=900)  # 15 minutes en secondes
+	
+	return token
+
+def verify_2fa_token(token):
+	"""
+	Vérifie si le token 2FA est valide et non expiré.
+	Retourne le pk du user associe si le token est valide, sinon None.
+	"""
+	cache_key = f"2fa_token_{token}"
+	token_data = cache.get(cache_key)
+	
+	if token_data is None:
+		return None
+	
+	if timezone.now() > token_data['expiration']:
+		cache.delete(cache_key)
+		return None
+	
+	return(token_data['user_id'])
 
 def generate_totp_secret():
 	return base64.b32encode(secrets.token_bytes(10)).decode()
