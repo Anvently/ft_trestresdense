@@ -51,7 +51,6 @@ class CookieJWTAuthentication(BaseAuthentication):
 	def authenticate_header(self, request):
 		return "cookie; cookie-name=auth-token"
 
-
 class HeaderJWTAuthentication(BaseAuthentication):
 	def authenticate(self, request):
 		token = request.headers.get("Authorization")

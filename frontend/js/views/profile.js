@@ -123,10 +123,13 @@ export default class ProfileView extends BaseView {
 		const form = document.getElementById('securityForm');
 		const securityMessage = document.querySelector('.security-message');
 		
-		form.classList.add('form-disabled');
+		// form.classList.add('form-disabled');
+		form.password.value = "";
+		form.confirmPassword.value = "";
 		securityMessage.style.display = 'block';
 		
-		const inputs = form.querySelectorAll('input, button');
+		const inputs = form.querySelectorAll('input:not(#enable2FA)');
+		console.log(inputs);
 		inputs.forEach(input => input.disabled = true);
 	}
 
@@ -137,7 +140,7 @@ export default class ProfileView extends BaseView {
 		form.classList.remove('form-disabled');
 		securityMessage.style.display = 'none';
 		
-		const inputs = form.querySelectorAll('input, button');
+		const inputs = form.querySelectorAll('input:not(#enable2FA)');
 		inputs.forEach(input => input.disabled = false);
 	}
 
@@ -149,7 +152,6 @@ export default class ProfileView extends BaseView {
 				});
 				if (!response.ok || !response.headers.get('Content-Type').startsWith('image/'))
 					throw new Error('Could not fetch a valid avatar');
-				console.log('this is valid !');
 				if (this.avatarFile.value === "")
 				this.avatarPreview.src = url;
 					this.avatarUrl.setCustomValidity("");
