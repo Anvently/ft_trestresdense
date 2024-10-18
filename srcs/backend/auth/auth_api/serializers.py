@@ -20,9 +20,11 @@ class UserInfosSerializer(serializers.ModelSerializer):
 		# password = serializers.CharField()
 	
 	def __init__(self, *args, **kwargs):
-		self.request = kwargs.pop('request')
+		self.request = kwargs.pop('request', None)
 		super().__init__(*args, **kwargs)
-		if self.request.method == 'PATCH':
+		if not self.request:
+			self.request = self.context.get('request', None)
+		if self.request and self.request.method == 'PATCH':
 			self.fields['username'].read_only = True
 			self.fields['password'].required = False
 
