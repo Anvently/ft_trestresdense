@@ -6,6 +6,7 @@ export default class LoginView extends BaseView {
         super('login-view');
 		this.loginUrl = `https://${window.location.host}/api/auth/login/`;
 		this.registerUrl = `https://${window.location.host}/api/auth/register/`;
+		this.twoFactorUrl = `https://${window.location.host}/api/auth/2fa/`;
     }
 
     async initView() {
@@ -44,6 +45,16 @@ export default class LoginView extends BaseView {
 			e.target.setCustomValidity("");
 		})
 
+		this.twoFactorForm = document.getElementById('twoFactorForm');
+		this.twoFactorForm.addEventListener('submit', (e) => {
+			e.preventDefault();
+			this.submitTwoFactor();
+	});
+		this.twoFactorForm.querySelector('#cancel2FA').addEventListener('click', (e) => {
+			e.preventDefault();
+			this.hide2FASection();
+		})
+
     }
 
 	resetLoginForm(username = "") {
@@ -71,19 +82,30 @@ export default class LoginView extends BaseView {
 		.then((response) => 
 			response.json()
 			.then((data) => {
-				if (response.status == 200) {
+				if (response.status === 200) {
 					// Connexion réussie
 					console.log('Connexion réussie');
 					authenticatedUser.getInfos();
 					// Rediriger vers la page principale ou effectuer d'autres actions
 					window.location.hash = '#';
+				}
+				else if (response.status === 202) {
+					console.log("Two factor is requested.");
+					const errorDiv = document.getElementById('errorLogin');
+					errorDiv.style.display = 'block';
+					errorDiv.classList.add('alert-warning');
+					errorDiv.classList.remove('alert-danger');
+					errorDiv.innerHTML = data.message;
+					this.show2FASection();
 				} else {
 					// Échec de la connexion
 					console.error('Échec de la connexion:', data);
 					// Afficher un message d'erreur à l'utilisateur
 					const errorDiv = document.getElementById('errorLogin');
+					errorDiv.classList.remove('alert-warning');
+					errorDiv.classList.add('alert-danger');
 					errorDiv.style.display = 'block';
-					errorDiv.innerHTML = data;
+					errorDiv.innerHTML = data.error || data.message;
 				}
 			})
 		)
@@ -154,6 +176,47 @@ export default class LoginView extends BaseView {
 			errorDiv.style.display = 'block';
 			errorDiv.innerHTML = error;
 		}
+	}
+
+	async submitTwoFactor() {
+
+	}
+
+	show2FASection() {
+		const twoFactorSection = document.getElementById('twoFactorAuth');
+		twoFactorSection.classList.add('show');
+		document.getElementById('authTabsContent').classList.add('d-none');
+		this.startTimer();
+	}
+
+	hide2FASection() {
+		const twoFactorSection = document.getElementById('twoFactorAuth');
+		twoFactorSection.classList.remove('show');
+		document.getElementById('authTabsContent').classList.remove('d-none');
+		clearInterval(this.timerId);
+	}
+
+	// Fonction pour démarrer le timer
+	startTimer() {
+		let timeLeft = 30;
+		const timerElement = document.getElementById('timer');
+		
+		function updateTimer() {
+			const now = new Date();
+			const seconds = now.getSeconds();
+			let timeLeft;
+			
+			if (seconds < 30) {
+				timeLeft = 30 - seconds;
+			} else {
+				timeLeft = 60 - seconds;
+			}
+
+			timerElement.textContent = `Temps restant : ${timeLeft} seconde${timeLeft !== 1 ? 's' : ''}`;
+		}
+
+		updateTimer();
+		this.timerId = setInterval(updateTimer, 1000);
 	}
 
 	async cleanupView() {
