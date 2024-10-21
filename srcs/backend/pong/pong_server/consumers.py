@@ -89,7 +89,7 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 			return False
 		if not self._auth_client():
 			return False
-		if self.username and lobbies_list[self.lobby_id].check_user(self.username):
+		if self.username and lobbies_list[self.lobby_id].check_user_authentication(self.username):
 			self.is_spectator = False
 		elif self.DISABLE_AUTH:
 			pass
@@ -110,7 +110,9 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 			await self._send_error(self.scope['error'], self.scope['error_code'], True)
 			print("Connection rejected because: {0}".format(self.scope['error']))
 			return
-		await self.send_json({'type':'ping'})
+		
+		player_list = [player.player_id for player in lobbies_list[self.lobby_id].players]
+		await self.send_json({'type':'ping', 'player_list': player_list})
 
 	async def disconnect(self, close_code):
 		if not self.is_spectator:

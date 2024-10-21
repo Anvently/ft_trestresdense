@@ -120,20 +120,20 @@ export default class Pong3DView extends BaseView {
 			// this.startGameLoop();
 		}
 
-		this.socket.onmessage = (e) => this.handleWebSocketMessage(JSON.parse(e.data));
+		this.socket.onmessage = async (e) => this.handleWebSocketMessage(JSON.parse(e.data));
 		this.socket.onerror = (error) => console.error('WebSocket error:', error);
 		this.socket.onclose = () => console.log('WebSocket is closed now.');
 	}
 
-	handleWebSocketMessage(msg) {
+	async handleWebSocketMessage(msg) {
 		if (!msg["type"]) return;
 		if (msg["type"] == "ping")
 			this.socket.send(JSON.stringify({ type: "join_game", username: `${authenticatedUser.username}` }));
 		else if (msg["type"] === "send_game_state")
-			this.updateGameState(msg);
+			await this.updateGameState(msg);
 	}
 
-	updateGameState(msg) {
+	async updateGameState(msg) {
 		this.is_service = msg.is_service;
 		this.ball.x = parseFloat(msg.ball_x);
 		this.ball.y = parseFloat(msg.ball_y);
@@ -159,8 +159,7 @@ export default class Pong3DView extends BaseView {
 
 		if (this.gameHasStarted === false) {
 			if(this.allPlayersPresent()) {
-				this.gameHasStarted = true;
-				this.onGameStart();
+				await this.onGameStart();
 			}
 		}
 	}
@@ -169,13 +168,15 @@ export default class Pong3DView extends BaseView {
 		return this.players[0].id != '' && this.players[1].id != '';
 	}
 
-	onGameStart() {
+	async onGameStart() {
 		console.log("onGameStart");
-		this.createScoreBoard(-49, 0, 5, 0);
-		this.createScoreBoard(49, 0, 5, Math.PI);
+		this.gameHasStarted = true;
+		await this.createScoreBoard(-49, 0, 5, 0);
+		await this.createScoreBoard(49, 0, 5, Math.PI);
 		this.findPlayerDirection();
 		this.setupInputListeners();
 		this.startGameLoop();
+
 	}
 
 	findPlayerDirection() {
@@ -223,141 +224,39 @@ export default class Pong3DView extends BaseView {
 			this.socket.send(JSON.stringify({type: 'key_input', username: this.username,  input: "left" }));
 		if (this.pressKey.key_right === true)
 			this.socket.send(JSON.stringify({type: 'key_input', username: this.username,  input: "right" }));
-	
 	}
 
-
-
-
-
-
 	draw3D() {
-		this.setCamera();
+		this.updateCamera();
 
-		// Update ball position
+		this.updateBall();
+		this.updatePaddles();
+		// this.updateScoreBoard(); //need to update only when there is a goal
+
+		this.renderer.render(this.scene, this.camera);
+	}
+
+	updateBall() {
 		this.objects.ball.position.x = this.ball.x * 10;
 		this.objects.ball.position.y = this.ball.y * 10;
 		this.objects.ball.position.z = this.setBallHeight();
+	}
 
-		// Update paddle positions
+	updatePaddles() {
 		this.objects.paddle.forEach((paddle, i) => {
 			paddle.position.x = this.players[i].x * 10;
 			paddle.position.y = this.players[i].y * 10;
 			this.setPaddleHeight(i);
 			paddle.rotation.z = this.players[i].angle + Math.PI / 2;
 		});
-
-		// Update scoreboards
-		this.updateScoreBoard();
-
-		this.renderer.render(this.scene, this.camera);
 	}
 
-	audio() {
-		if (this.sound_type == 0) { // PING when ball hit the table
-			if ((this.ball.speed.x > 0 && this.ball.x  > REBOUND_LINE_X) // ball is going EAST
-				|| this.ball.speed.x < 0 && this.ball.x < -REBOUND_LINE_X) {
-				if (!this.ball.is_out) {
-					ping_sound.play();
-				}
-				this.sound_type = !this.sound_type
-			}
-		} else { // PONG when ball hit the paddle
-			if (this.previous_hit_x != this.ball.last_hit.x) {
-				this.previous_hit_x = this.ball.last_hit.x
-				pong_sound.play();
-				this.sound_type = !this.sound_type
-			}
-		}
-	}
-
-	setupResizeListener() {
-		window.addEventListener('resize', () => {this.resize()});
-	}
-
-	setupInputListeners() {
-		console.log("setupInputListeners");
-		window.addEventListener("keydown", (e) => this.handleKeyDown(e));
-		window.addEventListener("keyup", (e) => this.handleKeyUp(e));
-	}
-
-	resize() {
-		var ratio = 4/3;
-
-		var newWidth = window.innerWidth;
-		var newHeight = window.innerWidth * 3/4;
-		if ((window.innerHeight) < window.innerWidth * 3/4) {
-			newWidth = window.innerHeight * 4/3;
-			newHeight = window.innerHeight;
-		}
-		// check max size
-		if (newWidth > MAX_WIDTH) {
-			newWidth = MAX_WIDTH
-			newHeight = MAX_WIDTH * 3/4;
-		}
-		this.renderer.setSize(newWidth, newHeight);
-	}
-
-	handleKeyDown(e) {
-		if (e.key === "ArrowUp") this.pressKey.key_up = true;
-		else if (e.key === "ArrowDown") this.pressKey.key_down = true;
-		else if (e.key === "ArrowLeft") this.pressKey.key_left = true;
-		else if (e.key === "ArrowRight") this.pressKey.key_right = true;
-	}
-
-	handleKeyUp(e) {
-		if (e.key === "ArrowUp") this.pressKey.key_up = false;
-		else if (e.key === "ArrowDown") this.pressKey.key_down = false;
-		else if (e.key === "ArrowLeft") this.pressKey.key_left = false;
-		else if (e.key === "ArrowRight") this.pressKey.key_right = false;	
-	}
-
-	cleanup() {
-		// Cleanup on exit (e.g., WebSocket and intervals)
-		// if (this.intervalId) clearInterval(this.intervalId);
-		if (this.socket) this.socket.close();
-	}
-
-	setCamera() {
-		// // find my position // Find a better way to avoid recalculation ? eventOnFirstMessage ?
-		// for (var i = 0; i < 2; i++) {
-		// 	if (this.players[i].id == this.username)
-		// 		this.direction = i;
-		// }
-
+	updateCamera() {
 		if (this.direction == -1 || this.game_state == 3)
 			this.spectatorCamera()
 		else
-			this.setPOVCamera()
+			this.POVCamera()
 	}
-
-	updateScoreBoard() {
-		for (let scoreBoardIndex = 0; scoreBoardIndex < 2; scoreBoardIndex++) {
-			for (let i = 0; i < 2; i++) {
-				if (this.objects.scoreBoard[i][scoreBoardIndex]) {
-					const score = this.players[i].points; // Access player score
-					const geometry = new TextGeometry(score.toString(), {
-						font: this.font,
-						size: 3.4,
-						depth: 0.05,
-						curveSegments: 12
-					});
-	
-					const centeredGeometry = centerTextGeometry(geometry);
-					const oldMesh = this.objects.scoreBoard[i][scoreBoardIndex];
-	
-					// Clean up old geometry
-					if (oldMesh.geometry) {
-						oldMesh.geometry.dispose();
-					}
-	
-					// Set new geometry
-					oldMesh.geometry = centeredGeometry;
-				}
-			}
-		}
-	}
-
 
 	spectatorCamera() {
 		const radius = 20;
@@ -369,7 +268,7 @@ export default class Pong3DView extends BaseView {
 		this.camera.lookAt(0, 0, 0);
 	}
 
-	setPOVCamera() {
+	POVCamera() {
 		// calculate camera destination
 		var camera_destination = {x: 0, y: 0, z: 0}
 
@@ -405,6 +304,121 @@ export default class Pong3DView extends BaseView {
 
 		this.camera.lookAt(0, 0, 0);
 	}
+
+	updateScoreBoard() {
+		for (let scoreBoardIndex = 0; scoreBoardIndex < 2; scoreBoardIndex++) {
+			for (let i = 0; i < 2; i++) {
+				if (this.objects.scoreBoard[i][scoreBoardIndex]) {
+					const score = this.players[i].points; // Access player score
+					const geometry = new TextGeometry(score.toString(), {
+						font: this.font,
+						size: 3.4,
+						depth: 0.05,
+						curveSegments: 12
+					});
+	
+					const centeredGeometry = centerTextGeometry(geometry);
+					const oldMesh = this.objects.scoreBoard[i][scoreBoardIndex];
+	
+					// Clean up old geometry
+					if (oldMesh.geometry) {
+						oldMesh.geometry.dispose();
+					}
+	
+					// Set new geometry
+					oldMesh.geometry = centeredGeometry;
+				}
+			}
+		}
+	}
+
+	audio() {
+		if (this.sound_type == 0) { // PING when ball hit the table
+			if ((this.ball.speed.x > 0 && this.ball.x  > REBOUND_LINE_X) // ball is going EAST
+				|| this.ball.speed.x < 0 && this.ball.x < -REBOUND_LINE_X) {
+				if (!this.ball.is_out) {
+					ping_sound.play();
+				}
+				this.sound_type = !this.sound_type
+			}
+		} else { // PONG when ball hit the paddle
+			if (this.previous_hit_x != this.ball.last_hit.x) {
+				this.previous_hit_x = this.ball.last_hit.x
+				pong_sound.play();
+				this.sound_type = !this.sound_type
+			}
+		}
+	}
+
+	setupResizeListener() {
+		const resizeListener = () => this.resize();
+		window.addEventListener('resize', resizeListener);
+		this.eventListeners.push({ type: 'resize', listener: resizeListener });
+	}
+
+	setupInputListeners() {
+		console.log("setupInputListeners");
+
+
+		const keydownListener = (e) => this.handleKeyDown(e);
+		window.addEventListener("keydown", keydownListener);
+		this.eventListeners.push( {type: 'keydown', listener: keydownListener});
+
+		const keyupListener = (e) => this.handleKeyUp(e);
+		window.addEventListener("keyup", keyupListener);
+		this.eventListeners.push( {type: 'keyup', listener: keyupListener });
+	}
+
+	resize() {
+		var ratio = 4/3;
+
+		var newWidth = window.innerWidth;
+		var newHeight = window.innerWidth * 3/4;
+		if ((window.innerHeight) < window.innerWidth * 3/4) {
+			newWidth = window.innerHeight * 4/3;
+			newHeight = window.innerHeight;
+		}
+		// check max size
+		if (newWidth > MAX_WIDTH) {
+			newWidth = MAX_WIDTH
+			newHeight = MAX_WIDTH * 3/4;
+		}
+		this.renderer.setSize(newWidth, newHeight);
+	}
+
+	handleKeyDown(e) {
+		console.log("handleKeyDown");
+		if (e.key === "ArrowUp") this.pressKey.key_up = true;
+		else if (e.key === "ArrowDown") this.pressKey.key_down = true;
+		else if (e.key === "ArrowLeft") this.pressKey.key_left = true;
+		else if (e.key === "ArrowRight") this.pressKey.key_right = true;
+	}
+
+	handleKeyUp(e) {
+		console.log("handleKeyUp");
+		if (e.key === "ArrowUp") this.pressKey.key_up = false;
+		else if (e.key === "ArrowDown") this.pressKey.key_down = false;
+		else if (e.key === "ArrowLeft") this.pressKey.key_left = false;
+		else if (e.key === "ArrowRight") this.pressKey.key_right = false;	
+	}
+
+	cleanupView() {
+		console.log("Cleaning Pong3d view");
+		// Cleanup on exit (e.g., WebSocket and intervals)
+		// if (this.intervalId) clearInterval(this.intervalId);
+		if (this.animationId) cancelAnimationFrame(this.animationId);
+		if (this.socket) this.socket.close();
+		this.cleanupListeners();
+	}
+
+	cleanupListeners() {
+		for (const { type, listener } of this.eventListeners) {
+			console.log("type: " + type + ", listener: " + listener + " removed;")
+			window.removeEventListener(type, listener);
+		}
+		this.eventListeners = []; // Clear the array after removing
+	}
+
 
 	setPaddleHeight(direction) {
 		if ((this.ball.x < 0 && direction == WEST) || (this.ball.x > 0 && direction == EAST) ) {
@@ -463,39 +477,57 @@ export default class Pong3DView extends BaseView {
 	}
 
 	createScene() {
-		console.log("createScene");
 		this.scene = new THREE.Scene();
 
+		this.createCamera();
+		this.createRenderer();
+		this.createEnvironment();
+		this.createLights();
+		this.createBall();
+		this.createPaddles();
+
+		this.resize();
+	}
+
+	createCamera() {
 		this.camera = new THREE.PerspectiveCamera( 60, 4/3, 0.1, 100);
 		this.camera.up.set(0, 0, 1); // Set Z as the up direction
 		this.camera.position.set(0, 0, 1);
+	}
 
+	createRenderer() {
 		this.renderer = new THREE.WebGLRenderer();
-		this.resize();
 		this.renderer.shadowMap.enabled = true;
 		this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 		document.getElementById('container-canva').appendChild(this.renderer.domElement);
+	}
 
-		this.scene.add(createSpotLight({x: -5, y: 2, z: 15}));
-		this.scene.add(createSpotLight({x: 7, y: -10, z: 5}));
-
-		const ambientLight = new THREE.AmbientLight( 0x404040 , 6);
-		this.scene.add( ambientLight );
-
+	createEnvironment() {
 		this.objects.environment.room = createRoom();
 		this.scene.add(this.objects.environment.room);
 
 		this.objects.environment.table = createTable();
 		this.scene.add(this.objects.environment.table);
+	}
 
+	createLights() {
+		this.scene.add(createSpotLight({x: -5, y: 2, z: 15}));
+		this.scene.add(createSpotLight({x: 7, y: -10, z: 5}));
+		
+		const ambientLight = new THREE.AmbientLight( 0x404040 , 6);
+		this.scene.add( ambientLight );
+	}
+
+	createBall() {
 		this.objects.ball = createBall();
 		this.scene.add(this.objects.ball);
+	}
 
+	createPaddles() {
 		this.objects.paddle.push(createPaddle(0xf00000)); // West paddle
 		this.objects.paddle.push(createPaddle(0x0000f0)); // East paddle
 		this.objects.paddle.forEach(paddle => this.scene.add(paddle))
 	}
-
 
 	async createScoreBoard(x, y, z, rot) {
 		const group = new THREE.Group();
@@ -522,7 +554,6 @@ export default class Pong3DView extends BaseView {
 				if (userInfo.display_name)	displayName = userInfo.display_name;
 				if (userInfo.avatar)	avatarPath = userInfo.avatar;
 			}
-
 
 			// truncate name
 			if (displayName.length > 13) {
@@ -572,29 +603,21 @@ export default class Pong3DView extends BaseView {
 					depth: 0.05,
 					curveSegments: 12
 				});
-
 				// center the text
 				geometry = centerTextGeometry(geometry);
-
 				const material = new THREE.MeshStandardMaterial({ color: 0xff0000 });
 				const mesh = new THREE.Mesh(geometry, material);
 				mesh.rotation.y = Math.PI /2;
 				mesh.rotation.z = Math.PI /2;
 				mesh.position.x += 0.5
 				mesh.position.z -= 3
-
 				// save the object
 				this.objects.scoreBoard[i].push(mesh);
-
 				playerScoreGroup.add(mesh);
 			}
 
-
-			if (i == WEST) {
-				playerScoreGroup.position.y -= 5;
-			} else {
-				playerScoreGroup.position.y += 5;
-			}
+			if (i == WEST) playerScoreGroup.position.y -= 5;
+			else playerScoreGroup.position.y += 5;
 			group.add(playerScoreGroup);
 		}
 
@@ -838,14 +861,14 @@ let callCount = 0;
 let lastTimestamp = performance.now();
 
 function trackFrequency() {
-    callCount++;
-    const currentTime = performance.now();
-    const elapsedTime = currentTime - lastTimestamp;
+	callCount++;
+	const currentTime = performance.now();
+	const elapsedTime = currentTime - lastTimestamp;
 
-    // Check if one second has passed
-    if (elapsedTime >= 1000) {
-        console.log(`Function called ${callCount} times in the last second`);
-        callCount = 0; // Reset call count
-        lastTimestamp = currentTime; // Reset the timestamp
-    }
+	// Check if one second has passed
+	if (elapsedTime >= 1000) {
+		console.log(`Function called ${callCount} times in the last second`);
+		callCount = 0; // Reset call count
+		lastTimestamp = currentTime; // Reset the timestamp
+	}
 }

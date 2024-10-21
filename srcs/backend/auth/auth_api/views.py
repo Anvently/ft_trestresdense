@@ -68,11 +68,11 @@ class LoginView(APIView):
 		try:
 			user = User.objects.get(username=request.data["username"])
 		except:
-			return Response({"Invalid username."}, status=status.HTTP_400_BAD_REQUEST)
+			return Response({"error": "Invalid username."}, status=status.HTTP_400_BAD_REQUEST)
 		if not "password" in request.data:
-			return Response({"Missing password."}, status=status.HTTP_400_BAD_REQUEST)
+			return Response({"error":"Missing password."}, status=status.HTTP_400_BAD_REQUEST)
 		if user.check_password(request.data["password"]) == False:
-			return Response({"Invalid credentials."}, status=status.HTTP_400_BAD_REQUEST)
+			return Response({"error":"Invalid credentials."}, status=status.HTTP_400_BAD_REQUEST)
 		if user.is_2fa_active:
 			token = generate_2fa_token(user)
 			response = Response({'message': "2fa required. A token valid for 15min was transmitted in a cookie."}, status= status.HTTP_202_ACCEPTED)
@@ -92,7 +92,7 @@ class LoginView(APIView):
 class TwoFactorAuthView(APIView):
 	def post(self, request):
 		two_factor_code = request.data.get('code')
-		two_factor_token = request.COOKIES.get('2fa_token')
+		two_factor_token = request.COOKIES.get('2fa-token')
 		
 		if not two_factor_token:
 			return Response({"error": "No 2FA token found"}, status=status.HTTP_400_BAD_REQUEST)
@@ -116,7 +116,7 @@ class TwoFactorAuthView(APIView):
 				token = generate_jwt_token(data, ttl_based=True)
 				response = Response({'token': token}, status= status.HTTP_200_OK)
 				response.set_cookie('auth-token', token, expires=time.time() + settings.RSA_KEY_EXPIRATION)
-				response.delete_cookie('2fa_token')
+				response.delete_cookie('2fa-token')
 				return response
 			except Exception as e:
 				return Response(
@@ -167,15 +167,17 @@ class SignIn42CallbackView(APIView):
 			return Response({'error':'register_failed',
 							'error_description':'We failed to register a new user with the provided informations.'},
 						status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-		try:
-			data = {"username": user.username}
-			token = generate_jwt_token(data, ttl_based=True)
-		except Exception as e:
-			return Response(
-				{"error": f"Failed to generate token: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
-			)
 		response = HttpResponseRedirect(f'https://{request.META["HTTP_HOST"]}:8083/')
-		# response = Response({"token":token}, status=status.HTTP_200_OK)
-		response.set_cookie('auth-token', token, expires=time.time() + settings.RSA_KEY_EXPIRATION)
+		if user.is_2fa_active:
+			token = generate_2fa_token(user)
+			response.set_cookie('2fa-token', token, max_age=900)
+		else:
+			try:
+				data = {"username": user.username}
+				token = generate_jwt_token(data, ttl_based=True)
+				response.set_cookie('auth-token', token, expires=time.time() + settings.RSA_KEY_EXPIRATION)
+			except Exception as e:
+				return Response(
+					{"error": f"Failed to generate token: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+				)
 		return response
-		# return Response(token.content, status=status.HTTP_200_OK)

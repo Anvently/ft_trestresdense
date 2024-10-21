@@ -23,6 +23,17 @@ class PostGameView(APIView):
 		twisted_loop.create_task(lobbies_list[serializer.validated_data['game_id']].start_game_loop())
 		return Response(serializer.validated_data, status=status.HTTP_201_CREATED)
 
+class CancelLobbyView(APIView):
+	authentication_classes = [ApiJWTAuthentication,]
+	permission_classes = [IsApiAuthenticatedAs("matchmaking")]
+
+	async def delete(self, request, lobby_id):
+		if not lobby_id in lobbies_list:
+			return Response({"Lobby not found"}, status=status.HTTP_404_NOT_FOUND)
+		await lobbies_list[lobby_id].stop_game_loop()
+		return Response(status=status.HTTP_204_NO_CONTENT)
+
+
 class RetrieveLobbyView(APIView):
 
 	async def get(self, request, lobby_id):
