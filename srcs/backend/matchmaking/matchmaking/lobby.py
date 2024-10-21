@@ -9,7 +9,7 @@ from django.conf import settings
 import time, logging, random, string
 from matchmaking.common import online_players, PlayerStatus, lobbies, tournaments, tournament_creator
 from channels.layers import get_channel_layer
-from asgiref.sync import sync_to_async
+from asgiref.sync import sync_to_async, async_to_sync
 
 def generate_id(public, spectate ,prefix=''):
 	""" Simplr => S
@@ -120,10 +120,15 @@ class Lobby():
 	def player_not_ready(self, player_id):
 		self.players[player_id]['is_ready'] = False
 
-	def player_joined(self, player_id):
+	async def player_joined(self, player_id):
 		if player_id not in self.players:
 			raise Exception(f"{player_id} try to join lobby {self.id} but does not belong to it.")
 		self.players[player_id]['has_joined'] = True
+		await self.check_all_joined()
+
+	async def check_all_joined(self):
+		pass
+
 
 	def remove_player(self, player_id):
 		if player_id in self.players:
@@ -328,6 +333,7 @@ class LocalMatchLobby(SimpleMatchLobby):
 
 
 
+
 class TournamentInitialLobby(Lobby):
 
 	def __init__(self, settings: Dict[str, Any]) -> None:
@@ -377,10 +383,29 @@ class TournamentMatchLobby(Lobby):
 		super().__init__(settings, id, 'T')
 
 	async def handle_results(self, results: Dict[str, Any]):
+		print(results)
 		if self.tournament_id in tournaments: #Probably not necessary to check that
 			await super().handle_results(results)
 			await tournaments[self.tournament_id].handle_result(results)
 		self.delete()
+
+	async def handle_default_results(self, leaver_id):
+		result = dict()
+		result['status'] = 'terminated'
+		result['lobby_id'] = self.id
+		result['lobby_name'] = self.name
+		result['game_name'] = self.game_type
+		result['tournament_id'] = self.tournament_id
+		result['scores_set'] = []
+		for player in self.players:
+			if player == leaver_id:
+				result['scores_set'].append({'username' : leaver_id, 'score' : 0, 'has_win': False})
+			else:
+				result['scores_set'].append({'username' : player, 'score' : self.settings['lives'], 'has_win' : True})
+		print(result)
+		await self.handle_results(result)
+
+
 
 	def init_game(self, extra_data: Dict[str, Any] = None) -> bool:
 		return super().init_game({
@@ -389,6 +414,18 @@ class TournamentMatchLobby(Lobby):
 
 	def __str__(self) -> str:
 		return "tournament_match"
+
+	async def check_all_joined(self):
+		if len(self.players) != self.player_num:
+			return False
+		for player in self.players:
+			if not self.players[player]['has_joined']:
+				return
+		channel_layer = get_channel_layer()
+		await channel_layer.group_send(self.id, {'type': 'ready_up'})
+		return True
+
+
 
 	# def check_time_out(self):
 	# 	if time.time() - self.created_at >

@@ -403,6 +403,7 @@ export default class MatchmakingView extends BaseView {
 	leaveLobby() {
 		// socket.sendMessage({ type: 'leave_lobby', lobbyId: lobbyId });
 		this.sendMessage({ type: 'leave_lobby' }).catch((error) => this.errorHandler(error));;
+		this.isReady = false;
 		this.lobbyId = undefined;
 		this.isHost = false;
 		this.updateCurrentView();
@@ -412,6 +413,8 @@ export default class MatchmakingView extends BaseView {
 	{
 		// this.errorHandler("Lobby got cancelled");
 		this.lobbyId = undefined;
+		this.isReady = false;
+		this.isHost = false;
 		this.updateCurrentView();
 	}
 
@@ -745,6 +748,7 @@ export default class MatchmakingView extends BaseView {
             joinButton.textContent = "Join Game";
             joinButton.onclick = () => {
                 modal.hide();
+				this.isHost = false;
                 this.joinLobby(lobby_id);
             };
             buttonContainer.appendChild(joinButton);
