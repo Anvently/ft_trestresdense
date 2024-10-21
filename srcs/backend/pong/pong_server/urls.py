@@ -16,7 +16,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from api.views import PostGameView, RetrieveLobbyView, ListLobbyView, CancelLobbyView
+from api.views import PostGameView, RetrieveLobbyView, ListLobbyView, CancelLobbyView, PlayerConcedeView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -24,4 +24,5 @@ urlpatterns = [
 	path('lobby/<lobby_id>',RetrieveLobbyView.as_view()),
 	path('lobbies/', ListLobbyView.as_view()),
 	path('delete-lobby/<lobby_id>',CancelLobbyView.as_view()),
+	path('player-concede/<lobby_id>/<player_id>', PlayerConcedeView.as_view())
 ]

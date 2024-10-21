@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework.parsers import JSONParser
 from api.serializers import GameSerializer, LobbyResultSerializer, ScoreSerializer
 from pong_server.authentication import ApiJWTAuthentication, IsApiAuthenticatedAs
-from pong_server.game import PongLobby	
+from pong_server.game import PongLobby
 from pong_server.consumers import lobbies_list
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
@@ -28,10 +28,26 @@ class CancelLobbyView(APIView):
 	permission_classes = [IsApiAuthenticatedAs("matchmaking")]
 
 	async def delete(self, request, lobby_id):
+		print(f"canceling lobby {lobby_id}")
 		if not lobby_id in lobbies_list:
 			return Response({"Lobby not found"}, status=status.HTTP_404_NOT_FOUND)
 		await lobbies_list[lobby_id].stop_game_loop()
 		return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class PlayerConcedeView(APIView):
+	authentication_classes = [ApiJWTAuthentication,]
+	permission_classes = [IsApiAuthenticatedAs("matchmaking")]
+
+
+	async def post(self, request, lobby_id, player_id):
+		print(f"player {player_id} has left game {lobby_id}")
+		if not lobby_id in lobbies_list:
+			return Response({"Lobby not found"}, status=status.HTTP_404_NOT_FOUND)
+		# todo : deny target player input and set its lives to 0
+		return Response(status=status.HTTP_201_CREATED)
+
+
 
 
 class RetrieveLobbyView(APIView):

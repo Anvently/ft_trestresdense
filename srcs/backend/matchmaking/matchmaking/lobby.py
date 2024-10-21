@@ -257,7 +257,7 @@ class LocalMatchLobby(SimpleMatchLobby):
 				pass
 			case _:
 				raise KeyError("Wrong settings")
-			
+
 	def delete(self):
 		""" Delete players from online_players and remove lobby from list of lobbies """
 		if online_players[self.hostname]['lobby_id'] == self.id:
@@ -333,7 +333,7 @@ class LocalMatchLobby(SimpleMatchLobby):
 		self.started = True
 		return True
 
-	def player_joined(self, player_id):
+	async def player_joined(self, player_id):
 		if player_id != self.hostname:
 			raise Exception(f"{player_id} try to join lobby {self.id} but does not belong to it.")
 		self.players[self.hostnickname]['has_joined'] = True

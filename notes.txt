@@ -20,6 +20,7 @@ TODO:
 	Pong:
 		- display explicit message on the page when the lobby doesn't exist
 		- redirect (automatically ?) players to matchmaking at the end of a game
+		- need a method to handle player concede (set lives to 0)
 
 
 BUGS:

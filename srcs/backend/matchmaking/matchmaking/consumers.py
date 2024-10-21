@@ -15,6 +15,7 @@ from matchmaking.lobby import Lobby, LocalMatchLobby, SimpleMatchLobby, Tourname
 import copy
 import copy
 from asgiref.sync import sync_to_async
+import requests
 
 
 def verify_jwt(token, is_ttl_based=False, ttl_key="exp"):
@@ -434,6 +435,23 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 
 	async def concede_game(self, content):
 		online_players[self.username] = copy.deepcopy(default_status)
+		if self._lobby_id[0] == 'L':
+			url = 'http://pong:8002/delete-lobby/' + self._lobby_id
+			response = await sync_to_async(requests.delete)(url, headers = {
+								'Host': 'localhost',
+								'Content-type': 'application/json',
+								'Authorization': "Bearer {0}".format(settings.API_TOKEN.decode('ASCII'))
+								})
+		else:
+			url = 'http://pong:8002/player-concede/' + self._lobby_id + '/' + self.username
+			response = await sync_to_async(requests.post)(url,
+													headers = {
+								'Host': 'localhost',
+								'Content-type': 'application/json',
+								'Authorization': "Bearer {0}".format(settings.API_TOKEN.decode('ASCII'))
+								})
+		print(response.status_code, "got a response")
+		self._lobby_id = None
 		await self.channel_layer.group_add(MatchMakingConsumer.matchmaking_group, self.channel_name)
 		await self.channel_layer.group_add(self.username, self.channel_name)
 		await self.send_general_update()

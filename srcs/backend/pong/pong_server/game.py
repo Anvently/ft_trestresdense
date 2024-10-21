@@ -95,15 +95,16 @@ class PongLobby:
 		if username in [Player.player_id for Player in self.players]:
 			return True
 		return False
-	
+
 	def check_user_authentication(self, username:str):
 		"""Check that the user belong to the lobby. Comparison are made ignoring dots."""
 		if username in [Player.player_id.split('.')[0] for Player in self.players]:
 			return True
 		return False
-	
+
 
 	async def stop_game_loop(self):
+		print("Setting gameState to -1")
 		self.gameState = -1
 
 	async def start_game_loop(self):
