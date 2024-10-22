@@ -44,9 +44,7 @@ class Player:
 		self.last_time = int(time.time())
 
 	def kill_player(self):
-		print(f"lives before: {self.lives}")
 		self.lives = 0
-		print(f"lives after: {self.lives}")
 
 	@abstractmethod
 	def AI_behavior(self, ballX, ballY, ballSpeedX, ballSpeedY) -> str:

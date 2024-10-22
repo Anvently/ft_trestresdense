@@ -247,22 +247,18 @@ class PongLobby2D(PongLobby):
 		if self.ball['x'] < -1.2 and self.players[WEST].type == "Player":
 			self.players[WEST].lives -= 1
 			goal_scored = True
-			print("WEST lost a life :", self.players[WEST].lives)
 		elif self.ball['x'] > 1.2 and self.players[EAST].type == "Player":
 			self.players[EAST].lives -= 1
 			goal_scored = True
-			print("EAST lost a life :", self.players[EAST].lives)
 		elif self.ball['y'] > 1.2 and self.players[NORTH].type == "Player":
 			self.players[NORTH].lives -= 1
 			goal_scored = True
-			print("NORTH lost a life :", self.players[NORTH].lives)
 		elif self.ball['y'] < -1.2 and self.players[SOUTH].type == "Player":
 			self.players[SOUTH].lives -= 1
 			goal_scored = True
-			print("SOUTH lost a life :", self.players[SOUTH].lives)
 
+		self.check_eliminated_players()
 		if goal_scored:
-			self.check_eliminated_players()
 			self.reset_ball()
 
 	def	reset_ball(self):
@@ -316,7 +312,7 @@ class PongLobby2D(PongLobby):
 
 	def check_eliminated_players(self):
 		for direction in range(0, self.player_num):
-			if self.players[direction].lives == 0 and self.players[direction].type != "eliminated_player":
+			if self.players[direction].lives <= 0 and self.players[direction].type != "eliminated_player":
 				# eliminate Player
 				self.players[direction].type = "eliminated_player"
 
