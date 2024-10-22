@@ -29,14 +29,7 @@ EAST = 1
 NORTH = 2
 SOUTH = 3
 
-# START_POS = [{"x": -0.5 - PADDLE_THICKNESS / 2, 'y': 0, 'width': PADDLE_THICKNESS, 'height': PADDLE_LENGTH},
-# 			 {"x": 0.5 + PADDLE_THICKNESS / 2, "y": 0,"width": PADDLE_THICKNESS,"height": PADDLE_LENGTH,},
-# 			 {"x": 0, "y": -0.5 - PADDLE_THICKNESS / 2,"width": PADDLE_LENGTH,"height": PADDLE_THICKNESS},
-# 			 {"x": 0, "y": 0.5 + PADDLE_THICKNESS / 2, "width": PADDLE_LENGTH,"height": PADDLE_THICKNESS}
-# 			 ]
-
 BALL_START = {"x": 0, "y": 0, "r": BALL_RADIUS, "speed": {"x": 0, "y": 0}}
-
 
 class Player:
 	def __init__(self, player_id, side, lives=0):
@@ -49,6 +42,9 @@ class Player:
 		self.has_joined = 0
 		# AI specific variables
 		self.last_time = int(time.time())
+
+	def kill_player(self):
+		self.lives = 0
 
 	@abstractmethod
 	def AI_behavior(self, ballX, ballY, ballSpeedX, ballSpeedY) -> str:
@@ -95,13 +91,18 @@ class PongLobby:
 		if username in [Player.player_id for Player in self.players]:
 			return True
 		return False
+	
+	def get_user(self, username:str):
+		for player in self.players:
+			if player.player_id == username:
+				return player
+		return None
 
 	def check_user_authentication(self, username:str):
 		"""Check that the user belong to the lobby. Comparison are made ignoring dots."""
 		if username in [Player.player_id.split('.')[0] for Player in self.players]:
 			return True
 		return False
-
 
 	async def stop_game_loop(self):
 		print("Setting gameState to -1")

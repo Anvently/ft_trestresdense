@@ -16,6 +16,14 @@ const REBOUND_LINE_X = 0.4;
 const REBOUND_HEIGHT = 1;
 const REBOUND_FAR_OUT = 10;
 
+const PADDLE_MAX_X = [-0.8, 1.4]
+const PADDLE_MIN_X = [-1.4, 0.8]
+const PADDLE_MAX_Y = [1, 1,]
+const PADDLE_MIN_Y = [-1, -1]
+const PADDLE_LEFT_DIR = [-1, 1]
+
+const PLAYER_SPEED = 0.012
+
 const WEST = 0;
 const EAST = 1;
 
@@ -69,6 +77,8 @@ export default class Pong3DView extends BaseView {
 			key_left: false,
 			key_right: false
 		};
+		this.mousePosition = { x: 0, y: 0, toggle: false};
+		// this.mouseMovement = { x: 0, y: 0 };
 
 		this.players = [
 			{points: 0, x: 0, y: 0, angle: 0, width: 0, height: 0, id: ''},
@@ -171,12 +181,11 @@ export default class Pong3DView extends BaseView {
 	async onGameStart() {
 		console.log("onGameStart");
 		this.gameHasStarted = true;
-		await this.createScoreBoard(-49, 0, 5, 0);
-		await this.createScoreBoard(49, 0, 5, Math.PI);
+		// await this.createScoreBoard(-49, 0, 5, 0);
+		// await this.createScoreBoard(49, 0, 5, Math.PI);
 		this.findPlayerDirection();
 		this.setupInputListeners();
 		this.startGameLoop();
-
 	}
 
 	findPlayerDirection() {
@@ -189,13 +198,9 @@ export default class Pong3DView extends BaseView {
 	startGameLoop() {
 		console.log("startGameLoop");
 		const loop = (timestamp) => {
-			if (this.previousTimestamp !== 0) { // ?
-				const deltaTime = timestamp - this.previousTimestamp; // ?
-				this.handleInput();
-				this.draw3D();
-				this.audio();
-			}
-			this.previousTimestamp = timestamp; // ?
+			this.handleInput();
+			this.draw3D();
+			this.audio();
 			trackFrequency()
 
 			this.animationId = requestAnimationFrame(loop);
@@ -205,7 +210,7 @@ export default class Pong3DView extends BaseView {
 	}
 
 	handleInput() {
-		if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+		if (this.socket && this.socket.readyState === WebSocket.OPEN && this.direction != -1) {
 			this.sendInput();
 		}
 		else if (this.game_state != 3) {
@@ -216,14 +221,56 @@ export default class Pong3DView extends BaseView {
 	}
 
 	sendInput() {
-		if (this.pressKey.key_up === true)
+		var player_rel_pos = {
+			x: (this.players[this.direction].x + 1.1) / 0.6,// - (PADDLE_MAX_X[this.direction] - PADDLE_MIN_X[this.direction]),
+			y: (this.players[this.direction].y * PADDLE_LEFT_DIR[this.direction]) / 2
+		}
+
+		// console.log("player_rel_pos = ", player_rel_pos);
+
+		// MOUSE
+		if (this.mousePosition.toggle) {
+			if (this.mousePosition.x > player_rel_pos.x + PLAYER_SPEED)
+				this.socket.send(JSON.stringify({type: 'key_input', username: this.username,  input: "up" }));
+			else if (this.mousePosition.x < player_rel_pos.x - PLAYER_SPEED)
+				this.socket.send(JSON.stringify({ type: 'key_input', username: this.username, input: "down" }));
+	
+			if (this.mousePosition.y > player_rel_pos.y + PLAYER_SPEED)
+				this.socket.send(JSON.stringify({type: 'key_input', username: this.username,  input: "right" }));
+			else if (this.mousePosition.y < player_rel_pos.y - PLAYER_SPEED)
+				this.socket.send(JSON.stringify({ type: 'key_input', username: this.username, input: "left" }));
+		}
+
+		// if (this.mouseMovement.y > 0)
+		// 	this.socket.send(JSON.stringify({type: 'key_input', username: this.username,  input: "down" }));
+		// else if (this.mouseMovement.y < 0)
+		// 	this.socket.send(JSON.stringify({ type: 'key_input', username: this.username, input: "up" }));
+		// this.mouseMovement.y = 0;
+
+		// if (this.mouseMovement.x > 0)
+		// 	this.socket.send(JSON.stringify({type: 'key_input', username: this.username,  input: "right" }));
+		// else if (this.mouseMovement.x < 0)
+		// 	this.socket.send(JSON.stringify({ type: 'key_input', username: this.username, input: "left" }));
+		// this.mouseMovement.x = 0;
+
+		// KEYBOARD
+		if (this.pressKey.key_up === true) {
 			this.socket.send(JSON.stringify({type: 'key_input', username: this.username,  input: "up" }));
-		if (this.pressKey.key_down === true)
+			this.mousePosition.toggle = false;
+		}
+		if (this.pressKey.key_down === true) {
 			this.socket.send(JSON.stringify({type: 'key_input', username: this.username,  input: "down" }));
-		if (this.pressKey.key_left === true)
+			this.mousePosition.toggle = false;
+		}
+		if (this.pressKey.key_left === true) {
 			this.socket.send(JSON.stringify({type: 'key_input', username: this.username,  input: "left" }));
-		if (this.pressKey.key_right === true)
+			this.mousePosition.toggle = false;
+		}
+		if (this.pressKey.key_right === true) {
 			this.socket.send(JSON.stringify({type: 'key_input', username: this.username,  input: "right" }));
+			this.mousePosition.toggle = false;
+		}
+		
 	}
 
 	draw3D() {
@@ -359,7 +406,6 @@ export default class Pong3DView extends BaseView {
 	setupInputListeners() {
 		console.log("setupInputListeners");
 
-
 		const keydownListener = (e) => this.handleKeyDown(e);
 		window.addEventListener("keydown", keydownListener);
 		this.eventListeners.push( {type: 'keydown', listener: keydownListener});
@@ -367,6 +413,24 @@ export default class Pong3DView extends BaseView {
 		const keyupListener = (e) => this.handleKeyUp(e);
 		window.addEventListener("keyup", keyupListener);
 		this.eventListeners.push( {type: 'keyup', listener: keyupListener });
+
+		// Mouse input listener
+		const mouseMoveListener = (e) => this.handleMouseMove(e);
+		window.addEventListener("mousemove", mouseMoveListener);
+		this.eventListeners.push( {type: 'mousemove', listener: mouseMoveListener});
+	}
+
+	handleMouseMove(event) {
+		this.mousePosition.x = (event.clientY / window.innerHeight - 0.5) * -1.5;
+		this.mousePosition.y = (event.clientX / window.innerWidth - 0.5) * 1.5;
+		this.mousePosition.toggle = true;
+
+		// this.mouseMovement.x = event.movementX;
+		// this.mouseMovement.y = event.movementY;
+
+		// console.log("movementX = ", event.movementX);
+		// console.log("movementY = ", event.movementY);
+
 	}
 
 	resize() {
@@ -383,7 +447,7 @@ export default class Pong3DView extends BaseView {
 			newWidth = MAX_WIDTH
 			newHeight = MAX_WIDTH * 3/4;
 		}
-		this.renderer.setSize(newWidth, newHeight);
+		this.renderer.setSize(newWidth * 0.85, newHeight * 0.85);
 	}
 
 	handleKeyDown(e) {
@@ -545,55 +609,55 @@ export default class Pong3DView extends BaseView {
 		for (let i = 0; i < 2; i++)	{
 			const playerScoreGroup = new THREE.Group();
 
-			// get user info
-			var userInfo = await userManager.fetchUserInfo(this.players[i].id);
+			// // get user info
+			// var userInfo = await userManager.fetchUserInfo(this.players[i].id);
 
-			var displayName = "Cheval-Canard";
-			var avatarPath = "/image/chevalCanard.png";
-			if (userInfo !== undefined) {
-				if (userInfo.display_name)	displayName = userInfo.display_name;
-				if (userInfo.avatar)	avatarPath = userInfo.avatar;
-			}
+			// var displayName = "Cheval-Canard";
+			// var avatarPath = "/image/chevalCanard.png";
+			// if (userInfo !== undefined) {
+			// 	if (userInfo.display_name)	displayName = userInfo.display_name;
+			// 	if (userInfo.avatar)	avatarPath = userInfo.avatar;
+			// }
 
-			// truncate name
-			if (displayName.length > 13) {
-				displayName = displayName.substring(0, 12) + '.';  // Truncate to 11 characters and add a dot
-			}
+			// // truncate name
+			// if (displayName.length > 13) {
+			// 	displayName = displayName.substring(0, 12) + '.';  // Truncate to 11 characters and add a dot
+			// }
 
-			{
-				var geometry = new TextGeometry(displayName, {
-					font: this.font,
-					size: 1,
-					depth: 0.05,
-					curveSegments: 12
-				});
+			// {
+			// 	var geometry = new TextGeometry(displayName, {
+			// 		font: this.font,
+			// 		size: 1,
+			// 		depth: 0.05,
+			// 		curveSegments: 12
+			// 	});
 
-				// center the text
-				geometry = centerTextGeometry(geometry);
-				const material = new THREE.MeshStandardMaterial({ color: 0xffffff });
-				const mesh = new THREE.Mesh(geometry, material);
-				mesh.rotation.y = Math.PI /2;
-				mesh.rotation.z = Math.PI /2;
-				mesh.position.x += 0.5
+			// 	// center the text
+			// 	geometry = centerTextGeometry(geometry);
+			// 	const material = new THREE.MeshStandardMaterial({ color: 0xffffff });
+			// 	const mesh = new THREE.Mesh(geometry, material);
+			// 	mesh.rotation.y = Math.PI /2;
+			// 	mesh.rotation.z = Math.PI /2;
+			// 	mesh.position.x += 0.5
 
-				playerScoreGroup.add(mesh);
-			}
+			// 	playerScoreGroup.add(mesh);
+			// }
 
-			// avatar
-			const texture = textureLoader.load(avatarPath);
-			texture.colorSpace = THREE.SRGBColorSpace;
-			{
-				const geometry = new THREE.PlaneGeometry(6, 6);
-				const material = new THREE.MeshStandardMaterial({map: texture, side: THREE.DoubleSide});
-				const mesh = new THREE.Mesh(geometry, material);
-				mesh.receiveShadow = true;
-				mesh.rotation.y = Math.PI / 2;
-				mesh.rotation.z = Math.PI / 2;
-				mesh.position.x += 0.51;
-				mesh.position.z += 4;
+			// // avatar
+			// const texture = textureLoader.load(avatarPath);
+			// texture.colorSpace = THREE.SRGBColorSpace;
+			// {
+			// 	const geometry = new THREE.PlaneGeometry(6, 6);
+			// 	const material = new THREE.MeshStandardMaterial({map: texture, side: THREE.DoubleSide});
+			// 	const mesh = new THREE.Mesh(geometry, material);
+			// 	mesh.receiveShadow = true;
+			// 	mesh.rotation.y = Math.PI / 2;
+			// 	mesh.rotation.z = Math.PI / 2;
+			// 	mesh.position.x += 0.51;
+			// 	mesh.position.z += 4;
 
-				playerScoreGroup.add(mesh);
-			}
+			// 	playerScoreGroup.add(mesh);
+			// }
 
 			// score
 			{
@@ -867,7 +931,7 @@ function trackFrequency() {
 
 	// Check if one second has passed
 	if (elapsedTime >= 1000) {
-		console.log(`Function called ${callCount} times in the last second`);
+		console.log(`TrackFrequency : ${callCount} times in the last second`);
 		callCount = 0; // Reset call count
 		lastTimestamp = currentTime; // Reset the timestamp
 	}

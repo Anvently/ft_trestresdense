@@ -39,12 +39,17 @@ class PlayerConcedeView(APIView):
 	authentication_classes = [ApiJWTAuthentication,]
 	permission_classes = [IsApiAuthenticatedAs("matchmaking")]
 
-
 	async def post(self, request, lobby_id, player_id):
 		print(f"player {player_id} has left game {lobby_id}")
 		if not lobby_id in lobbies_list:
 			return Response({"Lobby not found"}, status=status.HTTP_404_NOT_FOUND)
-		# todo : deny target player input and set its lives to 0
+		
+		# set player lives to 0
+		player = lobbies_list[lobby_id].get_user(player_id)
+		if player:
+			print("kill_player")
+			player.kill_player()
+
 		return Response(status=status.HTTP_201_CREATED)
 
 

@@ -23,7 +23,7 @@ PADDLE_LEFT_DIR = [-1, 1]
 
 PADDLE_LENGTH = 0.1
 PADDLE_THICKNESS = 0.02
-PLAYER_SPEED = 0.01
+PLAYER_SPEED = 0.012
 
 BALL_RADIUS = 0.013
 MIN_SPEED = 0.02
@@ -183,7 +183,6 @@ class PongLobby3D(PongLobby):
 										(self.ball["x"],self.ball["y"]),
 										self.ball["r"]):
 			self.is_service = False
-			print("is servie is now false");
 			# save the collision coordinates
 			self.ball["last_hit"]["x"] = self.ball["x"]
 			self.ball["last_hit"]["y"] = self.ball["y"]
