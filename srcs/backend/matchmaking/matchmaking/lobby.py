@@ -110,6 +110,8 @@ class Lobby():
 		if self.started == True:
 			logging.warning(f"{player_id} marked as ready but game has already started.")
 			return False
+		if player_id not in self.players:
+			return False
 		self.players[player_id]['is_ready'] = True
 		if len(self.players) != self.player_num or any(not player['is_ready'] for (player_id, player) in self.players.items()):
 			return False
@@ -129,6 +131,8 @@ class Lobby():
 	async def check_all_joined(self):
 		pass
 
+	async def player_quit(self, player_id):
+		pass
 
 	def remove_player(self, player_id):
 		if player_id in self.players:

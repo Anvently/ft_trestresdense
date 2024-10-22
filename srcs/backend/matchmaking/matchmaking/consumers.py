@@ -354,6 +354,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 
 	async def leave_tournament_match_lobby(self):
 		# should declare winner the player still in the lobby
+		print("canceling tournament lobby")
 		await lobbies[self._lobby_id].handle_default_results(self.username)
 		await self.cancel_lobby()
 		await self.send_general_update()
@@ -575,11 +576,18 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		await self.send_json(content)
 	####################################################3
 
+
 	async def ready_up(self, content):
-		await asyncio.sleep(10)
-		await self.player_ready(None)
+		current_lobby = self._lobby_id
 
+		async def delayed_ready():
+			await asyncio.sleep(15)
+			if self._lobby_id is not None and self._lobby_id == current_lobby:
+				await self.player_ready(None)
+			else:
+				print("player left during the window")
 
+		asyncio.create_task(delayed_ready())
 # """
 # lobby type : first letter =>	Simplr => S
 # 	 							TurnamentInit => I

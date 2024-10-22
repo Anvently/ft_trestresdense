@@ -400,14 +400,35 @@ export default class MatchmakingView extends BaseView {
 		// this.updateCurrentView(lobbyId);
 	}
 
+
+
 	leaveLobby() {
-		// socket.sendMessage({ type: 'leave_lobby', lobbyId: lobbyId });
+		if (this.lobbyId[0] == 'T')
+		{
+			const modalElement = document.getElementById('leaveTnLobbyModal');
+    		const modal = new bootstrap.Modal(modalElement);
+			const confirmBtn = document.getElementById('confirmLeaveBtn');
+			const cancelBtn = document.getElementById('cancelLeaveBtn');
+    		cancelBtn.onclick = () => {
+				modal.hide();
+				return;
+			}
+			confirmBtn.onclick = () => {
+    		  modal.hide();
+    		};
+			modal.show();
+		}
 		this.sendMessage({ type: 'leave_lobby' }).catch((error) => this.errorHandler(error));;
 		this.isReady = false;
 		this.lobbyId = undefined;
 		this.isHost = false;
 		this.updateCurrentView();
+
 	}
+
+
+
+
 
 	lobby_canceled(content)
 	{

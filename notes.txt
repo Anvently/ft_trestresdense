@@ -21,6 +21,8 @@ TODO:
 		- display explicit message on the page when the lobby doesn't exist
 		- redirect (automatically ?) players to matchmaking at the end of a game
 		- need a method to handle player concede (set lives to 0)
+		- tn bot is not added to lobby when advancing to next matchmaking
+		- cant observe 2d games
 
 
 BUGS:

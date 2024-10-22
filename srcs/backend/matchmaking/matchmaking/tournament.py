@@ -69,6 +69,7 @@ class Tournament:
 			online_players[player_id]['lobby_id'] = lobby_id
 			online_players[player_id]['tournament_id'] = self.id
 			online_players[player_id]['status'] = new_status
+		# si on a ajoute le second joueur lancer une boucle d'attente pour cancel le match si un ou plusieurs joueurs de rejoint jamais
 
 
 	def generate_match_name(self, stage: int, nbr: int) -> str:
