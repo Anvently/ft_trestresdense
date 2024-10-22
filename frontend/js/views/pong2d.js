@@ -256,7 +256,7 @@ export default class Pong2DView extends BaseView {
 	}
 
 	handleInput() {
-		if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+		if (this.socket && this.socket.readyState === WebSocket.OPEN && this.direction != -1) {
 			this.sendInput();
 		}
 		else if (this.game_state != 3) {
