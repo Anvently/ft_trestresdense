@@ -3,6 +3,7 @@ from matchmaking.common import online_players, tournaments, PlayerStatus, lobbie
 import re
 import requests, json
 from django.conf import settings
+import asyncio
 
 SUFFIXES = {
 	2: ".0",
@@ -62,14 +63,17 @@ class Tournament:
 			raise Exception(f"ERROR: Failed to post tournament to user_api: {e}")
 		# Update player status
 
-	def reassign_player(self, player_id: str, lobby_id: str, new_status: int = PlayerStatus.IN_TOURNAMENT_LOBBY):
+	async def reassign_player(self, player_id: str, lobby_id: str, new_status: int = PlayerStatus.IN_TOURNAMENT_LOBBY):
 		lobbies[lobby_id].add_player(player_id)
 		if not player_id[0] == '!':
 			lobbies[online_players[player_id]['lobby_id']].remove_player(player_id)
 			online_players[player_id]['lobby_id'] = lobby_id
 			online_players[player_id]['tournament_id'] = self.id
 			online_players[player_id]['status'] = new_status
-		# si on a ajoute le second joueur lancer une boucle d'attente pour cancel le match si un ou plusieurs joueurs de rejoint jamais
+
+
+
+
 
 
 	def generate_match_name(self, stage: int, nbr: int) -> str:
@@ -132,8 +136,21 @@ class Tournament:
 				""" We need to instantiate the new lobby if it doesn't exist yet,
 				 and assign player to it. """
 				next_match_id = self.setup_next_match(stage, match_idx)
-				self.reassign_player(score['username'], next_match_id, PlayerStatus.IN_TOURNAMENT_LOBBY)
+				await self.reassign_player(score['username'], next_match_id, PlayerStatus.IN_TOURNAMENT_LOBBY)
 				await MatchMakingConsumer.static_lobby_update(next_match_id)
+				if len(lobbies[next_match_id].players) == 2:
+					async def countdown():
+						await asyncio.sleep(120)
+						if next_match_id in lobbies and not lobbies[next_match_id].started:
+							absent = await lobbies[next_match_id].get_default_winner()
+							if absent == "?cancel":
+								# cancel the whole tournament ?
+								pass
+							else:
+								await lobbies[next_match_id].handle_default_results(absent)
+								# is it enough ? should probably delete the lobby and send an update, maybe
+								# display a pop up to explain
+					asyncio.create_task(countdown())
 			else:
 				""" If someone lose or it was a final, it's up to the
 				 lobby result handler to update status of associated players. """

@@ -110,7 +110,7 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 			await self._send_error(self.scope['error'], self.scope['error_code'], True)
 			print("Connection rejected because: {0}".format(self.scope['error']))
 			return
-		
+
 		player_list = [player.player_id for player in lobbies_list[self.lobby_id].players]
 		await self.send_json({'type':'ping', 'player_list': player_list})
 

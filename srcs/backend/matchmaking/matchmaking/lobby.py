@@ -314,7 +314,7 @@ class LocalMatchLobby(SimpleMatchLobby):
 			'game_id': self.id,
 			'hostname': self.hostname,
 			'settings': self.settings,
-			'player_list': list(self.players.keys())
+			'player_list': self.order_players(),
 		}
 		if (extra_data):
 			data.update(extra_data)
@@ -343,6 +343,15 @@ class LocalMatchLobby(SimpleMatchLobby):
 		self.players[self.hostnickname]['has_joined'] = True
 
 
+	def order_players(self):
+		player_list = []
+		for player in self.players.keys():
+			if player[0] != '!':
+				player_list.append(player)
+		for player in self.players.keys():
+			if player[0] == '!':
+				player_list.append(player)
+		return player_list
 
 
 class TournamentInitialLobby(Lobby):
@@ -427,14 +436,29 @@ class TournamentMatchLobby(Lobby):
 		return "tournament_match"
 
 	async def check_all_joined(self):
+		if self.started:
+			return True
 		if len(self.players) != self.player_num:
 			return False
 		for player in self.players:
 			if not self.players[player]['has_joined']:
-				return
+				return False
 		channel_layer = get_channel_layer()
 		await channel_layer.group_send(self.id, {'type': 'ready_up'})
 		return True
+
+	async def get_default_winner(self):
+		player_joined = 0
+		for player in self.players:
+			if self.players['has_joined']:
+				player_joined += 1
+			else:
+				absent = player
+		if player_joined in (0,2):
+			return "?cancel"
+		return absent
+
+
 
 
 
@@ -510,10 +534,3 @@ class TournamentMatchLobby(Lobby):
 
 
 
-
-
-"""
-
-
-
-"""
