@@ -28,6 +28,7 @@ TODO:
 
 	Matchmaking:
 		- In 4 player Pong2d reformat the list of players as human players first for local  matches
+		- probably an issue in init_game() from tournament => the players seem to disappear from online_players
 
 BUGS:
 

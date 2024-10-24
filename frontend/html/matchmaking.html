@@ -451,6 +451,24 @@
         </div>
     </div>
 
+		<!--Modal lorsqu'un partie de tournoi va bientot commencer-->
+		<div class="modal fade" id="readyUp" tabindex="-1" aria-labelledby="readyUpLabel" aria-hidden="true">
+			<div class="modal-dialog modal-dialog-centered">
+				<div class="modal-content">
+					<div class="modal-header">
+						<h5 class="modal-title" id="readyUpLabel">Invitation de jeu</h5>
+						<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+					</div>
+					<div class="modal-body p-0">
+						<div id="readyUpDiv">
+							<p id="readyUpText"></p>
+							<div id="readyUpButtonContainer"></div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
 		<!--Modal pour confirmer qu'on quitte un lobby de tournoi-->
 		<div class="modal fade" id="leaveTnLobbyModal" tabindex="-1" aria-labelledby="leaveTnLobbyModalLabel" aria-hidden="true">
 			<div class="modal-dialog">

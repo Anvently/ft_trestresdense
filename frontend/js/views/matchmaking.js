@@ -735,6 +735,30 @@ export default class MatchmakingView extends BaseView {
 		this.sendMessage({'type'  : "player_ready"});
 	}
 
+	ready_up(message)
+	{
+		let modal = new bootstrap.Modal(document.getElementById('readyUp'));
+		const invite = document.getElementById('readyUpDiv');
+        const inviteText = document.getElementById('readyUpText');
+        const buttonContainer = document.getElementById('readyUpButtonContainer');
+
+
+		inviteText.textContent = "All players joined ! Ready Up !"
+		buttonContainer.innerHTML = '';
+		const joinButton = document.createElement('button');
+            joinButton.className = "btn btn-success btn-lg";
+            joinButton.textContent = "Ready Up!";
+            joinButton.onclick = () => {
+                modal.hide();
+				if (!this.isReady){
+					this.isReady = true;
+					this.beReady(this.playerId);
+				}
+            };
+            buttonContainer.appendChild(joinButton);
+			modal.show();
+	}
+
 	unready(playerId)
 	{
 		this.sendMessage({'type' : 'player_unready'});

@@ -213,6 +213,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		else:
 			await self._send_error(self.scope['error'], self.scope['error_code'], True)
 			return
+		print(online_players)
 		await self.send_general_update()
 
 	async def disconnect(self, code):
@@ -422,6 +423,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 	async def player_ready(self, content):
 		""" If true, check that lobby id in dict is not the same than before. If so then
 		 update lobby id from dict and send lobby update """
+		print("PLAYER READY", online_players)
 		if self.get_status() not in (PlayerStatus.IN_LOBBY, PlayerStatus.IN_TOURNAMENT_LOBBY):
 			await self._send_error(msg="You are not in a lobby, ready up failed",code=4005, close=False)
 			return
@@ -579,9 +581,9 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 
 	async def ready_up(self, content):
 		current_lobby = self._lobby_id
-
+		await self.send_json({'type' : 'ready_up'})
 		async def delayed_ready():
-			await asyncio.sleep(15)
+			await asyncio.sleep(150)
 			if self._lobby_id is not None and self._lobby_id == current_lobby:
 				await self.player_ready(None)
 			else:
