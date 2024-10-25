@@ -41,7 +41,7 @@ export default class MatchmakingView extends BaseView {
 		this.openLobbyOptionsButton.addEventListener('click', (e) => this.openLobbyOptions());
 		//this.startGameButton.addEventListener('click', () => this.startGame());
 		this.inviteFriendsButton.addEventListener('click', () => this.inviteFriends());
-		this.leaveLobbyButton.addEventListener('click', () => this.leaveLobby());
+		this.leaveLobbyButton.addEventListener('click', async () => await this.confirmLeave());
 		this.joinLobbyButton.addEventListener('click', () => this.joinLobbyById());
 		this.createLobbyButton.addEventListener('click', () => this.createLobby());
 		this.saveLobbyOptionsButton.addEventListener('click', () => this.saveLobbyOptions());
@@ -400,31 +400,45 @@ export default class MatchmakingView extends BaseView {
 		// this.updateCurrentView(lobbyId);
 	}
 
-
-
-	leaveLobby() {
-		if (this.lobbyId[0] == 'T')
-		{
-			const modalElement = document.getElementById('leaveTnLobbyModal');
-    		const modal = new bootstrap.Modal(modalElement);
+	async confirmLeave()
+	{
+		if (this.lobbyId[0] == 'T'){
+		const modalElement = document.getElementById('leaveTnLobbyModal');
+    	const modal = new bootstrap.Modal(modalElement);
+		const userChoice = new Promise((resolve) => {
 			const confirmBtn = document.getElementById('confirmLeaveBtn');
 			const cancelBtn = document.getElementById('cancelLeaveBtn');
-    		cancelBtn.onclick = () => {
+
+			const handleCancel = () => {
 				modal.hide();
-				return;
-			}
-			confirmBtn.onclick = () => {
-    		  modal.hide();
-    		};
-			modal.show();
+				resolve(false);
+			};
+
+			const handleConfirm = () => {
+				modal.hide();
+				resolve(true);
+			};
+
+			cancelBtn.onclick = handleCancel;
+			confirmBtn.onclick = handleConfirm;
+		});
+		modal.show();
+		const confirmed = await userChoice;
+		if (confirmed){this.leaveLobby();}
 		}
+		else{this.leaveLobby();}
+	}
+
+	leaveLobby() {
+
 		this.sendMessage({ type: 'leave_lobby' }).catch((error) => this.errorHandler(error));;
 		this.isReady = false;
 		this.lobbyId = undefined;
 		this.isHost = false;
 		this.updateCurrentView();
-
 	}
+
+
 
 
 

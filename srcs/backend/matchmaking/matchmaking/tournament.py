@@ -63,7 +63,7 @@ class Tournament:
 			raise Exception(f"ERROR: Failed to post tournament to user_api: {e}")
 		# Update player status
 
-	async def reassign_player(self, player_id: str, lobby_id: str, new_status: int = PlayerStatus.IN_TOURNAMENT_LOBBY):
+	def reassign_player(self, player_id: str, lobby_id: str, new_status: int = PlayerStatus.IN_TOURNAMENT_LOBBY):
 		lobbies[lobby_id].add_player(player_id)
 		if not player_id[0] == '!':
 			lobbies[online_players[player_id]['lobby_id']].remove_player(player_id)
@@ -138,19 +138,21 @@ class Tournament:
 				next_match_id = self.setup_next_match(stage, match_idx)
 				await self.reassign_player(score['username'], next_match_id, PlayerStatus.IN_TOURNAMENT_LOBBY)
 				await MatchMakingConsumer.static_lobby_update(next_match_id)
-				if len(lobbies[next_match_id].players) == 2:
-					async def countdown():
-						await asyncio.sleep(120)
-						if next_match_id in lobbies and not lobbies[next_match_id].started:
-							absent = await lobbies[next_match_id].get_default_winner()
-							if absent == "?cancel":
-								# cancel the whole tournament ?
-								pass
-							else:
-								await lobbies[next_match_id].handle_default_results(absent)
-								# is it enough ? should probably delete the lobby and send an update, maybe
-								# display a pop up to explain
-					asyncio.create_task(countdown())
+				# if len(lobbies[next_match_id].players) == 2:
+				# 	async def countdown():
+				# 		await asyncio.sleep(120)
+				# 		if next_match_id in lobbies and not lobbies[next_match_id].started:
+				# 			absent = await lobbies[next_match_id].get_default_winner()
+				# 			if absent == "?cancel":
+				# 				# cancel the whole tournament ?
+				# 				pass
+				# 			else:
+				# 				await lobbies[next_match_id].handle_default_results(absent)
+				# 				# is it enough ? should probably delete the lobby and send an update, maybe
+				# 				# display a pop up to explain
+				# 				# @NICOLAS
+				# 	asyncio.create_task(countdown())
+				# THIS BLOCKS THE LOBBY UPDATE
 			else:
 				""" If someone lose or it was a final, it's up to the
 				 lobby result handler to update status of associated players. """
@@ -158,3 +160,42 @@ class Tournament:
 		if stage == 0: #If final match
 			self.delete()
 
+
+
+
+class LocalTournament:
+	def __init__(self, data : Dict[str, Any]) -> None:
+		self.game_type = data['game_type']
+		self.hostname = data['hostname']
+		self.name = self.name = data.pop('name', f"{self.hostname}'s tournament")
+		self.number_players = data['nbr_players']
+		self.default_settings = data.get('default_settings', {
+			'lives':10
+		})
+		self.id = 'UC' + data['id'][2:]
+		self.players = data['players']
+		self.matches = []
+		# do we need to post the tn in the database ? mby for the display
+		for i in range(int(self.number_players / 2)):
+			id=f"{self.id}{SUFFIXES[self.number_players].format(i)}"
+			self.matches.append({'match_id' : id, 'players' : [self.players[2*i], self.players[2*i + 1]]})
+			from matchmaking.lobby import LocalTournamentMatchLobby
+			# create LTML
+
+		self.assign_host(0, PlayerStatus.IN_TOURNAMENT_LOBBY)
+
+	def assign_host(self, match_number, new_status = PlayerStatus.IN_TOURNAMENT_LOBBY):
+		lobbies[self.matches[match_number]['match_id']].add_player(self.matches[match_number]['players'][0])
+		lobbies[self.matches[match_number]['match_id']].add_player(self.matches[match_number]['players'][1])
+		lobbies[online_players[self.hostname]['lobby_id']].remove_player(self.hostname)
+		online_players[self.hostname]['lobby_id'] = self.matches[match_number]['match_id']
+		online_players[self.hostname]['tournament_id'] = self.id
+		online_players[self.hostname]['status'] = new_status
+
+
+	async def handle_result(self, results: Dict[str, Any]):
+		from matchmaking.consumers import MatchMakingConsumer
+		if results['status'] == 'canceled':
+			self.delete()
+			return
+		lobby_id = results['lobby_id']

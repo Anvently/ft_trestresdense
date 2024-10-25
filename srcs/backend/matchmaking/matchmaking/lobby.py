@@ -407,6 +407,8 @@ class TournamentMatchLobby(Lobby):
 		if self.tournament_id in tournaments: #Probably not necessary to check that
 			await super().handle_results(results)
 			await tournaments[self.tournament_id].handle_result(results)
+		print(f"self.delete() on TML {self.id}")
+		print(lobbies)
 		self.delete()
 
 	async def handle_default_results(self, leaver_id):
@@ -458,7 +460,8 @@ class TournamentMatchLobby(Lobby):
 			return "?cancel"
 		return absent
 
-
+class LocalTournamentMatchLobby(Lobby):
+	pass
 
 
 

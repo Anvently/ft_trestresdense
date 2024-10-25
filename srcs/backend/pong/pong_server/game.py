@@ -91,7 +91,7 @@ class PongLobby:
 		if username in [Player.player_id for Player in self.players]:
 			return True
 		return False
-	
+
 	def get_user(self, username:str):
 		for player in self.players:
 			if player.player_id == username:
@@ -248,7 +248,7 @@ class PongLobby:
 		self.move_ball()
 		self.collision_logic()
 		self.check_goals()
-		self.compute_AI()
+		# self.compute_AI()
 
 		# if self.check_winning_condition():
 		# 	self.gameState = 3

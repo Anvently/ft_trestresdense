@@ -171,7 +171,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		return copy.copy(online_players[self.username]['status'])
 
 	def get_lobby_id(self):
-		return online_players[self.username]['lobby_id']
+		return copy.copy(online_players[self.username]['lobby_id'])
 
 	async def _is_valid_client(self):
 		if MatchMakingConsumer.DISABLE_AUTH:
@@ -423,12 +423,11 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 	async def player_ready(self, content):
 		""" If true, check that lobby id in dict is not the same than before. If so then
 		 update lobby id from dict and send lobby update """
-		print("PLAYER READY", online_players)
 		if self.get_status() not in (PlayerStatus.IN_LOBBY, PlayerStatus.IN_TOURNAMENT_LOBBY):
 			await self._send_error(msg="You are not in a lobby, ready up failed",code=4005, close=False)
 			return
 		if lobbies[self._lobby_id].player_ready(self.username):
-			id = online_players[self.username]['lobby_id']
+			id = copy.copy(online_players[self.username]['lobby_id'])
 			if id != self._lobby_id:
 				await self.channel_layer.group_send(self._lobby_id, {"type": "switch_to_first_match"})
 			else:
