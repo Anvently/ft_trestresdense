@@ -220,17 +220,18 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		if not self._is_valid:
 			return
 		async with MatchMakingConsumer.matchmaking_lock:
-			status = online_players[self.username]['status']
-			if status == PlayerStatus.IN_LOBBY:
-				if self._is_host == True:
-					await self.cancel_lobby()
-				else:
-					lobbies[self._lobby_id].remove_player(self.username)
-					await self.channel_layer.group_discard(self._lobby_id, self.channel_name)
-					await self.send_lobby_update(self._lobby_id)
-					self._lobby_id = None
-			if status not in (PlayerStatus.IN_GAME, PlayerStatus.IN_TOURNAMENT_LOBBY):
-				del online_players[self.username]
+			if self.username in online_players:
+				status = online_players[self.username]['status']
+				if status == PlayerStatus.IN_LOBBY:
+					if self._is_host == True:
+						await self.cancel_lobby()
+					else:
+						lobbies[self._lobby_id].remove_player(self.username)
+						await self.channel_layer.group_discard(self._lobby_id, self.channel_name)
+						await self.send_lobby_update(self._lobby_id)
+						self._lobby_id = None
+				if status not in (PlayerStatus.IN_GAME, PlayerStatus.IN_TOURNAMENT_LOBBY):
+					del online_players[self.username]
 		await self.channel_layer.group_discard(self.username, self.channel_name)
 		await self.channel_layer.group_discard(MatchMakingConsumer.matchmaking_group, self.channel_name)
 		await self.send_general_update()
@@ -273,6 +274,18 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 			online_players[self.username] = copy.deepcopy(default_status)
 			await self.channel_layer.group_add(MatchMakingConsumer.matchmaking_group, self.channel_name)
 			await self.send_general_update()
+
+	async def not_show_up(self, content):
+		current_stage = content['stage']
+		await self.send_json(content)
+		await self.channel_layer.group_discard(self._lobby_id, self.channel_name)
+		online_players[self.username]['lobby_id'] = "?TBD"
+		self._lobby_id = None
+		if current_stage == 1:
+			online_players[self.username] = copy.deepcopy(default_status)
+			await self.channel_layer.group_add(MatchMakingConsumer.matchmaking_group, self.channel_name)
+			await self.send_general_update()
+
 
 
 	async def join_lobby(self, content):
@@ -356,10 +369,14 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 	async def leave_tournament_match_lobby(self):
 		# should declare winner the player still in the lobby
 		print("canceling tournament lobby")
+		await self.channel_layer.group_discard(self._lobby_id, self.channel_name)
+		lobbies[self._lobby_id].remove_player(self.username)
+		online_players[self.username] = copy.deepcopy(default_status)
+		await self.channel_layer.group_add(MatchMakingConsumer.matchmaking_group, self.channel_name)
 		await lobbies[self._lobby_id].handle_default_results(self.username)
-		await self.cancel_lobby()
+		self._lobby_id = None
+		self._is_host = False
 		await self.send_general_update()
-		pass
 
 	async def create_lobby(self, data):
 		if online_players[self.username]['status'] != PlayerStatus.NO_LOBBY:
@@ -426,7 +443,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		if self.get_status() not in (PlayerStatus.IN_LOBBY, PlayerStatus.IN_TOURNAMENT_LOBBY):
 			await self._send_error(msg="You are not in a lobby, ready up failed",code=4005, close=False)
 			return
-		if lobbies[self._lobby_id].player_ready(self.username):
+		if lobbies[online_players[self.username]['lobby_id']].player_ready(self.username):
 			id = copy.copy(online_players[self.username]['lobby_id'])
 			if id != self._lobby_id:
 				await self.channel_layer.group_send(self._lobby_id, {"type": "switch_to_first_match"})
@@ -582,9 +599,10 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		current_lobby = self._lobby_id
 		await self.send_json({'type' : 'ready_up'})
 		async def delayed_ready():
-			await asyncio.sleep(150)
-			if self._lobby_id is not None and self._lobby_id == current_lobby:
-				await self.player_ready(None)
+			await asyncio.sleep(15)
+			if self._lobby_id is not None and self._lobby_id == current_lobby and current_lobby in lobbies:
+				if not lobbies[current_lobby].started:
+					await self.player_ready(None)
 			else:
 				print("player left during the window")
 

@@ -440,7 +440,22 @@ export default class MatchmakingView extends BaseView {
 
 
 
-
+	not_show_up(content)
+	{
+		console.log("a player failed to show up in time");
+		console.log(content);
+		const stage = content.stage;
+		if (stage == 1)
+		{
+			this.lobbyId = undefined;
+			this.isReady = false;
+			this.isHost = false;
+			this.updateCurrentView();
+		}
+		else{
+			this.isReady = false;
+		}
+	}
 
 
 
