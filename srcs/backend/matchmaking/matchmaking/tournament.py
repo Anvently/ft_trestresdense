@@ -71,11 +71,6 @@ class Tournament:
 			online_players[player_id]['tournament_id'] = self.id
 			online_players[player_id]['status'] = new_status
 
-
-
-
-
-
 	def generate_match_name(self, stage: int, nbr: int) -> str:
 		if stage == 0:
 			return f"{self.name}'s final"
@@ -136,22 +131,24 @@ class Tournament:
 				""" We need to instantiate the new lobby if it doesn't exist yet,
 				 and assign player to it. """
 				next_match_id = self.setup_next_match(stage, match_idx)
-				await self.reassign_player(score['username'], next_match_id, PlayerStatus.IN_TOURNAMENT_LOBBY)
+				self.reassign_player(score['username'], next_match_id, PlayerStatus.IN_TOURNAMENT_LOBBY)
 				await MatchMakingConsumer.static_lobby_update(next_match_id)
-				# if len(lobbies[next_match_id].players) == 2:
-				# 	async def countdown():
-				# 		await asyncio.sleep(120)
-				# 		if next_match_id in lobbies and not lobbies[next_match_id].started:
-				# 			absent = await lobbies[next_match_id].get_default_winner()
-				# 			if absent == "?cancel":
-				# 				# cancel the whole tournament ?
-				# 				pass
-				# 			else:
-				# 				await lobbies[next_match_id].handle_default_results(absent)
-				# 				# is it enough ? should probably delete the lobby and send an update, maybe
-				# 				# display a pop up to explain
-				# 				# @NICOLAS
-				# 	asyncio.create_task(countdown())
+				if len(lobbies[next_match_id].players) == 2:
+					async def countdown():
+						await asyncio.sleep(10)
+						if next_match_id in lobbies and not lobbies[next_match_id].started:
+							absent = await lobbies[next_match_id].get_default_winner()
+							if absent == "?cancel":
+								# cancel the whole tournament ?
+								print("cancelling tournament")
+								pass
+							else:
+								# await lobbies[next_match_id].handle_default_results(absent)
+								print(f"absent player is {absent}")
+								# is it enough ? should probably delete the lobby and send an update, maybe
+								# display a pop up to explain
+								# @NICOLAS
+					asyncio.create_task(countdown())
 				# THIS BLOCKS THE LOBBY UPDATE
 			else:
 				""" If someone lose or it was a final, it's up to the
@@ -160,10 +157,11 @@ class Tournament:
 		if stage == 0: #If final match
 			self.delete()
 
+lobbies: Dict[str, 'Lobby'] = {}
+online_players : Dict[str, Dict[str, Any]] = {}
+tournaments: Dict[str, 'Tournament'] = {}
 
-
-
-class LocalTournament:
+class LocalTournament(Tournament):
 	def __init__(self, data : Dict[str, Any]) -> None:
 		self.game_type = data['game_type']
 		self.hostname = data['hostname']
@@ -174,28 +172,66 @@ class LocalTournament:
 		})
 		self.id = 'UC' + data['id'][2:]
 		self.players = data['players']
-		self.matches = []
-		# do we need to post the tn in the database ? mby for the display
+		self.matches = {}
+		self.current_match_id = None
+		self.results = []
+		""" Must contains :
+		 	- lobby_id
+			- lobby_name
+			- scores_set [score, has_win, username] """
 		for i in range(int(self.number_players / 2)):
 			id=f"{self.id}{SUFFIXES[self.number_players].format(i)}"
-			self.matches.append({'match_id' : id, 'players' : [self.players[2*i], self.players[2*i + 1]]})
-			from matchmaking.lobby import LocalTournamentMatchLobby
-			# create LTML
+			self.matches[id]({
+				'lobby_id': id,
+				'status': 'ready',
+				'players' : [self.players[2*i], self.players[2*i + 1]],
+				'lobby_name': self.generate_match_name(self.get_max_stage(self.number_players), i)})
+		online_players[self.hostname]['lobby_id'] = self.id
+		online_players[self.hostname]['status'] = PlayerStatus.IN_LOCAL_TOURNAMENT_LOBBY
 
-		self.assign_host(0, PlayerStatus.IN_TOURNAMENT_LOBBY)
+	def delete(self):
+		if self.id in lobbies:
+			lobbies[self.id].delete()
 
-	def assign_host(self, match_number, new_status = PlayerStatus.IN_TOURNAMENT_LOBBY):
-		lobbies[self.matches[match_number]['match_id']].add_player(self.matches[match_number]['players'][0])
-		lobbies[self.matches[match_number]['match_id']].add_player(self.matches[match_number]['players'][1])
-		lobbies[online_players[self.hostname]['lobby_id']].remove_player(self.hostname)
-		online_players[self.hostname]['lobby_id'] = self.matches[match_number]['match_id']
-		online_players[self.hostname]['tournament_id'] = self.id
-		online_players[self.hostname]['status'] = new_status
-
+	def setup_next_match(self, previous_stage: int, previous_idx: int) -> str:
+		if (previous_stage - 1 == 0):
+			id = f"{self.id}.0"
+		else:
+			id = f"{self.id}.{previous_stage - 1}.{int(previous_idx / 2)}"
+		if id in self.matches:
+			return id
+		self.matches[id] = {
+			'name': self.generate_match_name(previous_stage - 1, int(previous_idx / 2)),
+			'status': 'not_ready',
+			'players': {}
+		}
+		return id
 
 	async def handle_result(self, results: Dict[str, Any]):
+		""" Instantiate the next lobby if any. Assign the winner
+		 to its and update loser's status. """
 		from matchmaking.consumers import MatchMakingConsumer
-		if results['status'] == 'canceled':
+		if results['status'] == 'cancelled':
 			self.delete()
 			return
-		lobby_id = results['lobby_id']
+		lobby_id:str = self.current_match_id
+		self.matches[lobby_id]['status'] = 'finished'
+		self.matches[lobby_id]['scores_set'] = results['scores_set']
+		stage, match_idx = Tournament.extract_id_info(lobby_id)
+		for score in results['scores_set']:
+			if score['has_win'] == True and stage != 0:
+				""" We need to instantiate the new lobby if it doesn't exist yet,
+				 and assign player to it. """
+				next_match_id = self.setup_next_match(stage, match_idx)
+				self.matches[next_match_id]['players'].append(score['username'])
+				if (len(self.matches[next_match_id]['players']) == 2):
+					self.matches[next_match_id]['status'] = 'ready'
+				break
+			
+
+
+	async def start_game(self, lobby_id):
+		if lobby_id in self.matches:
+			
+		else:
+			raise Exception(f"Invalid id ({lobby_id}) for local tournament {self.tournament.id}")

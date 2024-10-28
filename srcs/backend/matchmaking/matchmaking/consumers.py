@@ -13,7 +13,6 @@ from channels.layers import get_channel_layer
 from matchmaking.common import online_players, lobbies, PlayerStatus
 from matchmaking.lobby import Lobby, LocalMatchLobby, SimpleMatchLobby, TournamentInitialLobby
 import copy
-import copy
 from asgiref.sync import sync_to_async
 import requests
 
@@ -35,24 +34,6 @@ def is_in_game(username):
 	else:
 		return False
 
-
-def jsonize_lobby(lobby : Lobby):
-	lobby_data = {}
-	lobby_data['game_type'] = lobby.game_type
-	lobby_data['match_type'] = str(lobby)
-	lobby_data['lobby_id'] = lobby.id
-	if (hasattr(lobby, 'tournament_id')):
-		lobby_data['tournament_id'] = lobby.tournament_id
-	lobby_data['name'] = lobby.name
-	lobby_data['host'] = lobby.hostname
-	lobby_data['slots'] = f"{len(lobby.players)}/{lobby.player_num}"
-	lobby_data['players'] = copy.deepcopy(lobby.players)
-	lobby_data['settings'] = lobby.settings
-	if (str(lobby) == "local_match"):
-		print("changing hostid")
-		lobby_data['host'] = lobby.hostnickname
-	print("lobby data is", lobby_data)
-	return lobby_data
 
 def jsonize_player(player_dict):
 	player_data = {}
@@ -135,7 +116,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		channel_layer = get_channel_layer()
 		if id not in lobbies:
 			return
-		data = jsonize_lobby(lobbies[id])
+		data = lobbies[id].jsonize()
 		data['type'] = 'lobby_update'
 		await channel_layer.group_send(id, data)
 
@@ -506,7 +487,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 	async def send_lobby_update(self, lobby_id):
 		if lobby_id not in lobbies:
 			return
-		data = jsonize_lobby(lobbies[lobby_id])
+		data = lobbies[lobby_id].jsonize()
 		data['type'] = 'lobby_update'
 		await self.channel_layer.group_send(lobby_id, data)
 
@@ -582,7 +563,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		current_lobby = self._lobby_id
 		await self.send_json({'type' : 'ready_up'})
 		async def delayed_ready():
-			await asyncio.sleep(150)
+			await asyncio.sleep(1500)
 			if self._lobby_id is not None and self._lobby_id == current_lobby:
 				await self.player_ready(None)
 			else:
@@ -603,8 +584,8 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		data = {"type": "general_update", "games_to_join" : [{}], "ongoing_games": [{}], "tournaments_to_join": [{}], "ongoing_tournaments": [{}], "private": [{}]}
 		async with MatchMakingConsumer.matchmaking_lock:
 			lobbies_copy = copy.deepcopy(lobbies)
-		data['games_to_join'] = [{lobby_id: jsonize_lobby(lobbies_copy[lobby_id])} for lobby_id in lobbies_copy if (lobby_id[1] == 'O' and not lobbies_copy[lobby_id].started)]
-		data['ongoing_games'] = [{lobby_id: jsonize_lobby(lobbies_copy[lobby_id])} for lobby_id in lobbies_copy if (lobby_id[2] == 'A' and lobby_id[0] in ('S', 'T')  and lobbies_copy[lobby_id].started)]
+		data['games_to_join'] = [{lobby_id: lobbies_copy[lobby_id].jsonize()} for lobby_id in lobbies_copy if (lobby_id[1] == 'O' and not lobbies_copy[lobby_id].started)]
+		data['ongoing_games'] = [{lobby_id: lobbies_copy[lobby_id].jsonize()} for lobby_id in lobbies_copy if (lobby_id[2] == 'A' and lobby_id[0] in ('S', 'T')  and lobbies_copy[lobby_id].started)]
 		# data["private"] = [{lobby_id, jsonize_lobby(lobbies_copy[lobby_id])} for lobby_id in lobbies_copy if (lobby_id[1] == 'C')]
 		return data
 

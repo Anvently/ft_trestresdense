@@ -3,6 +3,7 @@ import base64
 from typing import List, Dict, Set, Tuple, Any
 import json
 import requests
+import copy
 from abc import abstractmethod
 from django.conf import settings
 # from matchmaking.common import tournament_creator
@@ -181,7 +182,7 @@ class Lobby():
 	def delete(self):
 		""" Delete players from online_players and remove lobby from list of lobbies """
 		for player_id, player in self.iterate_human_player():
-			if online_players[player_id]['lobby_id'] == self.id:
+			if player_id in online_players and online_players[player_id]['lobby_id'] == self.id:
 				del online_players[player_id]
 		if self.id in lobbies:
 			del lobbies[self.id]
@@ -208,6 +209,22 @@ class Lobby():
 
 	def check_time_out(self):
 		pass
+
+	def jsonize(self):
+		lobby_data = {}
+		lobby_data['game_type'] = self.game_type
+		lobby_data['match_type'] = str(self)
+		lobby_data['lobby_id'] = self.id
+		if (hasattr(self, 'tournament_id')):
+			lobby_data['tournament_id'] = self.tournament_id
+		lobby_data['name'] = self.name
+		lobby_data['host'] = self.hostname
+		lobby_data['slots'] = f"{len(self.players)}/{self.player_num}"
+		lobby_data['players'] = copy.deepcopy(self.players)
+		lobby_data['settings'] = self.settings
+		if (str(self) == "local_match"):
+			lobby_data['host'] = self.hostnickname
+		return lobby_data
 
 	def __str__(self) -> str:
 		return "lobby"
@@ -407,8 +424,6 @@ class TournamentMatchLobby(Lobby):
 		if self.tournament_id in tournaments: #Probably not necessary to check that
 			await super().handle_results(results)
 			await tournaments[self.tournament_id].handle_result(results)
-		print(f"self.delete() on TML {self.id}")
-		print(lobbies)
 		self.delete()
 
 	async def handle_default_results(self, leaver_id):
@@ -452,7 +467,7 @@ class TournamentMatchLobby(Lobby):
 	async def get_default_winner(self):
 		player_joined = 0
 		for player in self.players:
-			if self.players['has_joined']:
+			if self.players[player]['has_joined']:
 				player_joined += 1
 			else:
 				absent = player
@@ -460,8 +475,38 @@ class TournamentMatchLobby(Lobby):
 			return "?cancel"
 		return absent
 
-class LocalTournamentMatchLobby(Lobby):
-	pass
+class LocalTournamentLobby(Lobby):
+	
+	from matchmaking.tournament import LocalTournament
+
+	def __init__(self, tournament: LocalTournament) -> None:
+		self.created_at = time.time()
+		self.tournament = tournament
+		
+	async def handle_results(self, results: Dict[str, Any]):
+		await self.tournament.handle_result(results)
+
+	def delete(self):
+		if self.tournament.hostname in online_players:
+			del online_players[self.tournament.hostname]
+		if self.tournament.id in lobbies:
+			del lobbies[self.id]
+		if self.tournament.id in tournaments:
+			del tournaments[self.tournament.id]
+
+	async def start_game(self, lobby_id):
+		await self.tournament.start_game(lobby_id)
+		
+	def jsonize(self):
+		return {
+			'tournament_id': self.tournament.id,
+			'tournament_name': self.tournament.name,
+			'host': self.tournament.hostname,
+			'game_name': self.tournament.game_type,
+			'date': self.created_at,
+			'number_players': self.tournament.number_players,
+			'lobbies_set': [result for result in self.tournament.results]
+		}
 
 
 

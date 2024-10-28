@@ -99,6 +99,13 @@ export default class TournamentTree extends ComponentView {
 			</style>
 			<div id="tournamentTree"></div>
 		`;
+		this.divHeight = 115;
+		this.spacing = 10;
+		this.marginsTop = [
+			[[0]],
+			[[(2 * this.divHeight + 1 * this.spacing) / 2 - (this.divHeight / 2)], [0, 0]],
+			[[(4 * this.divHeight + 3 * this.spacing) - (this.divHeight * 2 + this.spacing)- (this.divHeight / 2)], [65, 140], [0, 0, 0, 0]]
+		];
 	}
 
 	async init(parentContainer) {
@@ -142,6 +149,8 @@ export default class TournamentTree extends ComponentView {
 
 	async renderTournament() {
 		const { lobbies_set } = this.tournamentData;
+		console.log(this.tournamentData);
+
 		
 		const nbr_rounds = this.computeNbrRounds(this.tournamentData.number_players);
 		const treeContainer = this.element.querySelector('#tournamentTree');
@@ -174,42 +183,22 @@ export default class TournamentTree extends ComponentView {
 	}
 	
 	createMatchContainers(max_index, roundIndex, count) {
-		const divHeight = 115;
-		const spacing = 10;
-		const marginsTop = [
-			[[0]],
-			[[(2 * divHeight + 1 * spacing) / 2 - (divHeight / 2)], [0, 0]],
-			[[(4 * divHeight + 3 * spacing) - (divHeight * 2 + spacing)- (divHeight / 2)], [65, 140], [0, 0, 0, 0]]
-		];
 		const containers = [];
 		for (let i = 0; i < count; i++) {
 		const container = document.createElement('div');
 		container.className = 'match-container';
-		container.style.marginTop = `${marginsTop[max_index][roundIndex][i]}px`;
+		container.style.marginTop = `${this.marginsTop[max_index][roundIndex][i]}px`;
 		containers.push(container);
 		}
 		return containers;
 	}
 	
-	async createMatchElement(match, roundIndex, totalRounds) {
+	async createMatchElement(match) {
 		const matchDiv = document.createElement('div');
 		matchDiv.classList.add('match')
 		if (!match.completed)
 			matchDiv.classList.add('not-completed');
 		matchDiv.innerHTML = await this.createMatchHTML(match);
-		
-		// if (roundIndex) {
-		//   const horizontalConnector = document.createElement('div');
-		//   horizontalConnector.className = 'connector connector-horizontal';
-		//   matchDiv.appendChild(horizontalConnector);
-	
-		//   const verticalConnector = document.createElement('div');
-		//   verticalConnector.className = 'connector connector-vertical';
-		//   verticalConnector.style.height = `${Math.pow(2, roundIndex - 1) * 100}px`;
-		//   verticalConnector.style.top = '50%';
-		//   matchDiv.appendChild(verticalConnector);
-		// }
-		
 		return matchDiv;
 	}
 	
@@ -264,4 +253,38 @@ export default class TournamentTree extends ComponentView {
 
 		return htmlContent;
 	}
+}
+
+export class TournamentTreeWithButtons extends TournamentTree {
+	constructor(tournamentId, buttonCreationHandler, tournamentData = undefined) {
+		super(tournamentId, tournamentData);
+		this.htmlContent += `
+			<style>
+				.match {
+					height: 155px;
+				}
+				
+			</style>
+		`;
+		this.buttonCreationHandler = buttonCreationHandler;
+		this.divHeight = 155;
+		this.spacing = 10;
+		this.marginsTop = [
+			[[0]],
+			[[(2 * this.divHeight + 1 * this.spacing) / 2 - (this.divHeight / 2)], [0, 0]],
+			[[(4 * this.divHeight + 3 * this.spacing) - (this.divHeight * 2 + this.spacing)- (this.divHeight / 2)], [65, 140], [0, 0, 0, 0]]
+		];
+	}
+
+	async createMatchElement(match) {
+		console.log(match);
+		const matchDiv = await super.createMatchElement(match);
+		const button = document.createElement('button');
+		button.classList = "btn btn-primary";
+		this.buttonCreationHandler(button, match);
+		matchDiv.appendChild(button);
+		return matchDiv;
+	}
+
+
 }

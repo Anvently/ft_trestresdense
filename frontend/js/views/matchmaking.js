@@ -1,6 +1,6 @@
 import { BaseView, ViewManager } from '../view-manager.js';
 import { authenticatedUser, userManager, User } from '../home.js'
-import TournamentTree from '../components/tournamentTree.js';
+import TournamentTree, { TournamentTreeWithButtons } from '../components/tournamentTree.js';
 
 export default class MatchmakingView extends BaseView {
     constructor() {
@@ -1035,7 +1035,7 @@ export default class MatchmakingView extends BaseView {
 	}
 
 	async displayTournamentTree(id) {
-		this.tournamentTree = new TournamentTree(id);
+		this.tournamentTree = new TournamentTree(id, undefined);
 		const container = document.getElementById('tournamentModalDiv');
 		this.tournamentTree.init(container);
 		let modal = new bootstrap.Modal(document.getElementById('tournamentModal'));
@@ -1043,8 +1043,6 @@ export default class MatchmakingView extends BaseView {
 
 		// viewManager.v
 	}
-
-
 
 
     cleanupView() {

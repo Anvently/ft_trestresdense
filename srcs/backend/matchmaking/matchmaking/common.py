@@ -9,6 +9,7 @@ class PlayerStatus(IntEnum):
 	IN_LOBBY = 1
 	IN_GAME = 2
 	IN_TOURNAMENT_LOBBY = 3
+	IN_LOCAL_TOURNAMENT_LOBBY = 4
 	def __lt__(self, other):
 		if self.__class__ is other.__class__:
 			return self.value < other.value
