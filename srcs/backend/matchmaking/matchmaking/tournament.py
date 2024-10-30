@@ -174,7 +174,6 @@ class LocalTournament(Tournament):
 		self.players = data['players']
 		self.matches = {}
 		self.current_match_id = None
-		self.results = []
 		""" Must contains :
 		 	- lobby_id
 			- lobby_name
@@ -215,7 +214,7 @@ class LocalTournament(Tournament):
 			self.delete()
 			return
 		lobby_id:str = self.current_match_id
-		self.matches[lobby_id]['status'] = 'finished'
+		self.matches[lobby_id]['status'] = 'completed'
 		self.matches[lobby_id]['scores_set'] = results['scores_set']
 		stage, match_idx = Tournament.extract_id_info(lobby_id)
 		for score in results['scores_set']:
@@ -227,11 +226,10 @@ class LocalTournament(Tournament):
 				if (len(self.matches[next_match_id]['players']) == 2):
 					self.matches[next_match_id]['status'] = 'ready'
 				break
-			
 
 
 	async def start_game(self, lobby_id):
 		if lobby_id in self.matches:
-			
+			pass
 		else:
 			raise Exception(f"Invalid id ({lobby_id}) for local tournament {self.tournament.id}")
