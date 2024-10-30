@@ -1,6 +1,9 @@
 Failles possibles :
 	- si on obtient un token valide pour un user "xyz", on supprime le compte, et quelqu'un recreait le compte "xyz", notre token est toujours valide.
 
+BUG:
+	- websocket error when leaving a local lobby
+
 TODO:
 
 	Devops:
@@ -28,6 +31,7 @@ Subject key point to check:
 	- Ensure that users can easily navigate and interact with the website using
 		different input methods, such as touchscreens, keyboards, and mice, depending
 		on the device they are using
+
 
 LOUIS TODO:
  -check the 'in_tournament_lobby' front method. Is is ok with local_tournament_lobby ?

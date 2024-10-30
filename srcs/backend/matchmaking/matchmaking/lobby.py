@@ -142,8 +142,7 @@ class Lobby():
 			self.delete()
 
 	def remove_all(self):
-		for player in self.players:
-			del self.players[player]
+		self.players = {}
 		self.delete()
 
 
