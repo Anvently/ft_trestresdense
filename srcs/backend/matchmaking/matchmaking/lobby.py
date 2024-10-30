@@ -479,13 +479,13 @@ class TournamentMatchLobby(Lobby):
 		return absent
 
 class LocalTournamentLobby(Lobby):
-	
+
 	from matchmaking.tournament import LocalTournament
 
 	def __init__(self, tournament: LocalTournament) -> None:
 		self.created_at = time.time()
 		self.tournament = tournament
-		
+
 	async def handle_results(self, results: Dict[str, Any]):
 		await self.tournament.handle_result(results)
 
