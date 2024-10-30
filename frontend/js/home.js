@@ -208,7 +208,7 @@ function errorHandler(error, attemptReconnect = false) {
 	setTimeout(() => {
 		errorPopup.style.display = 'none';
 	}, 5000); // Masquer après 5 secondes
-	// throw error; //UNCOMMENT TO TRACK ERROR IN CONSOLE
+	throw error; //UNCOMMENT TO TRACK ERROR IN CONSOLE
 }
 
 // Fonction pour fermer le pop-up

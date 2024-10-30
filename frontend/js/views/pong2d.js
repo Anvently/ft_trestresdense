@@ -249,13 +249,8 @@ export default class Pong2DView extends BaseView {
 	startGameLoop() {
 		console.log("startGameLoop");
 		const loop = (timestamp) => {
-			if (this.previousTimestamp !== 0) { // ?
-				const deltaTime = timestamp - this.previousTimestamp; // ?
-				this.handleInput();
-				this.draw3D();
-			}
-
-			this.previousTimestamp = timestamp; // ?
+			this.handleInput();
+			this.draw3D();
 			trackFrequency();
 
 			this.animationId = requestAnimationFrame(loop);
@@ -264,7 +259,8 @@ export default class Pong2DView extends BaseView {
 	}
 
 	handleInput() {
-		if (this.socket && this.socket.readyState === WebSocket.OPEN && this.direction != -1) {
+		console.log(this.direction)
+		if (this.socket && this.socket.readyState === WebSocket.OPEN) {
 			this.sendInput();
 		}
 		else if (this.game_state != 3) {
