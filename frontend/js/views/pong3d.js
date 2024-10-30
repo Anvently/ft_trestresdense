@@ -133,6 +133,14 @@ export default class Pong3DView extends BaseView {
 		this.socket.onmessage = async (e) => this.handleWebSocketMessage(JSON.parse(e.data));
 		this.socket.onerror = (error) => console.error('WebSocket error:', error);
 		this.socket.onclose = () => console.log('WebSocket is closed now.');
+		this.connectionTimeout = setTimeout(() => {
+			if (this.socket.readyState !== WebSocket.OPEN) {
+			  console.error('WebSocket connection failed to open within 1 seconds');
+			  // Display an error message to the user
+			  this.errorHandler("Invalid lobby or invalid credentials.");
+			  window.location.hash = '#';
+			}
+		  }, 1000);
 	}
 
 	async handleWebSocketMessage(msg) {
@@ -473,6 +481,7 @@ export default class Pong3DView extends BaseView {
 		if (this.animationId) cancelAnimationFrame(this.animationId);
 		if (this.socket) this.socket.close();
 		this.cleanupListeners();
+		clearTimeout(this.connectionTimeout);
 	}
 
 	cleanupListeners() {
