@@ -332,9 +332,10 @@
 						<div class="mb-3">
 							<label for="matchType" class="form-label">Type de partie</label>
 							<select id="matchType" class="form-select">
-								<option value="local_match">Match Local</option>
 								<option value="simple_match">Match Simple</option>
 								<option value="tournament_lobby">Tournoi</option>
+								<option value="local_match">Match Local</option>
+								<option value="local_tournament_lobby"> Local Tournament</option>
 							</select>
 						</div>
 
@@ -346,8 +347,12 @@
 
 						<div class="mb-3">
 							<label for="maxPlayers" class="form-label">Nombre maximum de joueurs</label>
-							<input type="number" value="2" id="maxPlayers" class="form-control" min="2" max="8" required>
-						</div>
+							<select id="maxPlayers" class="form-control" required>
+							  <option value="2">2</option>
+							  <option value="4">4</option>
+							  <option value="8">8</option>
+							</select>
+						  </div>
 						<div id="error-message-max-players" class="form-errors alert alert-danger" style="display: none;"></div>
 
 						<div class="mb-3">

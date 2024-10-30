@@ -13,25 +13,32 @@ TODO:
 	- dig into production server
 
 	Pong:
+		- display explicit message on the page when the lobby doesn't exist
+		- cant observe 2d games [RESOLU]
 		- input does not work on local match
+		- handle concede for PONG3d
 
-Subject key point to check:
+	Matchmaking:
+		- In 4 player Pong2d reformat the list of players as human players first for local  matches [DONE TO CHECK]
+		- lobby tjrs notes comme observables => probablement en lien avec les soucis de post result lors d'un tournoi
+		- l'ajout d'un bot a la finale de tournoi ne s'affiche pas cote front [RESOLU == Le create_task ne fonctionne pas comme prevu, twisted_loop ?]
 
-	-  Your website must be protected against SQL injections/XSS => Need to check
-	-  Users can select a unique display name to play the tournaments => We don't care ?
+BUGS:
 
-	Other game module :
-	- Create a matchmaking system to allow users to find opponents and participate
-		in fair and balanced matches 
-	- Optimize the performance and responsiveness of the new game to provide an
-		enjoyable user experience. Regularly update and maintain the game to fix
-		bugs, add new features, and enhance gameplay
+- post user batch in pong.js
 
-	Support on all devices :
-	- Ensure that users can easily navigate and interact with the website using
-		different input methods, such as touchscreens, keyboards, and mice, depending
-		on the device they are using
+- the crash in pong is caused by an infinite loop in calculate_impact()
+
+- matchmaking: when refreshing page in tournament lobby (not initial),
+	we can't reconnect to websocket because "a websocket connection is already opened"
+
+
+
+Resolu
+-quand on se fait inviter alors quon est host il y a des soucis => fonctionne a priori
+-check les general et lobbby update lors ajout de bot => fonctionne a priori
 
 
 LOUIS TODO:
  -check the 'in_tournament_lobby' front method. Is is ok with local_tournament_lobby ?
+
