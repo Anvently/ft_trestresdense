@@ -450,7 +450,6 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 								'Content-type': 'application/json',
 								'Authorization': "Bearer {0}".format(settings.API_TOKEN.decode('ASCII'))
 								})
-		print(response.status_code, "got a response")
 		self._lobby_id = None
 		await self.channel_layer.group_add(MatchMakingConsumer.matchmaking_group, self.channel_name)
 		await self.channel_layer.group_add(self.username, self.channel_name)
