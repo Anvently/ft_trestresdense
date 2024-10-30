@@ -1,6 +1,9 @@
 Failles possibles :
 	- si on obtient un token valide pour un user "xyz", on supprime le compte, et quelqu'un recreait le compte "xyz", notre token est toujours valide.
 
+BUG:
+	- websocket error when leaving a local lobby
+
 TODO:
 
 	Devops:

@@ -151,6 +151,14 @@ export default class Pong2DView extends BaseView {
 		this.socket.onmessage = (e) => this.handleWebSocketMessage(JSON.parse(e.data));
 		this.socket.onerror = (error) => console.error('WebSocket error:', error);
 		this.socket.onclose = () => console.log('WebSocket is closed now.');
+		this.connectionTimeout = setTimeout(() => {
+			if (this.socket.readyState !== WebSocket.OPEN) {
+			  console.error('WebSocket connection failed to open within 1 seconds');
+			  // Display an error message to the user
+			  this.errorHandler("Invalid lobby or invalid credentials.");
+			  window.location.hash = '#';
+			}
+		  }, 1000);
 	}
 
 	handleWebSocketMessage(msg) {
@@ -241,13 +249,8 @@ export default class Pong2DView extends BaseView {
 	startGameLoop() {
 		console.log("startGameLoop");
 		const loop = (timestamp) => {
-			if (this.previousTimestamp !== 0) { // ?
-				const deltaTime = timestamp - this.previousTimestamp; // ?
-				this.handleInput();
-				this.draw3D();
-			}
-
-			this.previousTimestamp = timestamp; // ?
+			this.handleInput();
+			this.draw3D();
 			trackFrequency();
 
 			this.animationId = requestAnimationFrame(loop);
@@ -256,7 +259,8 @@ export default class Pong2DView extends BaseView {
 	}
 
 	handleInput() {
-		if (this.socket && this.socket.readyState === WebSocket.OPEN && this.direction != -1) {
+		console.log(this.direction)
+		if (this.socket && this.socket.readyState === WebSocket.OPEN) {
 			this.sendInput();
 		}
 		else if (this.game_state != 3) {
@@ -542,6 +546,7 @@ export default class Pong2DView extends BaseView {
 		if (this.animationId) cancelAnimationFrame(this.animationId);
 		if (this.socket) this.socket.close();
 		this.cleanupListeners();
+		clearTimeout(this.connectionTimeout);
 	}
 
 	cleanupListeners() {

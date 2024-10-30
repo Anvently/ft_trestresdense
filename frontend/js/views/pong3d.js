@@ -21,6 +21,7 @@ const PADDLE_MIN_X = [-1.4, 0.8]
 const PADDLE_MAX_Y = [1, 1,]
 const PADDLE_MIN_Y = [-1, -1]
 const PADDLE_LEFT_DIR = [-1, 1]
+const PADDLE_COLOR = [0xf00000, 0x0000f0]
 
 const PLAYER_SPEED = 0.012
 
@@ -67,9 +68,12 @@ export default class Pong3DView extends BaseView {
 		this.objects = {
 			ball: null,
 			paddle:[],
-			scoreBoard:[[], []],
-			environment: {room: null, table: null}
+			scoreBoard:[],
+			environment: {room: null, table: null},
+			nameTag:[null, null]
 		};
+
+		this.previousScore = [0, 0];
 
 		this.pressKey = {
 			key_up: false,
@@ -133,6 +137,14 @@ export default class Pong3DView extends BaseView {
 		this.socket.onmessage = async (e) => this.handleWebSocketMessage(JSON.parse(e.data));
 		this.socket.onerror = (error) => console.error('WebSocket error:', error);
 		this.socket.onclose = () => console.log('WebSocket is closed now.');
+		this.connectionTimeout = setTimeout(() => {
+			if (this.socket.readyState !== WebSocket.OPEN) {
+			  console.error('WebSocket connection failed to open within 1 seconds');
+			  // Display an error message to the user
+			  this.errorHandler("Invalid lobby or invalid credentials.");
+			  window.location.hash = '#';
+			}
+		  }, 1000);
 	}
 
 	async handleWebSocketMessage(msg) {
@@ -181,9 +193,11 @@ export default class Pong3DView extends BaseView {
 	async onGameStart() {
 		console.log("onGameStart");
 		this.gameHasStarted = true;
-		await this.createScoreBoard(-49, 0, 5, 0);
-		await this.createScoreBoard(49, 0, 5, Math.PI);
+		// await this.createScoreBoard(-49, 0, 5, 0);
+		// await this.createScoreBoard(49, 0, 5, Math.PI);
 		this.findPlayerDirection();
+		this.createScoreBoards();
+		this.createNameTag();
 		this.setupInputListeners();
 		this.startGameLoop();
 	}
@@ -278,7 +292,7 @@ export default class Pong3DView extends BaseView {
 
 		this.updateBall();
 		this.updatePaddles();
-		this.updateScoreBoard(); //need to update only when there is a goal
+		// this.updateScoreBoard(); //need to update only when there is a goal
 
 		this.renderer.render(this.scene, this.camera);
 	}
@@ -296,6 +310,18 @@ export default class Pong3DView extends BaseView {
 			this.setPaddleHeight(i);
 			paddle.rotation.z = this.players[i].angle + Math.PI / 2;
 		});
+	}
+
+	updateNameTag() {
+		for (let i = 0; i < 2; i++) {
+			if (this.objects.nameTag[i]) {
+				// this.objects.nameTag[i].position.set(this.objects.paddle[i].position);
+				this.objects.nameTag[i].position.x = this.objects.paddle[i].position.x;
+				this.objects.nameTag[i].position.y = this.objects.paddle[i].position.y;
+				this.objects.nameTag[i].position.z = this.objects.paddle[i].position.z + 1;
+				// this.objects.nameTag[i].position.z += 1;
+			}
+		}
 	}
 
 	updateCamera() {
@@ -353,28 +379,17 @@ export default class Pong3DView extends BaseView {
 	}
 
 	updateScoreBoard() {
-		for (let scoreBoardIndex = 0; scoreBoardIndex < 2; scoreBoardIndex++) {
-			for (let i = 0; i < 2; i++) {
-				if (this.objects.scoreBoard[i][scoreBoardIndex]) {
-					const score = this.players[i].points; // Access player score
-					const geometry = new TextGeometry(score.toString(), {
-						font: this.font,
-						size: 3.4,
-						depth: 0.05,
-						curveSegments: 12
-					});
-	
-					const centeredGeometry = centerTextGeometry(geometry);
-					const oldMesh = this.objects.scoreBoard[i][scoreBoardIndex];
-	
-					// Clean up old geometry
-					if (oldMesh.geometry) {
-						oldMesh.geometry.dispose();
-					}
-	
-					// Set new geometry
-					oldMesh.geometry = centeredGeometry;
-				}
+		for (let i = 0; i < 2; i++) {
+			var score = this.players[i].points;
+			if (score != this.previousScore[i]) {
+				const geometry = new TextGeometry(score.toString(), {
+					font: this.font,
+					size: 1.5,
+					depth: 0.05,
+					curveSegments: 12,
+				});
+			this.objects.scoreBoard[i].geometry.dispose(); // Clean up old geometry
+			this.objects.scoreBoard[i].geometry = geometry; // Set new geometry
 			}
 		}
 	}
@@ -473,6 +488,7 @@ export default class Pong3DView extends BaseView {
 		if (this.animationId) cancelAnimationFrame(this.animationId);
 		if (this.socket) this.socket.close();
 		this.cleanupListeners();
+		clearTimeout(this.connectionTimeout);
 	}
 
 	cleanupListeners() {
@@ -588,8 +604,8 @@ export default class Pong3DView extends BaseView {
 	}
 
 	createPaddles() {
-		this.objects.paddle.push(createPaddle(0xf00000)); // West paddle
-		this.objects.paddle.push(createPaddle(0x0000f0)); // East paddle
+		this.objects.paddle.push(createPaddle(PADDLE_COLOR[0])); // West paddle
+		this.objects.paddle.push(createPaddle(PADDLE_COLOR[1])); // East paddle
 		this.objects.paddle.forEach(paddle => this.scene.add(paddle))
 	}
 
@@ -609,55 +625,55 @@ export default class Pong3DView extends BaseView {
 		for (let i = 0; i < 2; i++)	{
 			const playerScoreGroup = new THREE.Group();
 
-			// get user info
-			var userInfo = await userManager.fetchUserInfo(this.players[i].id);
+			// // get user info
+			// var userInfo = await userManager.fetchUserInfo(this.players[i].id);
 
-			var displayName = "Cheval-Canard";
-			var avatarPath = "/image/chevalCanard.png";
-			if (userInfo !== undefined) {
-				if (userInfo.display_name)	displayName = userInfo.display_name;
-				if (userInfo.avatar)	avatarPath = userInfo.avatar;
-			}
+			// var displayName = "Cheval-Canard";
+			// var avatarPath = "/image/chevalCanard.png";
+			// if (userInfo !== undefined) {
+			// 	if (userInfo.display_name)	displayName = userInfo.display_name;
+			// 	if (userInfo.avatar)	avatarPath = userInfo.avatar;
+			// }
 
-			// truncate name
-			if (displayName.length > 13) {
-				displayName = displayName.substring(0, 12) + '.';  // Truncate to 11 characters and add a dot
-			}
+			// // truncate name
+			// if (displayName.length > 13) {
+			// 	displayName = displayName.substring(0, 12) + '.';  // Truncate to 11 characters and add a dot
+			// }
 
-			{
-				var geometry = new TextGeometry(displayName, {
-					font: this.font,
-					size: 1,
-					depth: 0.05,
-					curveSegments: 12
-				});
+			// {
+			// 	var geometry = new TextGeometry(displayName, {
+			// 		font: this.font,
+			// 		size: 1,
+			// 		depth: 0.05,
+			// 		curveSegments: 12
+			// 	});
 
-				// center the text
-				geometry = centerTextGeometry(geometry);
-				const material = new THREE.MeshStandardMaterial({ color: 0xffffff });
-				const mesh = new THREE.Mesh(geometry, material);
-				mesh.rotation.y = Math.PI /2;
-				mesh.rotation.z = Math.PI /2;
-				mesh.position.x += 0.5
+			// 	// center the text
+			// 	geometry = centerTextGeometry(geometry);
+			// 	const material = new THREE.MeshStandardMaterial({ color: 0xffffff });
+			// 	const mesh = new THREE.Mesh(geometry, material);
+			// 	mesh.rotation.y = Math.PI /2;
+			// 	mesh.rotation.z = Math.PI /2;
+			// 	mesh.position.x += 0.5
 
-				playerScoreGroup.add(mesh);
-			}
+			// 	playerScoreGroup.add(mesh);
+			// }
 
-			// avatar
-			const texture = textureLoader.load(avatarPath);
-			texture.colorSpace = THREE.SRGBColorSpace;
-			{
-				const geometry = new THREE.PlaneGeometry(6, 6);
-				const material = new THREE.MeshStandardMaterial({map: texture, side: THREE.DoubleSide});
-				const mesh = new THREE.Mesh(geometry, material);
-				mesh.receiveShadow = true;
-				mesh.rotation.y = Math.PI / 2;
-				mesh.rotation.z = Math.PI / 2;
-				mesh.position.x += 0.51;
-				mesh.position.z += 4;
+			// // avatar
+			// const texture = textureLoader.load(avatarPath);
+			// texture.colorSpace = THREE.SRGBColorSpace;
+			// {
+			// 	const geometry = new THREE.PlaneGeometry(6, 6);
+			// 	const material = new THREE.MeshStandardMaterial({map: texture, side: THREE.DoubleSide});
+			// 	const mesh = new THREE.Mesh(geometry, material);
+			// 	mesh.receiveShadow = true;
+			// 	mesh.rotation.y = Math.PI / 2;
+			// 	mesh.rotation.z = Math.PI / 2;
+			// 	mesh.position.x += 0.51;
+			// 	mesh.position.z += 4;
 
-				playerScoreGroup.add(mesh);
-			}
+			// 	playerScoreGroup.add(mesh);
+			// }
 
 			// score
 			{
