@@ -55,8 +55,8 @@ export default class MatchmakingView extends BaseView {
 
 		userManager.setDynamicUpdateHandler(this.updateUserInfos);
 
-		document.getElementById('nicknameModal').addEventListener('hidden.bs.modal', function () {
-            document.getElementById('nicknameInput').value = '';});
+		// document.getElementById('nicknameModal').addEventListener('hidden.bs.modal', function () {
+        //     document.getElementById('nicknameInput').value = '';});
 
 
 	}
@@ -339,12 +339,67 @@ export default class MatchmakingView extends BaseView {
 		if (matchType === "local_match")
 		{
 
+			// const nicknameModal = new bootstrap.Modal(document.getElementById('nicknameModal'));
+            // nicknameModal.show();
+			// await new Promise(resolve => {
+			// 	document.getElementById('nicknameModal').addEventListener('hidden.bs.modal', resolve, { once: true });
+			// });
+			// nicknameModal.hide();
 			const nicknameModal = new bootstrap.Modal(document.getElementById('nicknameModal'));
-            nicknameModal.show();
-			await new Promise(resolve => {
-				document.getElementById('nicknameModal').addEventListener('hidden.bs.modal', resolve, { once: true });
-			});
-			nicknameModal.hide();
+		const nicknameInput = document.getElementById('nicknameInput');
+		const nicknameForm = document.getElementById('nicknameForm');
+		const nicknameError = document.getElementById('nicknameError');
+		this.nickName = "";
+		console.log("addLocalPlayer");
+		const validateNickname = (nickname) => {
+			if (nickname.length === 0) {return "Nickname is requiered";}
+			if (nickname.length > 15) {return "Nickname must be 15 characters or less";}
+			if (!/^[A-Za-z0-9]+$/.test(nickname)){return "Only letters and digits are allowed";}
+			return "";
+		};
+
+		nicknameInput.addEventListener('input', () => {
+			const nickname = nicknameInput.value;
+			const error = validateNickname(nickname);
+			console.log("submit error is ", error);
+			if (error) {
+				nicknameInput.classList.add('is-invalid');
+				nicknameError.textContent = error;
+			}
+			else{
+				nicknameInput.classList.remove('is-invalid');
+				nicknameError.textContent = '';
+			}
+		});
+        nicknameModal.show();
+		nicknameInput.focus();
+
+		const submitNickname = (e) => {
+			e.preventDefault();
+			const nickname = nicknameInput.value.trim();
+			const error = validateNickname(nickname);
+
+			if (!error) {
+			  this.nickName = nickname;
+			  nicknameModal.hide();
+			} else {
+			  nicknameInput.classList.add('is-invalid');
+			  nicknameError.textContent = error;
+			}
+		  };
+
+		  nicknameForm.addEventListener('submit', submitNickname);
+
+		  // Wait for modal to be hidden
+		  await new Promise(resolve => {
+			document.getElementById('nicknameModal').addEventListener('hidden.bs.modal', resolve, { once: true });
+		  });
+
+		  // Clean up
+		  nicknameForm.removeEventListener('submit', submitNickname);
+		  nicknameInput.removeEventListener('input', validateNickname);
+		  nicknameInput.value = '';
+		  if (this.nickName === "") {return;}
 		}
 		try {
 			await this.sendMessage({
@@ -737,13 +792,65 @@ export default class MatchmakingView extends BaseView {
 	async addLocalPlayer()
 	{
 		const nicknameModal = new bootstrap.Modal(document.getElementById('nicknameModal'));
+		const nicknameInput = document.getElementById('nicknameInput');
+		const nicknameForm = document.getElementById('nicknameForm');
+		const nicknameError = document.getElementById('nicknameError');
 		this.nickName = "";
-        nicknameModal.show();
-		await new Promise(resolve => {
-			document.getElementById('nicknameModal').addEventListener('hidden.bs.modal', resolve, { once: true });
+		console.log("addLocalPlayer");
+		const validateNickname = (nickname) => {
+			if (nickname.length === 0) {return "Nickname is requiered";}
+			if (nickname.length > 15) {return "Nickname must be 15 characters or less";}
+			if (!/^[A-Za-z0-9]+$/.test(nickname)){return "Only letters and digits are allowed";}
+			return "";
+		};
+
+		nicknameInput.addEventListener('input', () => {
+			const nickname = nicknameInput.value;
+			const error = validateNickname(nickname);
+			if (error) {
+				nicknameInput.classList.add('is-invalid');
+				nicknameError.textContent = error;
+			}
+			else{
+				nicknameInput.classList.remove('is-invalid');
+				nicknameError.textContent = '';
+			}
 		});
-		this.sendMessage({'type' : 'add_local_player', 'nickname' : this.nickName});
-	}
+        nicknameModal.show();
+		nicknameInput.focus();
+
+		const submitNickname = (e) => {
+			e.preventDefault();
+			const nickname = nicknameInput.value.trim();
+			const error = validateNickname(nickname);
+
+			if (!error) {
+			  this.nickName = nickname;
+			  nicknameModal.hide();
+			} else {
+			  nicknameInput.classList.add('is-invalid');
+			  nicknameError.textContent = error;
+			}
+		  };
+
+		  nicknameForm.addEventListener('submit', submitNickname);
+
+		  // Wait for modal to be hidden
+		  await new Promise(resolve => {
+			document.getElementById('nicknameModal').addEventListener('hidden.bs.modal', resolve, { once: true });
+		  });
+
+		  // Clean up
+		  nicknameForm.removeEventListener('submit', submitNickname);
+		  nicknameInput.removeEventListener('input', validateNickname);
+		  nicknameInput.value = '';
+		  console.log(`Adding local player with nickname ${this.nickName}`);
+		 if (this.nickName != "")
+		  	this.sendMessage({'type': 'add_local_player', 'nickname': this.nickName});
+		  this.nickName = "";
+		}
+
+
 
 	inviteFriends() {
 		this.sendMessage({'type' : 'get_invite_list'}, 1000)

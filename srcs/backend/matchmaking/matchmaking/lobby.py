@@ -183,10 +183,7 @@ class Lobby():
 		""" Delete players from online_players and remove lobby from list of lobbies """
 		for player_id, player in self.iterate_human_player():
 			if player_id in online_players and online_players[player_id]['lobby_id'] == self.id:
-<<<<<<< HEAD
-=======
 				print(f"deleting {player_id} from player LIST")
->>>>>>> cad02f2b234eb8b1a1d0fab12ba1733e9b4650dc
 				del online_players[player_id]
 		if self.id in lobbies:
 			del lobbies[self.id]
@@ -483,13 +480,13 @@ class TournamentMatchLobby(Lobby):
 		return absent
 
 class LocalTournamentLobby(Lobby):
-	
+
 	from matchmaking.tournament import LocalTournament
 
 	def __init__(self, tournament: LocalTournament) -> None:
 		self.created_at = time.time()
 		self.tournament = tournament
-		
+
 	async def handle_results(self, results: Dict[str, Any]):
 		await self.tournament.handle_result(results)
 
@@ -503,7 +500,7 @@ class LocalTournamentLobby(Lobby):
 
 	async def start_game(self, lobby_id):
 		await self.tournament.start_game(lobby_id)
-		
+
 	def jsonize(self):
 		return {
 			'tournament_id': self.tournament.id,
