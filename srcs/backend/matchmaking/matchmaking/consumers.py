@@ -11,7 +11,7 @@ import base64
 import enum
 from channels.layers import get_channel_layer
 from matchmaking.common import online_players, lobbies, PlayerStatus
-from matchmaking.lobby import Lobby, LocalMatchLobby, SimpleMatchLobby, TournamentInitialLobby
+from matchmaking.lobby import Lobby, LocalMatchLobby, SimpleMatchLobby, TournamentInitialLobby, LocalTournamentInitialLobby
 import copy
 from asgiref.sync import sync_to_async
 import requests
@@ -89,6 +89,8 @@ def get_status_from_lobby(lobby_id):
 	match lobby_id[0]:
 		case 'T':
 			return PlayerStatus.IN_TOURNAMENT_LOBBY
+		case 'U':
+			return PlayerStatus.IN_LOCAL_TOURNAMENT_LOBBY
 		case _:
 			return PlayerStatus.IN_LOBBY
 
@@ -166,7 +168,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		if not self._auth_client():
 			return False
 		async with MatchMakingConsumer.matchmaking_lock:
-			if self.username in online_players and online_players[self.username]["status"] not in (PlayerStatus.IN_GAME, PlayerStatus.IN_TOURNAMENT_LOBBY):
+			if self.username in online_players and online_players[self.username]["status"] not in (PlayerStatus.IN_GAME, PlayerStatus.IN_TOURNAMENT_LOBBY, PlayerStatus.IN_LOCAL_TOURNAMENT_LOBBY):
 				self.scope['error'] = "an websocket connection for is already opened"
 				self.scope['error_code'] = Errors.AUTH_ERROR
 				return False
@@ -180,6 +182,9 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 			if online_players[self.username]["status"] == PlayerStatus.IN_TOURNAMENT_LOBBY:
 				self._lobby_id = online_players[self.username]['lobby_id']
 				await self.send_json({"type": "in_tournament_lobby", "lobby_id": self._lobby_id})
+			if self.get_status() == PlayerStatus.IN_LOCAL_TOURNAMENT_LOBBY:
+				self._lobby_id = self.get_lobby_id()
+				await self.send_json({"type" : "in_tournament_lobby", "lobby_id" : self._lobby_id})
 		else:
 			online_players[self.username] = copy.deepcopy(default_status)
 			await self.channel_layer.group_add(self.username, self.channel_name)
@@ -211,7 +216,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 						await self.channel_layer.group_discard(self._lobby_id, self.channel_name)
 						await self.send_lobby_update(self._lobby_id)
 						self._lobby_id = None
-				if status not in (PlayerStatus.IN_GAME, PlayerStatus.IN_TOURNAMENT_LOBBY):
+				if status not in (PlayerStatus.IN_GAME, PlayerStatus.IN_TOURNAMENT_LOBBY, PlayerStatus.IN_LOCAL_TOURNAMENT_LOBBY):
 					del online_players[self.username]
 		await self.channel_layer.group_discard(self.username, self.channel_name)
 		await self.channel_layer.group_discard(MatchMakingConsumer.matchmaking_group, self.channel_name)
@@ -246,7 +251,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 
 
 	async def lobby_canceled(self, content):
-		if online_players[self.username]['status'] not in (PlayerStatus.IN_LOBBY, PlayerStatus.IN_TOURNAMENT_LOBBY):
+		if online_players[self.username]['status'] not in (PlayerStatus.IN_LOBBY, PlayerStatus.IN_TOURNAMENT_LOBBY, PlayerStatus.IN_LOCAL_TOURNAMENT_LOBBY):
 			return
 		if not self._is_host:
 			await self.send_json(content)
@@ -331,7 +336,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		if self._lobby_id[0] == 'T':
 			await self.leave_tournament_match_lobby()
 			return
-		if online_players[self.username]['status'] not in (PlayerStatus.IN_LOBBY, PlayerStatus.IN_TOURNAMENT_LOBBY):
+		if online_players[self.username]['status'] not in (PlayerStatus.IN_LOBBY, PlayerStatus.IN_TOURNAMENT_LOBBY, PlayerStatus.IN_LOCAL_TOURNAMENT_LOBBY):
 			await self._send_error(msg="You are not in a lobby, can't do !", close=False)
 			return
 		if self._is_host == True:
@@ -376,8 +381,12 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 				case "tournament_lobby":
 					new_lobby = TournamentInitialLobby(data)
 					game_type = PlayerStatus.IN_LOBBY
+				case "local_tournament_lobby":
+					new_lobby = LocalTournamentInitialLobby(data)
+					game_type = PlayerStatus.IN_LOBBY
 				case _:
 					raise KeyError("Wrong game type")
+
 		except KeyError as e:
 			await self._send_error(msg=f"Wrong lobby settings: {e}", code=Errors.HOST_ERROR, close=False)
 			return
@@ -466,6 +475,28 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		await self.send_lobby_update(self._lobby_id)
 		await self.send_general_update()
 
+	async def switch_to_local_tournament_lobby(self, content):
+		await self.channel_layer.group_discard(self._lobby_id, self.channel_name)
+		new_lobby = content['new_id']
+		online_players[self.username]['lobby_id'] = new_lobby
+		self._lobby_id = new_lobby
+		online_players[self.username]['tournament_id'] = new_lobby
+		online_players[self.username]['status'] = PlayerStatus.IN_LOCAL_TOURNAMENT_LOBBY
+		await self.channel_layer.group_add(new_lobby, self.channel_name)
+		await self.send_json({'type': 'set_unready'})
+		await self.send_json({"type" : 'lobby_joined', 'lobby_id' : self._lobby_id, 'is_host' : True})
+		await self.send_lobby_update(self._lobby_id)
+
+
+
+
+
+
+
+
+
+
+
 
 	async def player_unready(self, content):
 		if self.get_status() not in (PlayerStatus.IN_LOBBY, PlayerStatus.IN_TOURNAMENT_LOBBY):
@@ -493,7 +524,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		#!!!!!!May want to unassign every player ??!!!!!
 		online_players[self.username] = copy.deepcopy(default_status)
 		if self._lobby_id in lobbies:
-			del lobbies[self._lobby_id]
+			lobbies[self._lobby_id].remove_all()
 		self._lobby_id = None
 		self._is_host = False
 
@@ -545,7 +576,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 
 
 	async def add_local_player(self, content):
-		if self.get_status() != PlayerStatus.IN_LOBBY or self._lobby_id[0] != 'L':
+		if self.get_status() != PlayerStatus.IN_LOBBY or self._lobby_id[0] not in ('L', 'J'):
 			return
 		lobbies[self._lobby_id].player_not_ready(self.username)
 		player_id = self.username + '.' + content['nickname']
@@ -562,7 +593,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		if self.get_status() != PlayerStatus.IN_LOBBY:
 			await self._send_error(msg='You are not in position to invite someone', code=Errors.INVITE_ERROR, close=False)
 			return
-		if get_player_status(player_target) in (None, PlayerStatus.IN_GAME, PlayerStatus.IN_TOURNAMENT_LOBBY):
+		if get_player_status(player_target) in (None, PlayerStatus.IN_GAME, PlayerStatus.IN_TOURNAMENT_LOBBY, PlayerStatus.IN_LOCAL_TOURNAMENT_LOBBY):
 			await self._send_error(msg='This player is not available at the moment', code=Errors.INVITE_ERROR, close=False)
 			return
 		await self.channel_layer.group_send(player_target, {'type' : 'be_invited', 'invite_from' : self.username,'lobby_id' : self._lobby_id})

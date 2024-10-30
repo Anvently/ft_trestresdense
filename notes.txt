@@ -47,3 +47,7 @@ Resolu
 -quand on se fait inviter alors quon est host il y a des soucis => fonctionne a priori
 -check les general et lobbby update lors ajout de bot => fonctionne a priori
 
+
+LOUIS TODO:
+ -check the 'in_tournament_lobby' front method. Is is ok with local_tournament_lobby ?
+ 
