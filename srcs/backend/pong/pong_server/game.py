@@ -248,7 +248,7 @@ class PongLobby:
 		self.move_ball()
 		self.collision_logic()
 		self.check_goals()
-		# self.compute_AI()
+		self.compute_AI()
 
 		# if self.check_winning_condition():
 		# 	self.gameState = 3
