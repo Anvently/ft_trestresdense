@@ -1,6 +1,6 @@
 import { BaseView, ViewManager } from '../view-manager.js';
 import { authenticatedUser, userManager, User } from '../home.js'
-import { TournamentTree, LocalTournamentTree } from '../components/tournamentTree.js';
+import TournamentTree, {  LocalTournamentTree } from '../components/tournamentTree.js';
 
 export default class MatchmakingView extends BaseView {
     constructor() {

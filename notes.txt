@@ -3,47 +3,39 @@ Failles possibles :
 
 TODO:
 
-	Backend:
-	- implement 2FA authentification
-
 	Devops:
 	- implement correct order for docker compose
 		- add healthcheck for django app
 		- filter healtcheck views in logs
 	- dig into production server
 
-	Frontend:
-	- implement 2FA
-	- local turnament
-	- check how to implement tournament tree view as a pop-up
-	- pop-up to confirm leave lobby not working as intended [RESOLU]
-
 	Pong:
 		- display explicit message on the page when the lobby doesn't exist
-		- redirect (automatically ?) players to matchmaking at the end of a game
-		- [Resolu ]need a method to handle player concede (set lives to 0)
-		- tn bot is not added to lobby when advancing to next matchmaking
 		- cant observe 2d games [TO CHECK]
-		- the disconnect method in the pong consumer generates some errors during tournaments
 		- input does not work on local match
 
 	Matchmaking:
 		- In 4 player Pong2d reformat the list of players as human players first for local  matches [DONE TO CHECK]
-		- lobby tjrs notes comme observables => probablement en lien avec les soucis de post result lors d'un tournoi
-		- l'ajout d'un bot a la finale de tournoi ne s'affiche pas cote front [RESOLU == Le create_task ne fonctionne pas comme prevu, twisted_loop ?]
 
 BUGS:
-
-- post user batch in pong.js
-
-- the crash in pong is caused by an infinite loop in calculate_impact()
 
 - matchmaking: when refreshing page in tournament lobby (not initial),
 	we can't reconnect to websocket because "a websocket connection is already opened"
 
 
+Subject key point to check:
 
-Resolu
--quand on se fait inviter alors quon est host il y a des soucis => fonctionne a priori
--check les general et lobbby update lors ajout de bot => fonctionne a priori
+	-  Your website must be protected against SQL injections/XSS => Need to check
+	-  Users can select a unique display name to play the tournaments => We don't care ?
 
+	Other game module :
+	- Create a matchmaking system to allow users to find opponents and participate
+		in fair and balanced matches 
+	- Optimize the performance and responsiveness of the new game to provide an
+		enjoyable user experience. Regularly update and maintain the game to fix
+		bugs, add new features, and enhance gameplay
+
+	Support on all devices :
+	- Ensure that users can easily navigate and interact with the website using
+		different input methods, such as touchscreens, keyboards, and mice, depending
+		on the device they are using
