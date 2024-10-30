@@ -121,6 +121,8 @@ class Tournament:
 		""" Instantiate the next lobby if any. Assign the winner
 		 to its and update loser's status. """
 		from matchmaking.consumers import MatchMakingConsumer
+		from channels.layers import get_channel_layer
+		channel_layer = get_channel_layer()
 		if results['status'] == 'cancelled':
 			self.delete()
 			return
@@ -132,24 +134,25 @@ class Tournament:
 				 and assign player to it. """
 				next_match_id = self.setup_next_match(stage, match_idx)
 				self.reassign_player(score['username'], next_match_id, PlayerStatus.IN_TOURNAMENT_LOBBY)
+				if score['username'][0] != "!":
+					await channel_layer.group_send(score['username'], {'type' : 'switch_to_first_match'})
 				await MatchMakingConsumer.static_lobby_update(next_match_id)
 				if len(lobbies[next_match_id].players) == 2:
 					async def countdown():
-						await asyncio.sleep(10)
+						await asyncio.sleep(20)
 						if next_match_id in lobbies and not lobbies[next_match_id].started:
 							absent = await lobbies[next_match_id].get_default_winner()
 							if absent == "?cancel":
-								# cancel the whole tournament ?
-								print("cancelling tournament")
+								print("No one joined the next macth, canceling ...")
+								lobbies[next_match_id].delete()
+								self.delete()
+							elif absent == "?ok":
 								pass
 							else:
-								# await lobbies[next_match_id].handle_default_results(absent)
-								print(f"absent player is {absent}")
-								# is it enough ? should probably delete the lobby and send an update, maybe
-								# display a pop up to explain
-								# @NICOLAS
+								await channel_layer.group_send(next_match_id, {'type' : "not_show_up", 'stage' : stage})
+								await lobbies[next_match_id].handle_default_results(absent)
+								print(f"asbent player is {absent}")
 					asyncio.create_task(countdown())
-				# THIS BLOCKS THE LOBBY UPDATE
 			else:
 				""" If someone lose or it was a final, it's up to the
 				 lobby result handler to update status of associated players. """

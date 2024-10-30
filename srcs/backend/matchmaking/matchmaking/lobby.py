@@ -183,6 +183,10 @@ class Lobby():
 		""" Delete players from online_players and remove lobby from list of lobbies """
 		for player_id, player in self.iterate_human_player():
 			if player_id in online_players and online_players[player_id]['lobby_id'] == self.id:
+<<<<<<< HEAD
+=======
+				print(f"deleting {player_id} from player LIST")
+>>>>>>> cad02f2b234eb8b1a1d0fab12ba1733e9b4650dc
 				del online_players[player_id]
 		if self.id in lobbies:
 			del lobbies[self.id]
@@ -420,7 +424,6 @@ class TournamentMatchLobby(Lobby):
 		super().__init__(settings, id, 'T')
 
 	async def handle_results(self, results: Dict[str, Any]):
-		print(results)
 		if self.tournament_id in tournaments: #Probably not necessary to check that
 			await super().handle_results(results)
 			await tournaments[self.tournament_id].handle_result(results)
@@ -436,9 +439,11 @@ class TournamentMatchLobby(Lobby):
 		result['scores_set'] = []
 		for player in self.players:
 			if player == leaver_id:
-				result['scores_set'].append({'username' : leaver_id, 'score' : 0, 'has_win': False})
+				pass
 			else:
 				result['scores_set'].append({'username' : player, 'score' : self.settings['lives'], 'has_win' : True})
+		result['scores_set'].append({'username' : leaver_id, 'score' : 0, 'has_win' : False})
+
 		print(result)
 		await self.handle_results(result)
 
@@ -471,8 +476,10 @@ class TournamentMatchLobby(Lobby):
 				player_joined += 1
 			else:
 				absent = player
-		if player_joined in (0,2):
+		if player_joined == 0:
 			return "?cancel"
+		if player_joined == 2:
+			return "?ok"
 		return absent
 
 class LocalTournamentLobby(Lobby):

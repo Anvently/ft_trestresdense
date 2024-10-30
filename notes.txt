@@ -23,16 +23,14 @@ TODO:
 		- redirect (automatically ?) players to matchmaking at the end of a game
 		- [Resolu ]need a method to handle player concede (set lives to 0)
 		- tn bot is not added to lobby when advancing to next matchmaking
-		- cant observe 2d games
+		- cant observe 2d games [TO CHECK]
 		- the disconnect method in the pong consumer generates some errors during tournaments
 		- input does not work on local match
 
 	Matchmaking:
 		- In 4 player Pong2d reformat the list of players as human players first for local  matches [DONE TO CHECK]
-		- est ce que reassign_player a besoin d'etre async dans certain cas @NICOLAS
 		- lobby tjrs notes comme observables => probablement en lien avec les soucis de post result lors d'un tournoi
 		- l'ajout d'un bot a la finale de tournoi ne s'affiche pas cote front [RESOLU == Le create_task ne fonctionne pas comme prevu, twisted_loop ?]
-		- issue when posting request not sure what happens
 
 BUGS:
 
