@@ -255,7 +255,7 @@ export default class TournamentTree extends ComponentView {
 	}
 }
 
-export class TournamentTreeWithButtons extends TournamentTree {
+export class LocalTournamentTree extends TournamentTree {
 	constructor(tournamentId, buttonCreationHandler, tournamentData = undefined) {
 		super(tournamentId, tournamentData);
 		this.htmlContent += `

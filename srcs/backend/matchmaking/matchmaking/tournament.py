@@ -4,6 +4,7 @@ import re
 import requests, json
 from django.conf import settings
 import asyncio
+from asgiref.sync import sync_to_async
 
 SUFFIXES = {
 	2: ".0",
@@ -203,11 +204,18 @@ class LocalTournament(Tournament):
 		if id in self.matches:
 			return id
 		self.matches[id] = {
-			'name': self.generate_match_name(previous_stage - 1, int(previous_idx / 2)),
+			'lobby_id': id,
+			'lobby_name': self.generate_match_name(previous_stage - 1, int(previous_idx / 2)),
 			'status': 'not_ready',
 			'players': {}
 		}
 		return id
+	
+	async def handle_bot_match(self, match: Dict[str, Any]):
+		match['scores_set'] = []
+		match['scores_set'].append({'username' : match['players'][0], 'score' : self.settings['lives'], 'has_win' : True})
+		match['scores_set'].append({'username' : match['players'][1], 'score' : 0, 'has_win' : False})
+		await self.handle_results(match)
 
 	async def handle_result(self, results: Dict[str, Any]):
 		""" Instantiate the next lobby if any. Assign the winner
@@ -217,7 +225,7 @@ class LocalTournament(Tournament):
 			self.delete()
 			return
 		lobby_id:str = self.current_match_id
-		self.matches[lobby_id]['status'] = 'completed'
+		self.matches[lobby_id]['status'] = 'terminated'
 		self.matches[lobby_id]['scores_set'] = results['scores_set']
 		stage, match_idx = Tournament.extract_id_info(lobby_id)
 		for score in results['scores_set']:
@@ -228,11 +236,35 @@ class LocalTournament(Tournament):
 				self.matches[next_match_id]['players'].append(score['username'])
 				if (len(self.matches[next_match_id]['players']) == 2):
 					self.matches[next_match_id]['status'] = 'ready'
+					if (not any(player[0] != '!' for player in self.matches[next_match_id]['players'])):
+						await self.handle_bot_match(self.matches[next_match_id])
 				break
 
 
 	async def start_game(self, lobby_id):
-		if lobby_id in self.matches:
-			pass
-		else:
+		try:
+			match = self.matches[lobby_id]
+			data = {
+				'game_name': self.game_type,
+				'game_id': self.id,
+				'hostname': self.hostname,
+				'settings': self.default_settings,
+				'player_list': match['players']
+			}
+			response = await sync_to_async(requests.post)('http://pong:8002/init-game/?format=json',
+					data=json.dumps(data),
+					headers = {
+						'Host': 'localhost',
+						'Content-type': 'application/json',
+						'Authorization': "Bearer {0}".format(settings.API_TOKEN.decode('ASCII'))
+						}
+					)
+			if response.status_code != 201:
+				raise Exception(f"expected status 201 got {response.status_code} ({response.content})")
+		except KeyError:
 			raise Exception(f"Invalid id ({lobby_id}) for local tournament {self.tournament.id}")
+		except Exception as e:
+			print(f"ERROR: Failed to post game initialization to pong api: {e}")
+			return False
+		self.current_match_id = match['lobby_id']
+		return True

@@ -1,6 +1,6 @@
 import { BaseView, ViewManager } from '../view-manager.js';
 import { authenticatedUser, userManager, User } from '../home.js'
-import TournamentTree, { TournamentTreeWithButtons } from '../components/tournamentTree.js';
+import { TournamentTree, LocalTournamentTree } from '../components/tournamentTree.js';
 
 export default class MatchmakingView extends BaseView {
     constructor() {
@@ -525,11 +525,16 @@ export default class MatchmakingView extends BaseView {
 			document.getElementById('inviteFriendsButton').classList.add('d-none');
 			document.getElementById('addLocalPlayerButton').classList.add("d-none");
 		}
-		else if(message.match_type === "local_match")
+		else if (message.match_type === "local_match" || message.match_type === "local_tournament_initial_lobby")
 		{
 			isLoc = true;
 			document.getElementById('inviteFriendsButton').classList.add('d-none');
 			document.getElementById('addLocalPlayerButton').classList.remove('d-none');
+			document.getElementById('displayBracketButton').classList.add('d-none');
+		}
+		else if (message.match_type === "local_tournament_lobby") {
+			document.getElementById('inviteFriendsButton').classList.add('d-none');
+			document.getElementById('addLocalPlayerButton').classList.add('d-none');
 			document.getElementById('displayBracketButton').classList.add('d-none');
 		}
 		else {
@@ -546,21 +551,41 @@ export default class MatchmakingView extends BaseView {
 
 		this.lobbyData = message;
 
-		await Object.entries(message.players).forEach(async ([playerId, playerData]) => {
-			if (isLoc){
-				await this.appendLocPlayerEntry(playerListEl, playerId, playerData, message.host, isTnMatch);
+		if (message.match_type === "local_tournament_lobby") {
+			document.getElementById('lobbyPlayersTable').classList.add('d-none');
+			this.localTournamentTree = LocalTournamentTree(message.lobby_id, (button, match) => {
+				if (match.status === 'ready') {
+					button.innerText = "Demarrer";
+					button.onclick = async (match) => {
+						// await 
+					};
+				} else {
+					button.classList.add('d-none');
+				}
+			}, message);
+			this.localTournamentTree.init(document.getElementById("lobbyContainer"));
+		} else {
+			if (this.localTournamentTree) {
+				document.removeChild(tournamentTree);
+				this.localTournamentTree = undefined;
+				document.getElementById('lobbyPlayersTable').classList.remove('d-none');
 			}
-			else{
-				await this.appendPlayerEntry(playerListEl, playerId, playerData, message.host, isTnMatch, isLoc);}
-		});
-
-		// Gérer les slots libres
-		let players_len = Object.keys(message.players).length;
-		for (let i = players_len; i < message.settings.nbr_players; i++) {
-			this.appendEmptySlotEntry(playerListEl, i === players_len);
+			await Object.entries(message.players).forEach(async ([playerId, playerData]) => {
+				if (isLoc){
+					await this.appendLocPlayerEntry(playerListEl, playerId, playerData, message.host, isTnMatch);
+				}
+				else{
+					await this.appendPlayerEntry(playerListEl, playerId, playerData, message.host, isTnMatch, isLoc);}
+			});
+	
+			// Gérer les slots libres
+			let players_len = Object.keys(message.players).length;
+			for (let i = players_len; i < message.settings.nbr_players; i++) {
+				this.appendEmptySlotEntry(playerListEl, i === players_len);
+			}
+	
+			await userManager.forceUpdate();
 		}
-
-		await userManager.forceUpdate();
 	}
 
 	async appendLocPlayerEntry(tableElement, playerId, playerData, hostId, isTnMatch) {
