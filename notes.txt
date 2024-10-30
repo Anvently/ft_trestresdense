@@ -14,7 +14,20 @@ TODO:
 
 Subject key point to check:
 
+	-  Your website must be protected against SQL injections/XSS => Need to check
+	-  Users can select a unique display name to play the tournaments => We don't care ?
+
+	Other game module :
+	- Create a matchmaking system to allow users to find opponents and participate
+		in fair and balanced matches 
+	- Optimize the performance and responsiveness of the new game to provide an
+		enjoyable user experience. Regularly update and maintain the game to fix
+		bugs, add new features, and enhance gameplay
+
 	Support on all devices :
 	- Ensure that users can easily navigate and interact with the website using
 		different input methods, such as touchscreens, keyboards, and mice, depending
 		on the device they are using
+
+LOUIS TODO:
+ -check the 'in_tournament_lobby' front method. Is is ok with local_tournament_lobby ?
