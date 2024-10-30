@@ -137,6 +137,14 @@ export default class Pong3DView extends BaseView {
 		this.socket.onmessage = async (e) => this.handleWebSocketMessage(JSON.parse(e.data));
 		this.socket.onerror = (error) => console.error('WebSocket error:', error);
 		this.socket.onclose = () => console.log('WebSocket is closed now.');
+		this.connectionTimeout = setTimeout(() => {
+			if (this.socket.readyState !== WebSocket.OPEN) {
+			  console.error('WebSocket connection failed to open within 1 seconds');
+			  // Display an error message to the user
+			  this.errorHandler("Invalid lobby or invalid credentials.");
+			  window.location.hash = '#';
+			}
+		  }, 1000);
 	}
 
 	async handleWebSocketMessage(msg) {
@@ -185,8 +193,8 @@ export default class Pong3DView extends BaseView {
 	async onGameStart() {
 		console.log("onGameStart");
 		this.gameHasStarted = true;
-
-
+		// await this.createScoreBoard(-49, 0, 5, 0);
+		// await this.createScoreBoard(49, 0, 5, Math.PI);
 		this.findPlayerDirection();
 		this.createScoreBoards();
 		this.createNameTag();
@@ -284,8 +292,6 @@ export default class Pong3DView extends BaseView {
 
 		this.updateBall();
 		this.updatePaddles();
-		this.updateNameTag();
-
 		// this.updateScoreBoard(); //need to update only when there is a goal
 
 		this.renderer.render(this.scene, this.camera);
@@ -482,6 +488,7 @@ export default class Pong3DView extends BaseView {
 		if (this.animationId) cancelAnimationFrame(this.animationId);
 		if (this.socket) this.socket.close();
 		this.cleanupListeners();
+		clearTimeout(this.connectionTimeout);
 	}
 
 	cleanupListeners() {
@@ -602,131 +609,131 @@ export default class Pong3DView extends BaseView {
 		this.objects.paddle.forEach(paddle => this.scene.add(paddle))
 	}
 
-	createNameTag() {
-		for (let i = 0; i < 2; i++) {
-			if (this.direction != i) {
-				var name = this.players[i].id;
-				if (name[0] == '!')
-					name = 'AI';
-				const sprite = createTextSprite(name, PADDLE_COLOR[i], 1);
-				this.objects.nameTag[i] = sprite;
-				this.scene.add(sprite);
+	async createScoreBoard(x, y, z, rot) {
+		const group = new THREE.Group();
+
+		// support
+		{
+			const geometry = new THREE.BoxGeometry(1, 20, 14);
+			const material = new THREE.MeshStandardMaterial({color: 0x111111});
+			const mesh = new THREE.Mesh(geometry, material);
+			mesh.position.z += 0.5
+
+			group.add(mesh);
+		}
+
+		for (let i = 0; i < 2; i++)	{
+			const playerScoreGroup = new THREE.Group();
+
+			// // get user info
+			// var userInfo = await userManager.fetchUserInfo(this.players[i].id);
+
+			// var displayName = "Cheval-Canard";
+			// var avatarPath = "/image/chevalCanard.png";
+			// if (userInfo !== undefined) {
+			// 	if (userInfo.display_name)	displayName = userInfo.display_name;
+			// 	if (userInfo.avatar)	avatarPath = userInfo.avatar;
+			// }
+
+			// // truncate name
+			// if (displayName.length > 13) {
+			// 	displayName = displayName.substring(0, 12) + '.';  // Truncate to 11 characters and add a dot
+			// }
+
+			// {
+			// 	var geometry = new TextGeometry(displayName, {
+			// 		font: this.font,
+			// 		size: 1,
+			// 		depth: 0.05,
+			// 		curveSegments: 12
+			// 	});
+
+			// 	// center the text
+			// 	geometry = centerTextGeometry(geometry);
+			// 	const material = new THREE.MeshStandardMaterial({ color: 0xffffff });
+			// 	const mesh = new THREE.Mesh(geometry, material);
+			// 	mesh.rotation.y = Math.PI /2;
+			// 	mesh.rotation.z = Math.PI /2;
+			// 	mesh.position.x += 0.5
+
+			// 	playerScoreGroup.add(mesh);
+			// }
+
+			// // avatar
+			// const texture = textureLoader.load(avatarPath);
+			// texture.colorSpace = THREE.SRGBColorSpace;
+			// {
+			// 	const geometry = new THREE.PlaneGeometry(6, 6);
+			// 	const material = new THREE.MeshStandardMaterial({map: texture, side: THREE.DoubleSide});
+			// 	const mesh = new THREE.Mesh(geometry, material);
+			// 	mesh.receiveShadow = true;
+			// 	mesh.rotation.y = Math.PI / 2;
+			// 	mesh.rotation.z = Math.PI / 2;
+			// 	mesh.position.x += 0.51;
+			// 	mesh.position.z += 4;
+
+			// 	playerScoreGroup.add(mesh);
+			// }
+
+			// score
+			{
+				var geometry = new TextGeometry('0', {
+					font: this.font,
+					size: 3.4,
+					depth: 0.05,
+					curveSegments: 12
+				});
+				// center the text
+				geometry = centerTextGeometry(geometry);
+				const material = new THREE.MeshStandardMaterial({ color: 0xff0000 });
+				const mesh = new THREE.Mesh(geometry, material);
+				mesh.rotation.y = Math.PI /2;
+				mesh.rotation.z = Math.PI /2;
+				mesh.position.x += 0.5
+				mesh.position.z -= 3
+				// save the object
+				this.objects.scoreBoard[i].push(mesh);
+				playerScoreGroup.add(mesh);
 			}
+
+			if (i == WEST) playerScoreGroup.position.y -= 5;
+			else playerScoreGroup.position.y += 5;
+			group.add(playerScoreGroup);
 		}
-	}
-	
 
-	createScoreBoards()
-	{
-		this.objects.scoreBoard.push(this.createScoreBoard(0xf00000, WEST));
-		this.objects.scoreBoard.push(this.createScoreBoard(0x0000f0, EAST));
-		this.objects.scoreBoard.forEach(scoreBoard => this.scene.add(scoreBoard))
-	}
-
-	createScoreBoard(color, side)
-	{
-		const geometry = new TextGeometry('0', {
-			font: this.font,
-			size: 1.5,
-			depth: 0.05,
-			curveSegments: 12,
-		});
-		const material = new THREE.MeshStandardMaterial({ color: color });
-		const textMesh = new THREE.Mesh(geometry, material);
-		
-		if (side == WEST)
+		// spotlight
 		{
-			textMesh.position.set(-3, 5, 0.2);  // Adjust position
+			const light = new THREE.SpotLight(0xffffff, 10, 0, Math.PI / 4, 0.5, 0.5);
+			light.position.set(-15, 0, 7);
+			light.target = group;
+			light.castShadow = true;
+			light.shadow.mapSize.width = 1024;
+			light.shadow.mapSize.height = 1024;
+			light.shadow.camera.near = 1;
+			light.shadow.camera.far = 500;
+			light.shadow.camera.fov = 60;
+
+			group.add(light);
 		}
-		else
-		{
-			textMesh.position.set(3, -5, 0.2);  // Adjust position
-			textMesh.rotation.y = Math.PI
-		}
-		
-		textMesh.rotation.x = Math.PI/2
-		return(textMesh)
+		group.position.set(x, y, z);
+		group.rotation.z = rot;
+		this.scene.add(group);
 	}
 
-
-	// createScoreBoards() {
-	// 	const sprite = createTextSprite("Coucou les loulous", "red");
-	// 	sprite.position.set(-10, 2, 1);
-	// 	this.scene.add(sprite);
-	// }
 }
 
-function createTextSprite(message, color, size) {
-	console.log("createTextSprite");
-    const fontSize = 20;
+function centerTextGeometry(geometry) {
+	geometry.computeBoundingBox();
+	const boundingBox = geometry.boundingBox;
 
-    // Create a temporary canvas to measure text
-    const tempCanvas = document.createElement('canvas');
-    const tempContext = tempCanvas.getContext('2d');
-    tempContext.font = `${fontSize}px Arial`;
-    // Measure the text width
-    const textWidth = tempContext.measureText(message).width;
+	const xOffset = (boundingBox.max.x - boundingBox.min.x) / 2;
+	const yOffset = (boundingBox.max.y - boundingBox.min.y) / 2;
+	const zOffset = (boundingBox.max.z - boundingBox.min.z) / 2;
 
-    const canvas = document.createElement('canvas');
-    canvas.width = textWidth;
-    canvas.height = fontSize * 1.2;
+	geometry.translate(-xOffset, -yOffset, -zOffset);
 
-    const context = canvas.getContext('2d');
-    context.font = `${fontSize}px Arial`;
-    context.fillStyle = color;
-
-    // Clear canvas before drawing
-    context.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Draw the text centered in the new width
-    const xPosition = (canvas.width - textWidth) / 2; // Center the text
-    // context.fillText(message, 0, 0); // Draw the text
-    context.fillText(message, xPosition, fontSize) ; // Draw the text
-
-    const texture = new THREE.Texture(canvas);
-    texture.needsUpdate = true;
-
-    const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
-    const sprite = new THREE.Sprite(spriteMaterial);
-
-	sprite.scale.set((textWidth / fontSize) * size, size, size)
-
-    return sprite;
+	return geometry;
 }
-
-
-// function createTextSprite(message, color) {
-//     const canvas = document.createElement('canvas');
-//     const context = canvas.getContext('2d');
-//     const fontSize = 40;
-
-//     // Set the font for the context before measuring text width
-//     context.font = `${fontSize}px Arial`;
-
-//     // Measure the width of the text after setting the font
-//     const textWidth = context.measureText(message).width;
-// 	console.log("textWidth = ", textWidth);
-
-//     // Set the canvas size based on text width and a suitable height
-//     canvas.width = textWidth / 10; // Set canvas width based on the measured text width
-//     canvas.height = fontSize * 1.5; // Set a height that gives some padding
-
-//     // Set the fill style after defining the canvas size
-//     context.fillStyle = color;
-
-//     // Draw the text onto the canvas
-//     context.fillText(message, 0, fontSize); // Start drawing the text
-
-//     // Create a texture from the canvas to use in the sprite
-//     const texture = new THREE.Texture(canvas);
-//     texture.needsUpdate = true;
-
-//     // Create a material for the sprite
-//     const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
-//     const sprite = new THREE.Sprite(spriteMaterial);
-    
-//     return sprite; // Return the created sprite
-// }
 
 // MATH ////////////////////////////////////////////////////////////////////////
 function parabolic_z(x, x1, z1, x2, z2, height) {

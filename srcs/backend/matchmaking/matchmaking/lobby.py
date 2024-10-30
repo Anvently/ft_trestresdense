@@ -138,8 +138,14 @@ class Lobby():
 	def remove_player(self, player_id):
 		if player_id in self.players:
 			del self.players[player_id]
-		if len(self.players) == 0:
+		if sum (1 for _ in self.iterate_human_player()) == 0:
 			self.delete()
+
+	def remove_all(self):
+		for player in self.players:
+			del self.players[player]
+		self.delete()
+
 
 	def check_rules(self):
 		pass
@@ -190,7 +196,8 @@ class Lobby():
 	async def handle_results(self, results: dict[str, Any]):
 		""" register in database"""
 		if results['status'] != 'cancelled':
-			results['host'] = self.hostname
+			if self.hostname:
+				results['host'] = self.hostname
 			results['lobby_name'] = self.name
 			# results['scores_set'] = [el for el in results['scores_set'] if el['username'][0] != '!']
 			try:
@@ -485,6 +492,7 @@ class LocalTournamentLobby(Lobby):
 	def __init__(self, tournament: LocalTournament) -> None:
 		self.created_at = time.time()
 		self.tournament = tournament
+		self.id = self.tournament.id
 
 	async def handle_results(self, results: Dict[str, Any]):
 		online_players[self.tournament.hostname]['status'] = PlayerStatus.IN_LOCAL_TOURNAMENT_LOBBY
@@ -499,11 +507,8 @@ class LocalTournamentLobby(Lobby):
 			del tournaments[self.tournament.id]
 
 	async def start_game(self, lobby_id):
-		if await self.tournament.start_game(lobby_id):
-			online_players[self.tournament.hostname]['status'] = PlayerStatus.IN_GAME
-			return True
-		return False
-		
+		return await self.tournament.start_game(lobby_id)
+
 	def jsonize(self):
 		return {
 			'lobby_id': self.tournament.id,
@@ -514,9 +519,51 @@ class LocalTournamentLobby(Lobby):
 			'number_players': self.tournament.number_players,
 			'lobbies_set': [match for match in self.tournament.matches]
 		}
-	
+
+class LocalTournamentInitialLobby(LocalMatchLobby):
+	def __init__(self, settings: Dict[str, Any]) -> None:
+		settings['public'] = False
+		settings['allow_spectators'] = False
+		super()._init__(settings, prefix='J')
+
 	def __str__(self) -> str:
 		return "local_tournament_lobby"
+
+	def check_rules(self):
+
+		if self.game_type not in ("pong2d", "pong3d"):
+			raise KeyError(f"Wrong settings {self.game_type}")
+		if self.player_num not in (2, 4 ,8):
+			raise KeyError(f"Wrong settings, {self.player_num} players")
+		if self.settings['lives'] < 1:
+			raise KeyError(f"Wrong lives, {self.settings['lives']}")
+
+	def init_game(self, extra_data: Dict[str, Any] = None) -> bool:
+		data = {
+			'game_type' : self.game_type,
+			'hostname' : self.hostname,
+			'name' : self.name,
+			'nrb_players' : self.player_num,
+			'id' : self.id,
+			'default_settings' : self.settings,
+			'players' : list(self.players.keys())}
+		from matchmaking.tournament import LocalTournament
+		tournament = LocalTournament(data)
+		lobbies[tournament.id] = LocalTournamentLobby(tournament)
+		async_to_sync(self.notify_switch(tournament.id))
+
+	def player_ready(self, player_id):
+		if player_id != self.hostname:
+			return
+		if len(self.players != self.player_num):
+			return
+		self.init_game()
+		self.delete()
+		return False
+
+	async def notify_switch(self, new_id):
+		channel_layer = get_channel_layer()
+		await channel_layer.group_send(self.hostname, {"type" : "switch_to_local_tournament_lobby", "new_id" : new_id})
 
 
 
