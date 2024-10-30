@@ -1,6 +1,6 @@
 import { BaseView, ViewManager } from '../view-manager.js';
 import { authenticatedUser, userManager, User } from '../home.js'
-import { TournamentTree, LocalTournamentTree } from '../components/tournamentTree.js';
+import TournamentTree, {  LocalTournamentTree } from '../components/tournamentTree.js';
 
 export default class MatchmakingView extends BaseView {
     constructor() {
@@ -612,7 +612,7 @@ export default class MatchmakingView extends BaseView {
 				if (match.status === 'ready') {
 					button.innerText = "Demarrer";
 					button.onclick = async (match) => {
-						// await 
+						await this.sendMessage({type: 'start_game', lobby_id: match.lobby_id});
 					};
 				} else {
 					button.classList.add('d-none');
@@ -1151,7 +1151,6 @@ export default class MatchmakingView extends BaseView {
 
 	game_start(message)
 	{
-		console.log("WTF");
 		const websocket_id = message.websocket_id;
 		const game_type = message.game_type;
 		window.location.hash = `#${game_type}?id=${websocket_id}`;
@@ -1207,6 +1206,11 @@ export default class MatchmakingView extends BaseView {
 		this.joinLobbyButton.removeEventListener('click', this.joinLobbyById);
 		this.createLobbyButton.removeEventListener('click', this.createLobby);
 		this.saveLobbyOptionsButton.removeEventListener('click', this.saveLobbyOptions);
+
+		document.querySelectorAll('.modal').forEach(function(modalElem) {
+			const myModal = bootstrap.Modal.getOrCreateInstance(modalElem);
+			myModal.hide();
+		});
 
         // this.startButton.removeEventListener('click', this.startMatchmaking);
     }

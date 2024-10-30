@@ -117,7 +117,8 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 	async def disconnect(self, close_code):
 		if not self.is_spectator:
 			for user in self.users:
-				lobbies_list[self.lobby_id].player_leave(user)
+				if self.lobby_id in lobbies_list:
+					lobbies_list[self.lobby_id].player_leave(user)
 			await self.channel_layer.group_send(
 				self.lobby_id, {
 					"type": "info_message",

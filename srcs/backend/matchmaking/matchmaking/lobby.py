@@ -196,7 +196,8 @@ class Lobby():
 	async def handle_results(self, results: dict[str, Any]):
 		""" register in database"""
 		if results['status'] != 'cancelled':
-			results['hostname'] = self.hostname
+			if self.hostname:
+				results['host'] = self.hostname
 			results['lobby_name'] = self.name
 			# results['scores_set'] = [el for el in results['scores_set'] if el['username'][0] != '!']
 			try:
@@ -494,6 +495,7 @@ class LocalTournamentLobby(Lobby):
 		self.id = self.tournament.id
 
 	async def handle_results(self, results: Dict[str, Any]):
+		online_players[self.tournament.hostname]['status'] = PlayerStatus.IN_LOCAL_TOURNAMENT_LOBBY
 		await self.tournament.handle_result(results)
 
 	def delete(self):

@@ -159,11 +159,7 @@ class Tournament:
 				 lobby result handler to update status of associated players. """
 				pass
 		if stage == 0: #If final match
-			self.delete()
-
-lobbies: Dict[str, 'Lobby'] = {}
-online_players : Dict[str, Dict[str, Any]] = {}
-tournaments: Dict[str, 'Tournament'] = {}
+			self.delete()	
 
 class LocalTournament(Tournament):
 	def __init__(self, data : Dict[str, Any]) -> None:

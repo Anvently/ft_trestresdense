@@ -3,28 +3,15 @@ Failles possibles :
 
 TODO:
 
-	Backend:
-	- implement 2FA authentification
-
 	Devops:
 	- implement correct order for docker compose
 		- add healthcheck for django app
 		- filter healtcheck views in logs
 	- dig into production server
 
-	Frontend:
-	- implement 2FA
-	- local turnament
-	- check how to implement tournament tree view as a pop-up
-	- pop-up to confirm leave lobby not working as intended [RESOLU]
-
 	Pong:
 		- display explicit message on the page when the lobby doesn't exist
-		- redirect (automatically ?) players to matchmaking at the end of a game
-		- [Resolu ]need a method to handle player concede (set lives to 0)
-		- tn bot is not added to lobby when advancing to next matchmaking
 		- cant observe 2d games [TO CHECK]
-		- the disconnect method in the pong consumer generates some errors during tournaments
 		- input does not work on local match
 
 	Matchmaking:
@@ -50,4 +37,4 @@ Resolu
 
 LOUIS TODO:
  -check the 'in_tournament_lobby' front method. Is is ok with local_tournament_lobby ?
- 
+
