@@ -487,6 +487,7 @@ class LocalTournamentLobby(Lobby):
 		self.tournament = tournament
 
 	async def handle_results(self, results: Dict[str, Any]):
+		online_players[self.tournament.hostname]['status'] = PlayerStatus.IN_LOCAL_TOURNAMENT_LOBBY
 		await self.tournament.handle_result(results)
 
 	def delete(self):
@@ -498,7 +499,10 @@ class LocalTournamentLobby(Lobby):
 			del tournaments[self.tournament.id]
 
 	async def start_game(self, lobby_id):
-		return await self.tournament.start_game(lobby_id)
+		if await self.tournament.start_game(lobby_id):
+			online_players[self.tournament.hostname]['status'] = PlayerStatus.IN_GAME
+			return True
+		return False
 		
 	def jsonize(self):
 		return {
@@ -510,6 +514,9 @@ class LocalTournamentLobby(Lobby):
 			'number_players': self.tournament.number_players,
 			'lobbies_set': [match for match in self.tournament.matches]
 		}
+	
+	def __str__(self) -> str:
+		return "local_tournament_lobby"
 
 
 

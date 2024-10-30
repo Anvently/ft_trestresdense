@@ -612,7 +612,7 @@ export default class MatchmakingView extends BaseView {
 				if (match.status === 'ready') {
 					button.innerText = "Demarrer";
 					button.onclick = async (match) => {
-						// await 
+						await this.sendMessage({type: 'start_game', lobby_id: match.lobby_id});
 					};
 				} else {
 					button.classList.add('d-none');
@@ -1151,7 +1151,6 @@ export default class MatchmakingView extends BaseView {
 
 	game_start(message)
 	{
-		console.log("WTF");
 		const websocket_id = message.websocket_id;
 		const game_type = message.game_type;
 		window.location.hash = `#${game_type}?id=${websocket_id}`;

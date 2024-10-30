@@ -567,14 +567,30 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 			return
 		await self.channel_layer.group_send(player_target, {'type' : 'be_invited', 'invite_from' : self.username,'lobby_id' : self._lobby_id})
 
+
 	# in case of acceptation this should trigger a join lobby event
 	async def be_invited(self, content):
 
 		if self.get_status() not in (PlayerStatus.IN_LOBBY, PlayerStatus.NO_LOBBY):
 			return
 		await self.send_json(content)
-	####################################################3
 
+	####################################################3
+	#			LOCAL TOURNAMENT ACTION
+	#####################################################
+
+	async def start_game(self, content):
+		if not 'lobby_id' in content:
+			await self._send_error(msg='Invalid message format', code=Errors.INVALID_TYPE, close=False)
+		elif not self._lobby_id or str(lobbies[self._lobby_id]) != "local_tournament_lobby":
+			await self._send_error(msg='Your are not in a local tournament lobby', code=Errors.INVALID_TYPE, close=False)
+		elif await lobbies[self._lobby_id].start_game(content['lobby_id']):
+			await self.game_start({'type': 'game_start', 'websocket_id' : content['lobby_id'], 'game_type': lobbies[self._lobby_id].tournament.game_type})
+		else:
+			await self._send_error(msg='Failed to start game from the backend side', code=Errors.HOST_ERROR, close=False)
+
+
+	########################################################
 
 	async def ready_up(self, content):
 		current_lobby = self._lobby_id
