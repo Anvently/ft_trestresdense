@@ -190,7 +190,8 @@ class Lobby():
 	async def handle_results(self, results: dict[str, Any]):
 		""" register in database"""
 		if results['status'] != 'cancelled':
-			results['host'] = self.hostname
+			if self.hostname:
+				results['host'] = self.hostname
 			results['lobby_name'] = self.name
 			# results['scores_set'] = [el for el in results['scores_set'] if el['username'][0] != '!']
 			try:

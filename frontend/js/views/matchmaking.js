@@ -1207,6 +1207,11 @@ export default class MatchmakingView extends BaseView {
 		this.createLobbyButton.removeEventListener('click', this.createLobby);
 		this.saveLobbyOptionsButton.removeEventListener('click', this.saveLobbyOptions);
 
+		document.querySelectorAll('.modal').forEach(function(modalElem) {
+			const myModal = bootstrap.Modal.getOrCreateInstance(modalElem);
+			myModal.hide();
+		});
+
         // this.startButton.removeEventListener('click', this.startMatchmaking);
     }
 }

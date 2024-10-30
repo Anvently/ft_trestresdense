@@ -14,15 +14,6 @@ TODO:
 		- cant observe 2d games [TO CHECK]
 		- input does not work on local match
 
-	Matchmaking:
-		- In 4 player Pong2d reformat the list of players as human players first for local  matches [DONE TO CHECK]
-
-BUGS:
-
-- matchmaking: when refreshing page in tournament lobby (not initial),
-	we can't reconnect to websocket because "a websocket connection is already opened"
-
-
 Subject key point to check:
 
 	-  Your website must be protected against SQL injections/XSS => Need to check
