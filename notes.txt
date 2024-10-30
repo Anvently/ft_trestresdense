@@ -11,8 +11,9 @@ TODO:
 
 	Pong:
 		- display explicit message on the page when the lobby doesn't exist
-		- cant observe 2d games [TO CHECK]
+		- cant observe 2d games [RESOLU]
 		- input does not work on local match
+		- handle concede for PONG3d
 
 	Matchmaking:
 		- In 4 player Pong2d reformat the list of players as human players first for local  matches [DONE TO CHECK]

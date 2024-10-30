@@ -142,8 +142,7 @@ class Lobby():
 			self.delete()
 
 	def remove_all(self):
-		for player in self.players:
-			del self.players[player]
+		self.players = {}
 		self.delete()
 
 
@@ -229,7 +228,7 @@ class Lobby():
 		lobby_data['slots'] = f"{len(self.players)}/{self.player_num}"
 		lobby_data['players'] = copy.deepcopy(self.players)
 		lobby_data['settings'] = self.settings
-		if (str(self) == "local_match"):
+		if (str(self) == "local_match" or str(self) == "local_tournament_initial_lobby"):
 			lobby_data['host'] = self.hostnickname
 		return lobby_data
 
@@ -263,9 +262,10 @@ class SimpleMatchLobby(Lobby):
 
 class LocalMatchLobby(SimpleMatchLobby):
 
-	def __init__(self, settings: Dict[str, Any]) -> None:
+	def __init__(self, settings: Dict[str, Any], prefix='L') -> None:
 		settings['public'] = False
-		super().__init__(settings, prefix='L')
+		print(f"Setting for local match {settings}")
+		super().__init__(settings, prefix)
 		self.remove_player(self.hostname)
 		self.hostnickname = self.hostname + '.' + settings['nickname']
 		print(f"registering hostnickname {self.hostnickname}")
@@ -524,10 +524,11 @@ class LocalTournamentInitialLobby(LocalMatchLobby):
 	def __init__(self, settings: Dict[str, Any]) -> None:
 		settings['public'] = False
 		settings['allow_spectators'] = False
-		super()._init__(settings, prefix='J')
+		print(f"settings are {settings}")
+		super().__init__(settings, prefix='J')
 
 	def __str__(self) -> str:
-		return "local_tournament_lobby"
+		return "local_tournament_initial_lobby"
 
 	def check_rules(self):
 
@@ -543,7 +544,7 @@ class LocalTournamentInitialLobby(LocalMatchLobby):
 			'game_type' : self.game_type,
 			'hostname' : self.hostname,
 			'name' : self.name,
-			'nrb_players' : self.player_num,
+			'nbr_players' : self.player_num,
 			'id' : self.id,
 			'default_settings' : self.settings,
 			'players' : list(self.players.keys())}
@@ -555,7 +556,7 @@ class LocalTournamentInitialLobby(LocalMatchLobby):
 	def player_ready(self, player_id):
 		if player_id != self.hostname:
 			return
-		if len(self.players != self.player_num):
+		if len(self.players) != self.player_num:
 			return
 		self.init_game()
 		self.delete()

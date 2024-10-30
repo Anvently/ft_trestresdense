@@ -58,7 +58,24 @@ export default class MatchmakingView extends BaseView {
 		// document.getElementById('nicknameModal').addEventListener('hidden.bs.modal', function () {
         //     document.getElementById('nicknameInput').value = '';});
 
+		const matchTypeSelect = document.getElementById('matchType');
+		const spectatorsSelect = document.getElementById('spectators');
+		const privacyStatus = document.getElementById('lobbyPrivacy');
 
+		matchTypeSelect.addEventListener('change', () => {
+		  const selectedMatchType = matchTypeSelect.value;
+		  if (selectedMatchType === 'local_match' || selectedMatchType === 'local_tournament_lobby') {
+			spectatorsSelect.value = 'notAllowed';
+			spectatorsSelect.disabled = true;
+			privacyStatus.value = 'private';
+			privacyStatus.disabled = true;
+		  } else {
+			spectatorsSelect.disabled = false;
+			spectatorsSelect.value = 'allowed';
+			privacyStatus.disabled = false;
+			privacyStatus.value = 'public';
+		  }
+		});
 	}
 
     async initWebSocket() {
@@ -289,9 +306,9 @@ export default class MatchmakingView extends BaseView {
 		}
 		errorMessage = document.getElementById('error-message-max-players')
 		if (maxPlayers && maxPlayers >= 2 && maxPlayers <= 8) {
-			if (matchType === 'tournament_lobby') {
+			if (matchType === 'tournament_lobby' || matchType === "local_tournament") {
 				if (![2, 4, 8].includes(maxPlayers)) {
-					errorMessage.innerHTML = "Le nombre de joueurs doit être pair et compris entre 2 et 8.";
+					errorMessage.innerHTML = "Le nombre de joueurs doit être 2, 4 ou 8";
 					errorMessage.style.display = 'block';
 					error = true;
 				}
@@ -336,7 +353,7 @@ export default class MatchmakingView extends BaseView {
 			nbrLives
 		});
 		modal.hide();
-		if (matchType === "local_match")
+		if (matchType === "local_match" || matchType === "local_tournament_lobby")
 		{
 
 			// const nicknameModal = new bootstrap.Modal(document.getElementById('nicknameModal'));
@@ -583,6 +600,7 @@ export default class MatchmakingView extends BaseView {
 		else if (message.match_type === "local_match" || message.match_type === "local_tournament_initial_lobby")
 		{
 			isLoc = true;
+			console.log(message);
 			document.getElementById('inviteFriendsButton').classList.add('d-none');
 			document.getElementById('addLocalPlayerButton').classList.remove('d-none');
 			document.getElementById('displayBracketButton').classList.add('d-none');
@@ -632,13 +650,13 @@ export default class MatchmakingView extends BaseView {
 				else{
 					await this.appendPlayerEntry(playerListEl, playerId, playerData, message.host, isTnMatch, isLoc);}
 			});
-	
+
 			// Gérer les slots libres
 			let players_len = Object.keys(message.players).length;
 			for (let i = players_len; i < message.settings.nbr_players; i++) {
 				this.appendEmptySlotEntry(playerListEl, i === players_len);
 			}
-	
+
 			await userManager.forceUpdate();
 		}
 	}
