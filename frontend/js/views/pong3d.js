@@ -196,8 +196,8 @@ export default class Pong3DView extends BaseView {
 		// await this.createScoreBoard(-49, 0, 5, 0);
 		// await this.createScoreBoard(49, 0, 5, Math.PI);
 		this.findPlayerDirection();
-		this.createScoreBoards();
-		this.createNameTag();
+		// this.createScoreBoards();
+		// this.createNameTag();
 		this.setupInputListeners();
 		this.startGameLoop();
 	}

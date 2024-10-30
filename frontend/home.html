@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Plus2Chicos</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="assets/sketchy.bootstrap.min.css" rel="stylesheet">
+    <!-- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet"> -->
+    <link id="themeLink" href="assets/sketchy.bootstrap.min.css" rel="stylesheet">
     <style>
         #content {
             margin-top: 70px;
@@ -55,6 +55,13 @@
             display: none !important;
         }
 
+        /* Afficher le menu des thèmes sur mobile et desktop */
+        #themeMenu {
+            margin-left: 20px;
+        }
+        .navbar-toggler {
+            margin-left: auto;
+        }
     </style>
 </head>
 <body>
@@ -91,7 +98,7 @@
                         <a class="nav-link text-danger logoutButton" href="#">Déconnexion</a>
                     </li>
                 </ul>
-
+                
                 
                 <!-- Menu utilisateur pour desktop -->
                 <div id="userMenu" class="dropdown d-none d-lg-block"> <!-- Masqué en mobile -->
@@ -103,16 +110,19 @@
                         <li><a class="dropdown-item text-danger logoutButton" href="#">Déconnexion</a></li>
                     </ul>
                 </div>
-            </div>
-            <div id="themeMenu" class="dropdown d-lg-block">
-                <button class="btn p-0" type="button" id="themeDropdownButton" data-bs-toggle="dropdown" aria-expanded="false">
-                    <img id='themeImg' src="assets/paint.png" alt="Theme" width="40" height="40" class="rounded-circle border border-light shadow-sm">
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0" aria-labelledby="themeDropdownButton">
-                    <li><a class="dropdown-item" href="#" onclick="changeTheme('default')">Défaut</a></li>
-                    <li><a class="dropdown-item" href="#" onclick="changeTheme('sketchy')">Sketchy</a></li>
-                    <li><a class="dropdown-item" href="#" onclick="changeTheme('superhero')">Superhero</a></li>
-                </ul>
+                <!-- Menu des thèmes pour mobile et desktop -->
+                <div id="themeMenu" class="dropdown d-lg-block d-flex">
+                    <button class="btn p-0" type="button" id="themeDropdownButton" data-bs-toggle="dropdown" aria-expanded="false">
+                        <img id='themeImg' src="assets/paint.png" alt="Theme" width="40" height="40" class="rounded-circle border border-light shadow-sm">
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0" aria-labelledby="themeDropdownButton">
+                        <li><a class="dropdown-item" href="#" data-value="sketchy">Sketchy</a></li>
+                        <li><a class="dropdown-item" href="#" data-value="default">Défaut</a></li>
+                        <li><a class="dropdown-item" href="#" data-value="cyborg">Cyborg</a></li>
+                        <li><a class="dropdown-item" href="#" data-value="darkly">Darkly</a></li>
+                        <li><a class="dropdown-item" href="#" data-value="lux">Lux</a></li>
+                    </ul>
+                </div>
             </div>
         </div>
     </nav>

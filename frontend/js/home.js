@@ -296,3 +296,12 @@ router.init();
 window.addEventListener('popstate', () => {
 	router.handleLocationChange();
 });
+
+document.querySelectorAll('#themeMenu .dropdown-menu li a').forEach(el => {
+	el.addEventListener('click', (e) => {
+		e.preventDefault();
+		let value = e.target.getAttribute("data-value");
+		const themeLink = document.getElementById('themeLink');
+		themeLink.href = `assets/${value}.bootstrap.min.css`;
+	});
+});

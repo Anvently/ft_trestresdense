@@ -37,10 +37,6 @@
 			background-color:  var(--bs-body-bg);
 		}
 
-		.table-hover tbody tr:hover {
-		background-color: #4f3e3e;
-		}
-
 		.tournament {
 		border-left: 5px solid #ffc107;
 		}
@@ -113,21 +109,21 @@
 
 		/* Modifications pour les slots vides */
 		tr.text-muted {
-		background-color: #e2e6ea;  /* Gris plus foncé mais léger */
-		color: #495057;  /* Couleur de texte plus foncée */
+			background-color: var(--bs-secondary-bg);  /* Gris plus foncé mais léger */
+			color:  var(--bs-secondary-color);  /* Couleur de texte plus foncée */
 		}
 
 		tr.text-muted td {
 		padding: 10px 8px;
 		}
 
-		tr.player-ready {
-			background-color: rgb(207, 246, 207);
+		tr.player-ready td {
+			background-color: var(--bs-success);
 		}
 
 		/* Effet de survol simplifié pour tous les tr */
 		.table-hover tbody tr:hover {
-		background-color: #d3d9df;  /* Gris encore plus foncé au survol */
+			background-color: var(--bs-secondary-bg);  /* Gris encore plus foncé au survol */
 		}
 
 		#invitation {
@@ -160,8 +156,8 @@
             z-index: 2;
         }
         #inviteText {
-            background-color: rgba(0, 0, 0, 0.7);
-            color: white;
+            background-color: var(--bs-secondary-bg);
+            color:  var(--bs-primary);
             padding: 10px 15px;
             border-radius: 5px;
             font-size: 1.1em;
@@ -171,12 +167,12 @@
         #buttonContainer .btn {
             font-size: 1em;
             padding: 0.375rem 0.75rem;
-            background-color: rgba(25, 135, 84, 0.9);
-            border-color: rgba(25, 135, 84, 0.9);
+            /* background-color: rgba(25, 135, 84, 0.9);
+            border-color: rgba(25, 135, 84, 0.9); */
         }
         #buttonContainer .btn:hover {
-            background-color: rgba(21, 115, 71, 1);
-            border-color: rgba(21, 115, 71, 1);
+            /* background-color: rgba(21, 115, 71, 1);
+            border-color: rgba(21, 115, 71, 1); */
         }
 
 	</style>

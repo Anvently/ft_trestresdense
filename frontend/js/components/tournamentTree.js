@@ -29,7 +29,7 @@ export default class TournamentTree extends ComponentView {
 					border-radius: 5px;
 					padding: 8px;
 					width: 200px;
-					background-color: white;
+					background-color: var(--bs-body-bg);;
 					display: flex;
 					flex-direction: column;
 					gap: 5px;
