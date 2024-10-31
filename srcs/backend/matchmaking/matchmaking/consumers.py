@@ -184,7 +184,8 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 				await self.send_json({"type": "in_tournament_lobby", "lobby_id": self._lobby_id})
 			if self.get_status() == PlayerStatus.IN_LOCAL_TOURNAMENT_LOBBY:
 				self._lobby_id = self.get_lobby_id()
-				await self.send_json({"type" : "in_tournament_lobby", "lobby_id" : self._lobby_id})
+				await self.send_json({"type" : "lobby_joined", "lobby_id" : self._lobby_id, 'is_host': True})
+				await self.send_lobby_update(self._lobby_id)
 		else:
 			online_players[self.username] = copy.deepcopy(default_status)
 			await self.channel_layer.group_add(self.username, self.channel_name)
@@ -336,6 +337,9 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		if self._lobby_id[0] == 'T':
 			await self.leave_tournament_match_lobby()
 			return
+		if self.get_lobby_id() == 'U':
+			await self.cancel_local_tournament()
+			return
 		if online_players[self.username]['status'] not in (PlayerStatus.IN_LOBBY, PlayerStatus.IN_TOURNAMENT_LOBBY, PlayerStatus.IN_LOCAL_TOURNAMENT_LOBBY):
 			await self._send_error(msg="You are not in a lobby, can't do !", close=False)
 			return
@@ -362,6 +366,18 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		self._lobby_id = None
 		self._is_host = False
 		await self.send_general_update()
+
+	async def leave_local_tournament(self):
+		id = self.get_lobby_id()
+		await self.channel_layer.group_discard(id, self.channel_name)
+		online_players[self.username] = copy.deepcopy(default_status)
+		await self.channel_layer.group_add(MatchMakingConsumer.matchmaking_group, self.channel_name)
+		self._lobby_id = None
+		self._is_host = False
+		del lobbies[self.get_lobby_id()]
+		await self.send_general_update()
+
+
 
 	async def create_lobby(self, data):
 		if online_players[self.username]['status'] != PlayerStatus.NO_LOBBY:
@@ -451,7 +467,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 
 	async def concede_game(self, content):
 		online_players[self.username] = copy.deepcopy(default_status)
-		if self._lobby_id[0] == 'L':
+		if self._lobby_id[0] in ('L', 'U'):
 			url = 'http://pong:8002/delete-lobby/' + self._lobby_id
 			response = await sync_to_async(requests.delete)(url, headers = {
 								'Host': 'localhost',
@@ -466,6 +482,8 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 								'Content-type': 'application/json',
 								'Authorization': "Bearer {0}".format(settings.API_TOKEN.decode('ASCII'))
 								})
+		if self._lobby_id[0] == 'U':
+			del (lobbies[self._lobby_id])
 		self._lobby_id = None
 		await self.channel_layer.group_add(MatchMakingConsumer.matchmaking_group, self.channel_name)
 		await self.channel_layer.group_add(self.username, self.channel_name)
