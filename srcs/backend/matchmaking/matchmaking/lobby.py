@@ -539,7 +539,7 @@ class LocalTournamentInitialLobby(LocalMatchLobby):
 		if self.settings['lives'] < 1:
 			raise KeyError(f"Wrong lives, {self.settings['lives']}")
 
-	def init_game(self, extra_data: Dict[str, Any] = None) -> bool:
+	async def init_game(self, extra_data: Dict[str, Any] = None) -> bool:
 		data = {
 			'game_type' : self.game_type,
 			'hostname' : self.hostname,
@@ -550,21 +550,23 @@ class LocalTournamentInitialLobby(LocalMatchLobby):
 			'players' : list(self.players.keys())}
 		from matchmaking.tournament import LocalTournament
 		tournament = LocalTournament(data)
+		print("tournament created")
 		lobbies[tournament.id] = LocalTournamentLobby(tournament)
-		async_to_sync(self.notify_switch(tournament.id))
+		print('lobby created')
+		channel_layer = get_channel_layer()
+		await channel_layer.group_send(self.hostname, {"type" : "switch_to_local_tournament_lobby", "new_id" : tournament.id})
 
-	def player_ready(self, player_id):
+
+	async def player_ready(self, player_id):
 		if player_id != self.hostname:
 			return
 		if len(self.players) != self.player_num:
 			return
-		self.init_game()
+		print("time to init the lobby")
+		await self.init_game()
 		self.delete()
 		return False
 
-	async def notify_switch(self, new_id):
-		channel_layer = get_channel_layer()
-		await channel_layer.group_send(self.hostname, {"type" : "switch_to_local_tournament_lobby", "new_id" : new_id})
 
 
 

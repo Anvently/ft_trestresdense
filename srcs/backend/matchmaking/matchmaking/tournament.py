@@ -159,7 +159,7 @@ class Tournament:
 				 lobby result handler to update status of associated players. """
 				pass
 		if stage == 0: #If final match
-			self.delete()	
+			self.delete()
 
 class LocalTournament(Tournament):
 	def __init__(self, data : Dict[str, Any]) -> None:
@@ -180,7 +180,7 @@ class LocalTournament(Tournament):
 			- scores_set [score, has_win, username] """
 		for i in range(int(self.number_players / 2)):
 			id=f"{self.id}{SUFFIXES[self.number_players].format(i)}"
-			self.matches[id]({
+			self.matches[id] = ({
 				'lobby_id': id,
 				'status': 'ready',
 				'players' : [self.players[2*i], self.players[2*i + 1]],
@@ -206,7 +206,7 @@ class LocalTournament(Tournament):
 			'players': {}
 		}
 		return id
-	
+
 	async def handle_bot_match(self, match: Dict[str, Any]):
 		match['scores_set'] = []
 		match['scores_set'].append({'username' : match['players'][0], 'score' : self.settings['lives'], 'has_win' : True})

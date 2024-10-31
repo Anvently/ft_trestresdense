@@ -354,7 +354,6 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 
 	async def leave_tournament_match_lobby(self):
 		# should declare winner the player still in the lobby
-		print("canceling tournament lobby")
 		await self.channel_layer.group_discard(self._lobby_id, self.channel_name)
 		lobbies[self._lobby_id].remove_player(self.username)
 		online_players[self.username] = copy.deepcopy(default_status)
@@ -422,7 +421,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		await self.send_json(state)
 
 	async def lobby_update(self,content):
-		if self.get_status() not in (PlayerStatus.IN_LOBBY, PlayerStatus.IN_TOURNAMENT_LOBBY):
+		if self.get_status() not in (PlayerStatus.IN_LOBBY, PlayerStatus.IN_TOURNAMENT_LOBBY, PlayerStatus.IN_LOCAL_TOURNAMENT_LOBBY):
 			return
 		await self.send_json(content)
 
@@ -433,6 +432,9 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		if self.get_status() not in (PlayerStatus.IN_LOBBY, PlayerStatus.IN_TOURNAMENT_LOBBY):
 			await self._send_error(msg="You are not in a lobby, ready up failed",code=4005, close=False)
 			return
+		if self.get_lobby_id()[0] == 'J':
+			await self.local_player_ready()
+			return
 		if lobbies[online_players[self.username]['lobby_id']].player_ready(self.username):
 			id = copy.copy(online_players[self.username]['lobby_id'])
 			if id != self._lobby_id:
@@ -441,6 +443,11 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 				await self.dispatch_players(self._lobby_id)
 		else:
 			await self.send_lobby_update(self._lobby_id)
+
+	async def local_player_ready(self):
+		await lobbies[self.get_lobby_id()].player_ready(self.username)
+
+
 
 	async def concede_game(self, content):
 		online_players[self.username] = copy.deepcopy(default_status)
@@ -477,6 +484,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 	async def switch_to_local_tournament_lobby(self, content):
 		await self.channel_layer.group_discard(self._lobby_id, self.channel_name)
 		new_lobby = content['new_id']
+		print(f"new lobby is {new_lobby}")
 		online_players[self.username]['lobby_id'] = new_lobby
 		self._lobby_id = new_lobby
 		online_players[self.username]['tournament_id'] = new_lobby
@@ -484,7 +492,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		await self.channel_layer.group_add(new_lobby, self.channel_name)
 		await self.send_json({'type': 'set_unready'})
 		await self.send_json({"type" : 'lobby_joined', 'lobby_id' : self._lobby_id, 'is_host' : True})
-		await self.send_lobby_update(self._lobby_id)
+		await self.send_lobby_update(self.get_lobby_id())
 
 
 

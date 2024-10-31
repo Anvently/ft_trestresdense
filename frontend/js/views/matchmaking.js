@@ -586,7 +586,7 @@ export default class MatchmakingView extends BaseView {
 	}
 
 	async lobby_update(message) {
-		console.log(message)
+		console.log("lobby update", message)
 		let isTnMatch = false;
 		let isLoc = false;
 		if (message.match_type === "tournament_match")
