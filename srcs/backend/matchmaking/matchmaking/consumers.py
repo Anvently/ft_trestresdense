@@ -337,8 +337,8 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		if self._lobby_id[0] == 'T':
 			await self.leave_tournament_match_lobby()
 			return
-		if self.get_lobby_id() == 'U':
-			await self.cancel_local_tournament()
+		if self.get_lobby_id()[0] == 'U':
+			await self.leave_local_tournament()
 			return
 		if online_players[self.username]['status'] not in (PlayerStatus.IN_LOBBY, PlayerStatus.IN_TOURNAMENT_LOBBY, PlayerStatus.IN_LOCAL_TOURNAMENT_LOBBY):
 			await self._send_error(msg="You are not in a lobby, can't do !", close=False)
