@@ -83,6 +83,9 @@ export default class TournamentTree extends ComponentView {
 					border-radius: 50%;
 					object-fit: cover;
 				}
+				.match button {
+					margin-top: auto;
+				}
 				@media (min-width:480px) and (max-width:800px) {
 					.match {
 						width: 130px;
@@ -272,7 +275,7 @@ export class LocalTournamentTree extends TournamentTree {
 		this.marginsTop = [
 			[[0]],
 			[[(2 * this.divHeight + 1 * this.spacing) / 2 - (this.divHeight / 2)], [0, 0]],
-			[[(4 * this.divHeight + 3 * this.spacing) - (this.divHeight * 2 + this.spacing)- (this.divHeight / 2)], [65, 140], [0, 0, 0, 0]]
+			[[(4 * this.divHeight + 3 * this.spacing) - (this.divHeight * 2 + this.spacing)- (this.divHeight / 2)], [85, 180], [0, 0, 0, 0]]
 		];
 	}
 
@@ -296,16 +299,23 @@ export class LocalTournamentTree extends TournamentTree {
 		if (!match.completed)
 			matchDiv.classList.add('not-completed');
 		matchDiv.innerHTML = await this.createMatchHTML(match);
-		if (match.status === "ready") {
-			const button = document.createElement('button');
-			button.classList = "btn btn-primary";
+		const button = document.createElement('button');
+		button.classList = "btn btn-primary";
+		if (match.status === "ready")
 			button.innerText = "Demarrer";
-			button.addEventListener('click', async (e) => {
-				e.preventDefault();
-				await this.buttonActionHandler(match);
-			});
-			matchDiv.appendChild(button);
+		else if (match.status === "terminated") {
+			button.innerText = "Termine";
+			button.disabled = true;
 		}
+		else {
+			button.innerText = "En attente";
+			button.disabled = true;
+		}
+		button.addEventListener('click', async (e) => {
+			e.preventDefault();
+			await this.buttonActionHandler(match);
+		});
+		matchDiv.appendChild(button);
 		return matchDiv;
 	}
 

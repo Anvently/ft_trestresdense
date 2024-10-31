@@ -182,7 +182,7 @@ export default class ProfileView extends BaseView {
 				throw new Error("Failed to updated informations.");
 			Object.assign(authenticatedUser, await response.json());
 			this.resetForm();
-			this.successHandler("Information mises a jour !");
+			this.successHandler("Informations updated !");
 		} catch (error) {
 			this.errorHandler(error);
 		}
@@ -207,7 +207,7 @@ export default class ProfileView extends BaseView {
 			if (!response.ok)
 				throw new Error("Failed to updated informations.");
 			this.credentialsInfos = await response.json();
-			this.successHandler("Informations de connexion mises a jour !");
+			this.successHandler("Login credentials successfully updated !");
 			this.init2FA();
 		} catch (error) {
 			this.errorHandler(error);
@@ -246,10 +246,10 @@ export default class ProfileView extends BaseView {
 		try {
 			await authenticatedUser.removeFriend(userId);
 		} catch (error) {
-			this.errorHandler('Impossible de retirer un ami:' + error);
+			this.errorHandler('Cannot remove friend:' + error);
 			return;
 		}
-		this.successHandler(`${userId} n'est plus votre ami :-/`);
+		this.successHandler(`${userId} is no longer a friend of yours :-/`);
 
 		await this.updateFriendsList();
 	}
@@ -262,11 +262,11 @@ export default class ProfileView extends BaseView {
 				if (!authenticatedUser.friends.includes(newFriendName))
 					throw new Error("");
 			} catch (error) {
-				this.errorHandler(`Impossible d'ajouter ${newFriendName} a la liste d'ami: ${error.message}`);
+				this.errorHandler(`Cannot add ${newFriendName} as a friend: ${error.message}`);
 				return;
 			}
 			this.friendInput.value = '';
-			this.successHandler(`${newFriendName} est desormais votre ami.`);
+			this.successHandler(`${newFriendName} is now a friend of yours !`);
 			await this.updateFriendsList();
 		}
 	}

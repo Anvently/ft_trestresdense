@@ -3,7 +3,7 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Édition du profil</title>
+	<title>Edit profile</title>
 	<style>
 		#main-container {
 			max-width: 600px;
@@ -83,10 +83,10 @@
 			margin: 0 auto;
 		}
 		.online {
-			border: 3px solid green;
+			border: 3px solid var(--bs-success);
 		}
 		.offline {
-			border: 3px solid var(--bs-danger-text-emphasis);
+			border: 3px solid var(--bs-danger);
 		}
 		.friend-name {
 			font-size: 0.8rem;
@@ -105,7 +105,7 @@
 			top: 50%;
 			left: 50%;
 			transform: translate(-50%, -50%);
-			background-color: var(--bs-danger-text-emphasis);
+			background-color: var(--bs-danger);
 			color: white;
 			border-radius: 50%;
 			width: 30px;
@@ -129,9 +129,9 @@
 			flex-direction: column;
 			align-items: center;
 			gap: 20px;
-			border: 1px solid #536dfe;
+			border: 1px solid var(--bs-primary);
 			border-radius: 15px;
-			background-color: ghostwhite;
+			background-color: var(--bs-secondary-bg-subtle);
 			padding: 5px;
 		}
 		@media (min-width: 768px) {
@@ -172,7 +172,7 @@
 </head>
 <body>
 	<div id="main-container" class="container mt-5">
-		<h1 class="mb-4">Liste d'amis</h2>
+		<h1 class="mb-4">Friends list</h2>
 		<div class="mb-3">
 			<div id="friends-list" class="row row-cols-3 row-cols-sm-4 row-cols-md-6 row-cols-lg-8 g-2 g-md-3">
 				<!-- Les avatars des amis seront insérés ici par JavaScript -->
@@ -180,14 +180,14 @@
 		</div>
 		<div class="mb-3">
 			<div class="input-group">
-			  <input type="text" class="form-control" id="new-friend-input" placeholder="Nom d'utilisateur de l'ami">
-			  <button class="btn btn-primary" type="button" id="add-friend-btn">Ajouter un ami</button>
+			  <input type="text" class="form-control" id="new-friend-input" placeholder="username">
+			  <button class="btn btn-primary" type="button" id="add-friend-btn">Add friend</button>
 			</div>
 		</div>
 		
 		<hr class="my-5">
 
-		<h1 class="mb-4">Édition du profil</h1>
+		<h1 class="mb-4">Edit profile</h1>
 		
 		<form id="profileForm" class="needs-validation was-validated">
 			<div class="mb-3">
@@ -196,7 +196,7 @@
 					<img id="avatarPreview" src="/avatars/__default__.jpg" class="avatar-preview">
 					<div class="avatar-fields">
 						<input type="file" class="form-control" id="avatar" accept="image/*">
-						<input type="text" class="form-control mt-2" id="avatarUrl" placeholder="Ou entrez une URL d'image">
+						<input type="text" class="form-control mt-2" id="avatarUrl" placeholder="Or enter an image URL">
 						<div class="invalid-feedback">
 							Invalid url.
 						</div>
@@ -205,57 +205,57 @@
 			</div>
 			
 			<div class="mb-3">
-				<label for="displayName" class="form-label">Nom complet</label>
+				<label for="displayName" class="form-label">Display name</label>
 				<input type="text" class="form-control" id="displayName" required>
 			</div>
 			
-			<button type="submit" class="btn btn-primary">Enregistrer les modifications</button>
-			<button id="resetFormButton" class="btn btn-primary">Annuler les changements</button>
+			<button type="submit" class="btn btn-primary">Save informations</button>
+			<button id="resetFormButton" class="btn btn-primary">Cancel modifications</button>
 		</form>
 		
 		<hr class="my-5">
 		
-		<h2 class="mb-4">Modifier les informations de connexion</h2>
+		<h2 class="mb-4">Update login credentials</h2>
 		
 		<div class="alert alert-warning security-message" role="alert">
-			Certains champs sont désactivés pour les comptes créés via 42.
+			Some field are disabled for accounts registered with 42.
 		</div>
 		<form id="securityForm" class="needs-validation was-validated" >
 			<div class="mb-3">
-				<label for="email" class="form-label">Nouvelle adresse e-mail</label>
+				<label for="email" class="form-label">New email address</label>
 				<input type="email" class="form-control" id="email" required>
 				<div class="invalid-feedback">
-					Email requis.
+					Email required.
 				</div>
 			</div>
 			
 			<div class="mb-3">
-				<label for="password" class="form-label">Nouveau mot de passe</label>
+				<label for="password" class="form-label">New password</label>
 				<input type="password" class="form-control" id="password">
 				<div class="invalid-feedback">
-					Mot de passe requis.
+					Password required.
 				</div>
 			</div>
 			
 			<div class="mb-3">
-				<label for="confirmPassword" class="form-label">Confirmer le nouveau mot de passe</label>
+				<label for="confirmPassword" class="form-label">Confirm password</label>
 				<input type="password" class="form-control" id="confirmPassword">
 				<div class="invalid-feedback">
-					Mots de passe non identiques.
+					Passwords must match.
 				</div>
 			</div>
 
 			<div class="mb-3">
 				<input type="checkbox" class="form-check-input" id="enable2FA">
-				<label for="enable2FA" class="form-check-label">Authentification a deux facteurs</label>
+				<label for="enable2FA" class="form-check-label">Enable two factors authentication</label>
 			</div>
 			
-			<button type="submit" class="btn btn-primary">Mettre à jour les informations de connexion</button>
+			<button type="submit" class="btn btn-primary">Save changes</button>
 		</form>
 		
 		<div id="container-2FA" class="my-5 d-none">
 			<form>
-				<h2 class="mb-4">Authentification a deux facteurs</h2>
+				<h2 class="mb-4">Two factors authentication</h2>
 				<label for="totp-secret" class="form-label">Secret</label>
 				<input class="form-control" id="totp-secret" type="text" placeholder="Disabled input" disabled>
 			</form>

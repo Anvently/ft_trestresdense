@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>User Profile</title>
+    <title>Statistics</title>
     <style>
         .container {
             display: flex;
@@ -22,11 +22,11 @@
             overflow-y: auto;
         }
 		.online {
-          border: 2px solid green;
-        }
-        .offline {
-          border: 2px solid red;
-        }
+			border: 2px solid var(--bs-success);
+		}
+		.offline {
+			border: 2px solid var(--bs-danger);
+		}
         .user-info {
           display: flex;
           align-items: center;
@@ -52,7 +52,7 @@
         .table thead th {
             position: sticky;
             top: 0;
-            background-color: #fff;
+            background-color: var(--bs-body-bg);
             z-index: 1;
         }
         @media (min-width: 800px) {
@@ -68,7 +68,7 @@
     <body>
         <div class="container py-4">
             <div class="row">
-                <h2>Derniers matchs</h2>
+                <h2>Last matches</h2>
                 <div class="stats-column content-wrapper">
                     <div class="table-responsive">
                         <table class="table table-striped">
@@ -76,15 +76,15 @@
                                 <tr>
                                     <th>Date</th>
                                     <th>Lobby</th>
-                                    <th>Hote</th>
-                                    <th>Jeu</th>
-                                    <th>Nombre de joueurs</th>
+                                    <th>Host</th>
+                                    <th>Game</th>
+                                    <th>Number of players</th>
                                 </tr>
                             </thead>
                             <tbody id="lobbies-table">
                                 <!-- Les scores seront insérés ici par JavaScript -->
                                 <tr>
-                                    <td colspan="5">Aucun résultat.</td>
+                                    <td colspan="5">No results.</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -92,23 +92,23 @@
                 </div>
             </div>
             <div class="row">
-                <h2>Derniers tournois</h2>
+                <h2>Last tournaments</h2>
                 <div class="stats-column content-wrapper">
                     <div class="table-responsive">
                         <table class="table table-striped">
                             <thead>
                                 <tr>
                                     <th>Date</th>
-                                    <th>Tournoi</th>
-                                    <th>Hote</th>
-                                    <th>Jeu</th>
-                                    <th>Nombre de joueurs</th>
+                                    <th>Tournament</th>
+                                    <th>Host</th>
+                                    <th>Game</th>
+                                    <th>Number of players</th>
                                 </tr>
                             </thead>
                             <tbody id="tournaments-table">
                                 <!-- Les scores seront insérés ici par JavaScript -->
                                  <tr>
-                                    <td colspan="5">Aucun résultat.</td>
+                                    <td colspan="5">No results.</td>
                                  </tr>
                             </tbody>
                         </table>

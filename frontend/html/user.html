@@ -54,10 +54,10 @@
 			margin: 0 auto;
 		}
 		.online {
-			border: 3px solid green;
+			border: 3px solid var(--bs-success);
 		}
 		.offline {
-			border: 3px solid var(--bs-danger-text-emphasis);;
+			border: 3px solid var(--bs-danger);
 		}
 		.friend-name {
 			font-size: 0.8rem;
@@ -91,7 +91,6 @@
         .table thead th {
             position: sticky;
             top: 0;
-            background-color: #fff;
             z-index: 1;
         }
         td.has-win {
@@ -101,18 +100,17 @@
             background-color: #f8d7da;
         }
         @media (min-width: 768px) {
-            .stats-column {
-                max-width: 505px    ;
-            }
             .row {
                 flex-wrap: nowrap;
             }
+            .content-wrapper {
+                gap: 15px;
+            }
             .left {
                 width: 34%;
-                flex-wrap: wrap;
             }
             .right {
-                width: auto;
+                flex-grow: 1;
             }
             #friends-list {
                 flex-wrap: wrap;
@@ -164,16 +162,16 @@
             <hr>
             <div class="content-wrapper row">
                 <div class="col-md-6 mb-4 mb-md-0 left">
-                    <h2>Liste d'amis</h2>
+                    <h2>Friend list</h2>
                     <div class="friends-column">
                         <div id="friends-list" class="row row-cols-4 row-cols-sm-3 row-cols-md-4 row-cols-lg-3 g-2">
                             <!-- Les avatars des amis seront insérés ici par JavaScript -->
-                            <p style="width: 100%">Aucun ami.</p>
+                            <p style="width: 100%">No friend.</p>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-6 right">
-                    <h2>Statistiques</h2>
+                    <h2>Statistics</h2>
                     <div class="stats-column">
                         <div class="table-responsive">
                             <table class="table table-striped">
@@ -181,15 +179,15 @@
                                     <tr>
                                         <th>Date</th>
                                         <th>Lobby</th>
-                                        <th>Jeu</th>
+                                        <th>Game</th>
                                         <th>Score</th>
-                                        <th>Resultat</th>
+                                        <th>Result</th>
                                     </tr>
                                 </thead>
                                 <tbody id="score-table">
                                     <!-- Les scores seront insérés ici par JavaScript -->
                                     <tr>
-                                        <td colspan="5">Aucun résultat.</td>
+                                        <td colspan="5">No results.</td>
                                     </tr>
                                 </tbody>
                             </table>

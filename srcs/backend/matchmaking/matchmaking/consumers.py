@@ -185,6 +185,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 			if self.get_status() == PlayerStatus.IN_LOCAL_TOURNAMENT_LOBBY:
 				self._lobby_id = self.get_lobby_id()
 				await self.send_json({"type" : "lobby_joined", "lobby_id" : self._lobby_id, 'is_host': True})
+				await self.channel_layer.group_add(self._lobby_id, self.channel_name)
 				await self.send_lobby_update(self._lobby_id)
 		else:
 			online_players[self.username] = copy.deepcopy(default_status)
@@ -337,8 +338,8 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		if self._lobby_id[0] == 'T':
 			await self.leave_tournament_match_lobby()
 			return
-		if self.get_lobby_id() == 'U':
-			await self.cancel_local_tournament()
+		if self.get_lobby_id()[0] == 'U':
+			await self.leave_local_tournament()
 			return
 		if online_players[self.username]['status'] not in (PlayerStatus.IN_LOBBY, PlayerStatus.IN_TOURNAMENT_LOBBY, PlayerStatus.IN_LOCAL_TOURNAMENT_LOBBY):
 			await self._send_error(msg="You are not in a lobby, can't do !", close=False)
@@ -374,7 +375,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		await self.channel_layer.group_add(MatchMakingConsumer.matchmaking_group, self.channel_name)
 		self._lobby_id = None
 		self._is_host = False
-		del lobbies[self.get_lobby_id()]
+		del lobbies[id]
 		await self.send_general_update()
 
 

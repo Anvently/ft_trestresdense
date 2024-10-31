@@ -538,7 +538,7 @@ class LocalTournamentInitialLobby(LocalMatchLobby):
 
 		if self.game_type not in ("pong2d", "pong3d"):
 			raise KeyError(f"Wrong settings {self.game_type}")
-		if self.player_num not in (2, 4 ,8):
+		if self.player_num not in (2, 4, 8):
 			raise KeyError(f"Wrong settings, {self.player_num} players")
 		if self.settings['lives'] < 1:
 			raise KeyError(f"Wrong lives, {self.settings['lives']}")

@@ -3,7 +3,7 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Système de Matchmaking</title>
+	<title>Matchmaking</title>
 	<style>
 		body {
 			background-color: var(--bs-body-bg);
@@ -127,97 +127,65 @@
 		}
 
 		#invitation {
-            position: relative;
-            height: 300px;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
             align-items: center;
             text-align: center;
-            padding: 20px;
-            overflow: hidden;
         }
-        #invitation::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-image: url('/assets/duel.jpg');
-            background-size: contain;
-            background-repeat: no-repeat;
-            background-position: center;
-            opacity: 0.7;
-            z-index: 1;
-        }
-        #inviteText, #buttonContainer {
-            position: relative;
-            z-index: 2;
-        }
+		#invitation img {
+			width: 200px;
+			height: 200px;
+		}
         #inviteText {
             background-color: var(--bs-secondary-bg);
             color:  var(--bs-primary);
             padding: 10px 15px;
             border-radius: 5px;
             font-size: 1.1em;
-            font-weight: bold;
-            max-width: 80%;
         }
-        #buttonContainer .btn {
-            font-size: 1em;
-            padding: 0.375rem 0.75rem;
-            /* background-color: rgba(25, 135, 84, 0.9);
-            border-color: rgba(25, 135, 84, 0.9); */
-        }
-        #buttonContainer .btn:hover {
-            /* background-color: rgba(21, 115, 71, 1);
-            border-color: rgba(21, 115, 71, 1); */
-        }
-
 	</style>
 </head>
 <body>
 	<div class="container mt-4" id="mainView">
-		<h1 class="mb-4">Système de Matchmaking</h1>
+		<h1 class="mb-4">Matchmaking</h1>
 		<div class="row">
 			<div class="col-md-6">
-				<h2>Lobbies disponibles</h2>
+				<h2>Availables lobbies</h2>
 				<div id="availableLobbies" class="lobby-list">
 					<table class="table table-hover">
 						<thead>
 							<tr>
-								<th class="left">Nom</th>
+								<th class="left">Name</th>
 								<th class="center">Type</th>
 								<th class="center">Host</th>
-								<th class="center">Places</th>
+								<th class="center">Slots</th>
 								<th class="right">Action</th>
 							</tr>
 						</thead>
 						<tbody>
 							<tr>
-								<td colspan="5">Aucun résultat.</td>
+								<td colspan="5">No results.</td>
 							</tr>
 						</tbody>
 					</table>
 				</div>
 			</div>
 			<div class="col-md-6">
-				<h2>Matchs en cours</h2>
+				<h2>Match in progress</h2>
 				<div id="ongoingMatches" class="lobby-list">
 					<table class="table table-hover">
 						<thead>
 							<tr>
-								<th class="left">Nom</th>
+								<th class="left">Name</th>
 								<th class="center">Type</th>
 								<th class="center">Host</th>
-								<th class="center">Places</th>
+								<th class="center">Slots</th>
 								<th class="right">Action</th>
 							</tr>
 						</thead>
 						<tbody>
 							<tr>
-								<td colspan="5">Aucun résultat.</td>
+								<td colspan="5">No results.</td>
 							</tr>
 						</tbody>
 					</table>
@@ -228,9 +196,9 @@
 			<div class="col-12">
 				<div class="side-buttons">
 					<div class="mainOptions">
-						<button class="btn btn-primary mainView me-2" data-bs-toggle="modal" data-bs-target="#createLobbyModal">Créer un lobby</button>
-						<button class="btn btn-info mainView me-2" data-bs-toggle="modal" data-bs-target="#joinLobbyModal">Rejoindre un lobby</button>
-						<button id='buttonShowOnlinePlayers'class="btn btn-secondary mainView me-2">Joueurs en ligne</button>
+						<button class="btn btn-primary mainView me-2" data-bs-toggle="modal" data-bs-target="#createLobbyModal">New lobby</button>
+						<button class="btn btn-info mainView me-2" data-bs-toggle="modal" data-bs-target="#joinLobbyModal">Join lobby</button>
+						<button id='buttonShowOnlinePlayers'class="btn btn-secondary mainView me-2">Online players</button>
 					</div>
 				</div>
 			</div>
@@ -245,8 +213,8 @@
 				<table class="table table-hover">
 				<thead>
 					<tr>
-					<th class="left">Nom du joueur</th>
-					<th class="center">État</th>
+					<th class="left">Player name</th>
+					<th class="center">Status</th>
 					<th class="right">Action</th>
 					</tr>
 				</thead>
@@ -259,15 +227,11 @@
 		<div class="row mt-4">
 			<div class="col-12">
 				<div class="side-buttons">
-					<div id="hostOptions" class="hostOptions lobbyView d-none">
-						<button id='buttonOptionsLobby' class="btn btn-warning me-2">Modifier les options du lobby</button>
-						<!--<button id="startGameButton" class="btn btn-success">Démarrer le jeu</button>-->
-					</div>
 					<div class="mainOptions">
-						<button id="inviteFriendsButton" class="btn btn-secondary lobbyView me-2">Inviter des amis</button>
-						<button id="addLocalPlayerButton" class="btn btn-secondary lobbyView me-2 d-none">Ajouter un joueur</button>
-						<button id="leaveLobbyButton" class="btn btn-danger lobbyView">Quitter le lobby</button>
-						<button id="displayBracketButton" class="btn btn-secondary lobbyView me 2 d-none">Voir les resultats</button>
+						<button id="inviteFriendsButton" class="btn btn-secondary lobbyView me-2">Invite friends</button>
+						<button id="addLocalPlayerButton" class="btn btn-secondary lobbyView me-2 d-none">Add player</button>
+						<button id="leaveLobbyButton" class="btn btn-danger lobbyView">Leave lobby</button>
+						<button id="displayBracketButton" class="btn btn-secondary lobbyView me 2 d-none">Results</button>
 					</div>
 				</div>
 			</div>
@@ -279,15 +243,15 @@
 		<div class="modal-dialog">
 			<div class="modal-content">
 				<div class="modal-header">
-					<h5 class="modal-title">Rejoindre un lobby</h5>
+					<h5 class="modal-title">Join lobby</h5>
 					<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
 				</div>
 				<div class="modal-body">
-					<input type="text" id="lobbyIdInput" class="form-control" placeholder="ID du lobby">
+					<input type="text" id="lobbyIdInput" class="form-control" placeholder="lobby ID">
 				</div>
 				<div class="modal-footer">
-					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
-					<button id='joinLobbyButton' type="button" class="btn btn-primary">Rejoindre</button>
+					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+					<button id='joinLobbyButton' type="button" class="btn btn-primary">Join</button>
 				</div>
 			</div>
 		</div>
@@ -297,14 +261,14 @@
 		<div class="modal-dialog modal-lg">
 			<div class="modal-content">
 				<div class="modal-header">
-					<h5 class="modal-title">Tournoi</h5>
+					<h5 class="modal-title">Tournament</h5>
 					<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
 				</div>
 				<div class="modal-body" id="tournamentModalDiv">
 
 				</div>
 				<div class="modal-footer">
-					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
 				</div>
 			</div>
 		</div>
@@ -315,14 +279,14 @@
 		<div class="modal-dialog">
 			<div class="modal-content">
 				<div class="modal-header">
-					<h5 class="modal-title" id="createLobbyModalLabel">Créer un Lobby</h5>
+					<h5 class="modal-title" id="createLobbyModalLabel">New lobby</h5>
 					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 				</div>
 				<div class="modal-body" style="max-height: 400px; overflow-y: auto;">
 					<form id="createLobbyForm">
 
 						<div class="mb-3">
-							<label for="gameType" class="form-label">Choisir le type de jeu</label>
+							<label for="gameType" class="form-label">Choose game</label>
 							<select id="gameType" class="form-select">
 								<option value="pong2d">Pong 2D</option>
 								<option value="pong3d">Pong 3D</option>
@@ -330,23 +294,23 @@
 						</div>
 
 						<div class="mb-3">
-							<label for="matchType" class="form-label">Type de partie</label>
+							<label for="matchType" class="form-label">Lobby type</label>
 							<select id="matchType" class="form-select">
-								<option value="simple_match">Match Simple</option>
-								<option value="tournament_lobby">Tournoi</option>
-								<option value="local_match">Match Local</option>
+								<option value="simple_match">Simple match</option>
+								<option value="tournament_lobby">Online tournament</option>
+								<option value="local_match">Local match</option>
 								<option value="local_tournament_lobby"> Local Tournament</option>
 							</select>
 						</div>
 
 						<div class="mb-3">
-							<label for="lobbyNameCreation" class="form-label">Nom du Lobby</label>
+							<label for="lobbyNameCreation" class="form-label">Lobby name</label>
 							<input type="text" value="My lobby" id="lobbyNameCreation" class="form-control" required>
 						</div>
 						<div id="error-message-lobby-name" class="form-errors alert alert-danger" style="display: none;"></div>
 
 						<div class="mb-3">
-							<label for="maxPlayers" class="form-label">Nombre maximum de joueurs</label>
+							<label for="maxPlayers" class="form-label">Number of players</label>
 							<select id="maxPlayers" class="form-control" required>
 							  <option value="2">2</option>
 							  <option value="4">4</option>
@@ -356,36 +320,36 @@
 						<div id="error-message-max-players" class="form-errors alert alert-danger" style="display: none;"></div>
 
 						<div class="mb-3">
-							<label for="botsCount" class="form-label">Nombre de bots</label>
+							<label for="botsCount" class="form-label">Number of bots</label>
 							<input type="number" value="0" id="botsCount" class="form-control" min="0" max="4" required>
 						</div>
 						<div id="error-message-nbr-bots" class="form-errors alert alert-danger" style="display: none;"></div>
 
 						<div class="mb-3">
-							<label class="form-label">Type de lobby</label>
+							<label class="form-label">Lobby privacy</label>
 							<select id="lobbyPrivacy" class="form-select">
 								<option value="public">Public</option>
-								<option value="private">Privé</option>
+								<option value="private">Private</option>
 							</select>
 						</div>
 
 						<div class="mb-3">
-							<label class="form-label">Autoriser les spectateurs</label>
+							<label class="form-label">Allow spectators</label>
 							<select id="spectators" class="form-select">
-								<option value="allowed">Autorisés</option>
-								<option value="notAllowed">Interdits</option>
+								<option value="allowed">Allow</option>
+								<option value="notAllowed">Deny</option>
 							</select>
 						</div>
 
 						<div class="mb-3">
-							<label for="nbrLives" class="form-label">Nombre de vie/points par défaut</label>
+							<label for="nbrLives" class="form-label">Number of lives/points to victory</label>
 							<input type="number" value="5" id="nbrLives" class="form-control" min="1" max="100" required>
 						</div>
 					</form>
 				</div>
 				<div class="modal-footer">
-					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
-					<button id="createLobbyButton" type="button" class="btn btn-primary">Créer</button>
+					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+					<button id="createLobbyButton" type="button" class="btn btn-primary">Create</button>
 				  </div>
 			</div>
 		</div>
@@ -407,7 +371,7 @@
                     </table>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
@@ -418,7 +382,7 @@
         <div class="modal-dialog modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="inviteFriendsModalLabel">Inviter des amis</h5>
+                    <h5 class="modal-title" id="inviteFriendsModalLabel">Invite friends</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
                 </div>
                 <div class="modal-body">
@@ -429,7 +393,7 @@
                     </table>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
@@ -440,14 +404,13 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="receiveInvitationLabel">Invitation de jeu</h5>
+                    <h5 class="modal-title" id="receiveInvitationLabel">Invitation received</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body p-0">
-                    <div id="invitation">
+                <div class="modal-body" id="invitation">
                         <p id="inviteText"></p>
-                        <div id="buttonContainer"></div>
-                    </div>
+						<img src="/assets/duel.jpg">
+						<button id="inviteJoinBtn" class="btn btn-success">Join game</button>
                 </div>
             </div>
         </div>
@@ -458,7 +421,7 @@
 			<div class="modal-dialog modal-dialog-centered">
 				<div class="modal-content">
 					<div class="modal-header">
-						<h5 class="modal-title" id="readyUpLabel">Invitation de jeu</h5>
+						<h5 class="modal-title" id="readyUpLabel">Notification</h5>
 						<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 					</div>
 					<div class="modal-body">
@@ -512,7 +475,7 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="inGameLabel">Nouvel Événement</h5>
+                <h5 class="modal-title" id="inGameLabel">Notification</h5>
             </div>
             <div class="modal-body p-3">
                 <p id="eventText"> You already are in a game !</p>
@@ -551,43 +514,6 @@
 	  </div>
 	</div>
   </div>
-
-
-
-	<!-- Modale pour changer les options du lobby -->
-	<div class="modal fade" id="lobbyOptionsModal" tabindex="-1">
-		<div class="modal-dialog">
-			<div class="modal-content">
-				<div class="modal-header">
-					<h5 class="modal-title">Modifier les options du lobby</h5>
-					<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-				</div>
-				<div class="modal-body">
-					<label for="gameType">Type de jeu</label>
-					<select id="gameType" class="form-control">
-						<option value="pong2d">Pong 2D</option>
-						<option value="pong3d">Pong 3D</option>
-					</select>
-
-					<label for="lobbyNameInput">Nom du lobby</label>
-					<input type="text" id="lobbyNameInput" class="form-control">
-
-					<label for="slotCount">Nombre de slots disponibles</label>
-					<input type="number" id="slotCount" class="form-control">
-
-					<label for="livesCount">Nombre de vies</label>
-					<input type="number" id="livesCount" class="form-control">
-
-					<div class="form-check">
-						<input type="checkbox" class="form-check-input" id="allowSpectators">
-						<label class="form-check-label" for="allowSpectators">Autoriser les spectateurs</label>
-					</div>
-
-					<button id='saveLobbyOptionsButton' class="btn btn-primary">Sauvegarder</button>
-				</div>
-			</div>
-		</div>
-	</div>
 
 </body>
 </html>

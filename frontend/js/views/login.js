@@ -115,14 +115,14 @@ export default class LoginView extends BaseView {
 		)
 		.catch((e) => {
 			console.error('Erreur lors de la connexion:', e);
-			alert('Une erreur s\'est produite lors de la tentative de connexion.');
+			this.errorHandler('An error occured attempting to connect.');
 		});
 	}
 
 	onPasswordChange() {
 		if (!this.signupForm.signupPassword.value) {
 			this.signupForm.signupPassword.setCustomValidity("Password must be non-empty.")
-			document.getElementById("feedback-password").textContent = "Mot de passe requis";
+			document.getElementById("feedback-password").textContent = "Password required";
 		}
 		else if (this.signupForm.signupPassword.value !== this.signupForm.confirmPassword.value) {
 			this.signupForm.signupPassword.setCustomValidity("");
@@ -172,8 +172,8 @@ export default class LoginView extends BaseView {
 				return;
 			}
 			if (!response.ok)
-				throw new Error("L'inscription a echouee.");
-			this.successHandler("Inscription reussie !");
+				throw new Error("Register failed.");
+			this.successHandler("Successfully registered !");
 			errorDiv.style.display = 'none';
 			this.resetLoginForm();
 		} catch (error) {
@@ -212,7 +212,7 @@ export default class LoginView extends BaseView {
 		document.getElementById('authTabsContent').classList.add('d-none');
 		const errorDiv = document.getElementById('message2FA');
 		errorDiv.className = "alert alert-success";
-		errorDiv.innerText = "Veuillez saisir votre second facteur d'authentification.";
+		errorDiv.innerText = "Please enter your second authentication factor";
 		this.startTimer();
 	}
 
@@ -239,7 +239,7 @@ export default class LoginView extends BaseView {
 				timeLeft = 60 - seconds;
 			}
 
-			timerElement.textContent = `Temps restant : ${timeLeft} seconde${timeLeft !== 1 ? 's' : ''}`;
+			timerElement.textContent = `Code will refresh in : ${timeLeft} second${timeLeft !== 1 ? 's' : ''}`;
 		}
 
 		updateTimer();

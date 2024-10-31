@@ -44,10 +44,10 @@ export default class UserView extends BaseView {
 				await authenticatedUser.addFriend(this.userInfo.username);
 			}
 		} catch (error) {
-			this.errorHandler("L'action a echouee.");
+			this.errorHandler("Action failed.");
 			return;
 		}
-		this.successHandler("Action effectuee.");
+		this.successHandler("Action suceeded.");
 		this.updateEditFriendButton();
 	}
 
@@ -58,10 +58,10 @@ export default class UserView extends BaseView {
 		}
 		this.editFriendButton.classList.remove('btn-danger', 'btn-success');
 		if (authenticatedUser.isFriendWith(this.userInfo.username)) {
-			this.editFriendButton.innerText = "Retirer des amis";
+			this.editFriendButton.innerText = "Remove from friends";
 			this.editFriendButton.classList.add('btn-danger');
 		} else {
-			this.editFriendButton.innerText = "Ajouter comme ami";
+			this.editFriendButton.innerText = "Add as a friend";
 			this.editFriendButton.classList.add('btn-success');
 		}
 	}

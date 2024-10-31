@@ -27,7 +27,6 @@ export default class MatchmakingView extends BaseView {
         this.initWebSocket();
 
 		this.showOnlinePLayersButton = document.getElementById('buttonShowOnlinePlayers');
-		this.openLobbyOptionsButton = document.getElementById('buttonOptionsLobby');
 		//this.startGameButton = document.getElementById('startGameButton');
 		this.inviteFriendsButton = document.getElementById('inviteFriendsButton');
 		this.addLocalPlayerButton = document.getElementById('addLocalPlayerButton');
@@ -36,15 +35,12 @@ export default class MatchmakingView extends BaseView {
 		this.submitNicknameButton = document.getElementById('submitNicknameButton');
 		this.joinLobbyButton = document.getElementById('joinLobbyButton');
 		this.createLobbyButton = document.getElementById('createLobbyButton');
-		this.saveLobbyOptionsButton = document.getElementById("saveLobbyOptionsButton");
 		this.showOnlinePLayersButton.addEventListener('click', () => this.showOnlinePlayers());
-		this.openLobbyOptionsButton.addEventListener('click', (e) => this.openLobbyOptions());
 		//this.startGameButton.addEventListener('click', () => this.startGame());
 		this.inviteFriendsButton.addEventListener('click', () => this.inviteFriends());
 		this.leaveLobbyButton.addEventListener('click', async () => await this.confirmLeave());
 		this.joinLobbyButton.addEventListener('click', () => this.joinLobbyById());
 		this.createLobbyButton.addEventListener('click', () => this.createLobby());
-		this.saveLobbyOptionsButton.addEventListener('click', () => this.saveLobbyOptions());
 		this.submitNicknameButton.addEventListener('click', () => this.submitNickname());
 		this.addLocalPlayerButton.addEventListener('click', () => this.addLocalPlayer());
 
@@ -184,7 +180,7 @@ export default class MatchmakingView extends BaseView {
 				}
 			});
 		} else {
-			availableLobbiesEl.innerHTML = `<tr><td colspan="5">Aucun résultat.</td></tr>`;
+			availableLobbiesEl.innerHTML = `<tr><td colspan="5">No results.</td></tr>`;
 		}
 
 		if (message.ongoingMatches && message.ongoingMatches.length) {
@@ -200,7 +196,7 @@ export default class MatchmakingView extends BaseView {
 				}
 			});
 		} else {
-			ongoingMatchesEl.innerHTML = `<tr><td colspan="5">Aucun résultat.</td></tr>`;
+			ongoingMatchesEl.innerHTML = `<tr><td colspan="5">No results.</td></tr>`;
 		}
 
 		userManager.forceUpdate();
@@ -301,39 +297,39 @@ export default class MatchmakingView extends BaseView {
 		if (!lobbyName) {
 			errorMessage = document.getElementById('error-message-lobby-name')
 			errorMessage.style.display = 'block';
-			errorMessage.innerHTML = "Le nom du lobby ne peut pas être vide.";
+			errorMessage.innerHTML = "Lobby name cannot be empty.";
 			error = true;
 		}
 		errorMessage = document.getElementById('error-message-max-players')
 		if (maxPlayers && maxPlayers >= 2 && maxPlayers <= 8) {
-			if (matchType === 'tournament_lobby' || matchType === "local_tournament") {
+			if (matchType === 'tournament_lobby' || matchType === "local_tournament_lobby") {
 				if (![2, 4, 8].includes(maxPlayers)) {
-					errorMessage.innerHTML = "Le nombre de joueurs doit être 2, 4 ou 8";
+					errorMessage.innerHTML = "Number of players must be 2, 4 ou 8";
 					errorMessage.style.display = 'block';
 					error = true;
 				}
 			} else {
 				if (maxPlayers > 4) {
-					errorMessage.innerHTML = "Le nombre de joueurs doit être inferieur a 4.";
+					errorMessage.innerHTML = "Number of players cannot be less than 4.";
 					errorMessage.style.display = 'block';
 					error = true;
 				}
 				if (gameType === 'pong3d' && maxPlayers > 2) {
-					errorMessage.innerHTML = "Le nombre de joueurs doit être inferieur a 2 pour le jeu que vous avez choisi.";
+					errorMessage.innerHTML = "Number of players cannot be greater than 2 for the game you have chosen.";
 					errorMessage.style.display = 'block';
 					error = true;
 				}
 			}
 		}
 		else {
-			errorMessage.innerHTML = "Le nombre maximum de joueurs doit être compris entre 2 et 8.";
+			errorMessage.innerHTML = "Maximum number of players must be within 2 and 8.";
 			errorMessage.style.display = 'block';
 			error = true;
 		}
 		if (botsCount < 0 || botsCount > maxPlayers - 1) {
 			errorMessage = document.getElementById('error-message-nbr-bots')
 			errorMessage.style.display = 'block';
-			errorMessage.innerHTML = "Le nombre de bots doit être compris entre 0 et le nombre maximum de joueurs.";
+			errorMessage.innerHTML = "Number of bots must be within 2 and number of players.";
 			error = true;
 		}
 
@@ -726,12 +722,12 @@ export default class MatchmakingView extends BaseView {
 		const playerRow = document.createElement('tr');
 		let playerState;
 		if (playerData.is_ready) {
-			playerState = 'Prêt';
+			playerState = 'Ready';
 			playerRow.classList.add('player-ready')
 		} else if (playerData.has_joined) {
-			playerState = 'A rejoint';
+			playerState = 'Has joined';
 		} else {
-			playerState = 'N\'a pas encore rejoint';
+			playerState = 'Has not joined';
 			playerRow.classList.add('text-muted');
 		}
 
@@ -764,7 +760,7 @@ export default class MatchmakingView extends BaseView {
 			console.log("creating kick button");
 			const kickButton = document.createElement('button');
 			kickButton.className = 'btn btn-danger';
-			kickButton.textContent = 'Expulser';
+			kickButton.textContent = 'Kick';
 			kickButton.onclick = () => this.kickPlayer(playerId);
 			actionCell.appendChild(kickButton);
 		} else if (authenticatedUser.username === playerId) {
@@ -794,12 +790,12 @@ export default class MatchmakingView extends BaseView {
 
 		const nameCell = document.createElement('td');
 		nameCell.classList.add('left');
-		nameCell.textContent = 'Slot libre';
+		nameCell.textContent = 'Free slot';
 		emptySlotRow.appendChild(nameCell);
 
 		const stateCell = document.createElement('td');
 		stateCell.classList.add('center');
-		stateCell.textContent = 'En attente';
+		stateCell.textContent = 'Waiting';
 		emptySlotRow.appendChild(stateCell);
 
 		const actionCell = document.createElement('td');
@@ -807,7 +803,7 @@ export default class MatchmakingView extends BaseView {
 		if (this.isHost && addButton) {
 			const addBotButton = document.createElement('button');
 			addBotButton.className = 'btn btn-info';
-			addBotButton.textContent = 'Ajouter un bot';
+			addBotButton.textContent = 'Add bot';
 			addBotButton.onclick = () => {
 				this.isReady = false;
 				this.addBot();
@@ -944,9 +940,9 @@ export default class MatchmakingView extends BaseView {
 	be_invited(message)
 	{
 			let modal = new bootstrap.Modal(document.getElementById('receiveInvitation'));
-            const invite = document.getElementById('invitation');
+            const inviteContainer = document.getElementById('invitation');
+			const joinButton = document.getElementById('inviteJoinBtn');
             const inviteText = document.getElementById('inviteText');
-            const buttonContainer = document.getElementById('buttonContainer');
 
             let inviting_player = message.invite_from;
             const lobby_id = message.lobby_id;
@@ -956,19 +952,11 @@ export default class MatchmakingView extends BaseView {
                 inviteText.textContent = `${inviting_player} wants to challenge you!`;
             });
 
-            // Clear existing content
-            buttonContainer.innerHTML = '';
-
-            // Create and append the join button
-            const joinButton = document.createElement('button');
-            joinButton.className = "btn btn-success btn-lg";
-            joinButton.textContent = "Join Game";
             joinButton.onclick = () => {
                 modal.hide();
 				this.isHost = false;
                 this.joinLobby(lobby_id);
             };
-            buttonContainer.appendChild(joinButton);
 
             modal.show();
         }
@@ -1035,22 +1023,6 @@ export default class MatchmakingView extends BaseView {
 
 	addBot() {
 		this.sendMessage({ type: 'add_bot' });
-	}
-
-	openLobbyOptions() {
-		new bootstrap.Modal(document.getElementById('lobbyOptionsModal')).show();
-	}
-
-	saveLobbyOptions() {
-		const options = {
-			gameType: document.getElementById('gameType').value,
-			lobbyName: document.getElementById('lobbyNameInput').value,
-			slotCount: document.getElementById('slotCount').value,
-			livesCount: document.getElementById('livesCount').value,
-			allowSpectators: document.getElementById('allowSpectators').checked
-		};
-
-		this.sendMessage({ type: 'updateLobbyOptions', options }).catch((error) => this.errorHandler(error));
 	}
 
 	showOnlinePlayers() {
@@ -1210,13 +1182,11 @@ export default class MatchmakingView extends BaseView {
         }
 
 		this.showOnlinePLayersButton.removeEventListener('click', this.showOnlinePlayers);
-		this.openLobbyOptionsButton.removeEventListener('clck', this.openLobbyOptions);
 		//this.startGameButton.removeEventListener('click', this.startGame);
 		this.inviteFriendsButton.removeEventListener('click', this.inviteFriends);
 		this.leaveLobbyButton.removeEventListener('click', this.leaveLobby);
 		this.joinLobbyButton.removeEventListener('click', this.joinLobbyById);
 		this.createLobbyButton.removeEventListener('click', this.createLobby);
-		this.saveLobbyOptionsButton.removeEventListener('click', this.saveLobbyOptions);
 
 		document.querySelectorAll('.modal').forEach(function(modalElem) {
 			const myModal = bootstrap.Modal.getOrCreateInstance(modalElem);
