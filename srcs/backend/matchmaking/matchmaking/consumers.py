@@ -622,8 +622,8 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 			await self._send_error(msg='Invalid message format', code=Errors.INVALID_TYPE, close=False)
 		elif not self._lobby_id or str(lobbies[self._lobby_id]) != "local_tournament_lobby":
 			await self._send_error(msg='Your are not in a local tournament lobby', code=Errors.INVALID_TYPE, close=False)
-		elif await lobbies[self._lobby_id].start_game(content['lobby_id']):
-			await self.game_start({'type': 'game_start', 'websocket_id' : content['lobby_id'], 'game_type': lobbies[self._lobby_id].tournament.game_type})
+		elif await lobbies[self._lobby_id].start_game(content['lobby_id']) != None:
+			await self.game_start({'type': 'game_start', 'websocket_id' : lobbies[self._lobby_id].id, 'game_type': lobbies[self._lobby_id].tournament.game_type})
 		else:
 			await self._send_error(msg='Failed to start game from the backend side', code=Errors.HOST_ERROR, close=False)
 

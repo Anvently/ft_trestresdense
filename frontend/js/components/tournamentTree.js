@@ -256,7 +256,7 @@ export default class TournamentTree extends ComponentView {
 }
 
 export class LocalTournamentTree extends TournamentTree {
-	constructor(tournamentId, buttonCreationHandler, tournamentData = undefined) {
+	constructor(tournamentId, buttonActionHandler, tournamentData = undefined) {
 		super(tournamentId, tournamentData);
 		this.htmlContent += `
 			<style>
@@ -266,7 +266,7 @@ export class LocalTournamentTree extends TournamentTree {
 				
 			</style>
 		`;
-		this.buttonCreationHandler = buttonCreationHandler;
+		this.buttonActionHandler = buttonActionHandler;
 		this.divHeight = 155;
 		this.spacing = 10;
 		this.marginsTop = [
@@ -276,15 +276,78 @@ export class LocalTournamentTree extends TournamentTree {
 		];
 	}
 
+	// organizeMatches(lobbies_set, nbr_rounds) {
+	// 	const rounds = super.organizeMatches(lobbies_set, nbr_rounds);
+	// 	for (var i = 0; i < nbr_rounds; i++) {
+	// 		for (var y = 0; y < 2 ** i; y++) {
+	// 			if (rounds[i][y].status === "terminated")
+	// 				rounds[i][y].completed = true;
+	// 			else
+	// 				rounds[i][y].completed = false;
+	// 		}
+	// 	}
+	// 	return rounds;
+	// }
+
 	async createMatchElement(match) {
 		console.log(match);
-		const matchDiv = await super.createMatchElement(match);
-		const button = document.createElement('button');
-		button.classList = "btn btn-primary";
-		this.buttonCreationHandler(button, match);
-		matchDiv.appendChild(button);
+		const matchDiv = document.createElement('div');
+		matchDiv.classList.add('match')
+		if (!match.completed)
+			matchDiv.classList.add('not-completed');
+		matchDiv.innerHTML = await this.createMatchHTML(match);
+		if (match.status === "ready") {
+			const button = document.createElement('button');
+			button.classList = "btn btn-primary";
+			button.innerText = "Demarrer";
+			button.addEventListener('click', async (e) => {
+				e.preventDefault();
+				await this.buttonActionHandler(match);
+			});
+			matchDiv.appendChild(button);
+		}
 		return matchDiv;
 	}
 
+	async createMatchHTML(match) {
+		var htmlContent = "";
+
+		if (match.completed) {
+			if (match.status === "terminated") {
+				await match.scores_set.forEach(async score => {
+					const player = new User(score.username, await userManager.getUserInfo(score.username));
+					htmlContent += `
+					<div class="user-info user-${player.username} player ${score.has_win ? 'winner' : ''}">
+						<div class="user-status user-status ${player.is_online ? 'online' : 'offline'}">
+							<img src="${player.avatar}"
+							class="user-avatar user-avatar"
+							onclick="window.location.href='#user?username=${player.username}'">
+						</div>
+						<span class="user-name">${player.display_name}</span>
+						<span>${score.score}</span>
+					</div>
+					`;
+				});
+			} else {
+				await match.players.forEach(async player => {
+					const playerObj = new User(player, await userManager.getUserInfo(player));
+					htmlContent += `
+					<div class="user-info user-${playerObj.username} player">
+						<div class="user-status user-status ${playerObj.is_online ? 'online' : 'offline'}">
+							<img src="${playerObj.avatar}"
+							class="user-avatar user-avatar"
+							onclick="window.location.href='#user?username=${playerObj.username}'">
+						</div>
+						<span class="user-name">${playerObj.display_name}</span>
+					</div>
+					`;
+				});
+			}
+		} else {
+			htmlContent = `<p>En attente...</p>`;
+		}
+
+		return htmlContent;
+	}
 
 }

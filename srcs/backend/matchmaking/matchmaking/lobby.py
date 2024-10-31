@@ -429,7 +429,7 @@ class TournamentMatchLobby(Lobby):
 	async def handle_results(self, results: Dict[str, Any]):
 		if self.tournament_id in tournaments: #Probably not necessary to check that
 			await super().handle_results(results)
-			await tournaments[self.tournament_id].handle_result(results)
+			tournaments[self.tournament_id].handle_result(results)
 		self.delete()
 
 	async def handle_default_results(self, leaver_id):
@@ -517,8 +517,12 @@ class LocalTournamentLobby(Lobby):
 			'game_name': self.tournament.game_type,
 			'date': self.created_at,
 			'number_players': self.tournament.number_players,
-			'lobbies_set': [match for match in self.tournament.matches]
+			'match_type': str(self),
+			'lobbies_set': [match for id, match in self.tournament.matches.items()]
 		}
+	
+	def __str__(self) -> str:
+		return "local_tournament_lobby"
 
 class LocalTournamentInitialLobby(LocalMatchLobby):
 	def __init__(self, settings: Dict[str, Any]) -> None:

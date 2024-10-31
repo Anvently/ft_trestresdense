@@ -185,6 +185,8 @@ class LocalTournament(Tournament):
 				'status': 'ready',
 				'players' : [self.players[2*i], self.players[2*i + 1]],
 				'lobby_name': self.generate_match_name(self.get_max_stage(self.number_players), i)})
+			if (not any(player[0] != '!' for player in self.matches[id]['players'])):
+				self.handle_bot_match(self.matches[id])
 		online_players[self.hostname]['lobby_id'] = self.id
 		online_players[self.hostname]['status'] = PlayerStatus.IN_LOCAL_TOURNAMENT_LOBBY
 
@@ -203,24 +205,25 @@ class LocalTournament(Tournament):
 			'lobby_id': id,
 			'lobby_name': self.generate_match_name(previous_stage - 1, int(previous_idx / 2)),
 			'status': 'not_ready',
-			'players': {}
+			'players': []
 		}
 		return id
 
-	async def handle_bot_match(self, match: Dict[str, Any]):
+	def handle_bot_match(self, match: Dict[str, Any]):
 		match['scores_set'] = []
-		match['scores_set'].append({'username' : match['players'][0], 'score' : self.settings['lives'], 'has_win' : True})
+		match['scores_set'].append({'username' : match['players'][0], 'score' : self.default_settings['lives'], 'has_win' : True})
 		match['scores_set'].append({'username' : match['players'][1], 'score' : 0, 'has_win' : False})
-		await self.handle_results(match)
+		self.handle_result(match, match['lobby_id'])
 
-	async def handle_result(self, results: Dict[str, Any]):
+	def handle_result(self, results: Dict[str, Any], lobby_id = None):
 		""" Instantiate the next lobby if any. Assign the winner
 		 to its and update loser's status. """
 		from matchmaking.consumers import MatchMakingConsumer
 		if results['status'] == 'cancelled':
 			self.delete()
 			return
-		lobby_id:str = self.current_match_id
+		if not lobby_id:
+			lobby_id:str = self.current_match_id
 		self.matches[lobby_id]['status'] = 'terminated'
 		self.matches[lobby_id]['scores_set'] = results['scores_set']
 		stage, match_idx = Tournament.extract_id_info(lobby_id)
@@ -233,7 +236,7 @@ class LocalTournament(Tournament):
 				if (len(self.matches[next_match_id]['players']) == 2):
 					self.matches[next_match_id]['status'] = 'ready'
 					if (not any(player[0] != '!' for player in self.matches[next_match_id]['players'])):
-						await self.handle_bot_match(self.matches[next_match_id])
+						self.handle_bot_match(self.matches[next_match_id])
 				break
 
 
@@ -244,7 +247,10 @@ class LocalTournament(Tournament):
 				'game_name': self.game_type,
 				'game_id': self.id,
 				'hostname': self.hostname,
-				'settings': self.default_settings,
+				'settings': {
+					"nbr_players": 2,
+					"lives": self.default_settings['lives']
+				},
 				'player_list': match['players']
 			}
 			response = await sync_to_async(requests.post)('http://pong:8002/init-game/?format=json',
@@ -261,6 +267,6 @@ class LocalTournament(Tournament):
 			raise Exception(f"Invalid id ({lobby_id}) for local tournament {self.tournament.id}")
 		except Exception as e:
 			print(f"ERROR: Failed to post game initialization to pong api: {e}")
-			return False
+			return None
 		self.current_match_id = match['lobby_id']
-		return True
+		return self.id

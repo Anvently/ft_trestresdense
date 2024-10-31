@@ -626,15 +626,8 @@ export default class MatchmakingView extends BaseView {
 
 		if (message.match_type === "local_tournament_lobby") {
 			document.getElementById('lobbyPlayersTable').classList.add('d-none');
-			this.localTournamentTree = LocalTournamentTree(message.lobby_id, (button, match) => {
-				if (match.status === 'ready') {
-					button.innerText = "Demarrer";
-					button.onclick = async (match) => {
-						await this.sendMessage({type: 'start_game', lobby_id: match.lobby_id});
-					};
-				} else {
-					button.classList.add('d-none');
-				}
+			this.localTournamentTree = new LocalTournamentTree(message.lobby_id, async (match) => {
+				await this.sendMessage({type: 'start_game', lobby_id: match.lobby_id});
 			}, message);
 			this.localTournamentTree.init(document.getElementById("lobbyContainer"));
 		} else {
