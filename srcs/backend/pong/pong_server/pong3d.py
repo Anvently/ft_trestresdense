@@ -44,7 +44,7 @@ BALL_START = {"x": 0, "y": 0, "r": BALL_RADIUS, "speed": {"x": 0, "y": 0}, "last
 
 
 class Player3D(Player):
-	def __init__(self, player_id, position, lives=0):
+	def __init__(self, player_id, position, lives=1):
 		super().__init__(player_id, position, lives)
 		self.destination = {"x": 0, "y": 0}
 		self.points = 0
@@ -289,10 +289,10 @@ class PongLobby3D(PongLobby):
 	# 	return False
 
 	def check_winner(self) -> str:
-		if self.players[0].points >= self.points_to_win and self.players[0].points >= self.players[1].points + 2:
+		if (self.players[0].points >= self.points_to_win and self.players[0].points >= self.players[1].points + 2) or self.players[1].lives == 0:
 			print(f"Lobby {self.lobby_id}: Winner is :", self.players[0].player_id)
 			return self.players[0].player_id
-		elif self.players[1].points >= self.points_to_win and self.players[1].points >= self.players[0].points + 2:
+		elif (self.players[1].points >= self.points_to_win and self.players[1].points >= self.players[0].points + 2) or self.players[0].lives == 0:
 			print(f"Lobby {self.lobby_id}: Winner is:", self.players[1].player_id)
 			return self.players[1].player_id
 		return ''
