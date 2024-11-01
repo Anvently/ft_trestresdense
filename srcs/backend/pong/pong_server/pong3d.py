@@ -88,16 +88,17 @@ class Player3D(Player):
 
 		self.destination["y"] = -ballY
 
-		rand = random.randint(0, 1)
+		rand = random.randint(0, 5)
 
 		if is_service and ballX * PADDLE_LEFT_DIR[self.side] > 0: #AI serves
 				self.destination["x"] = 0
 				self.destination["y"] = 0.6 * (PADDLE_LENGTH / 2)
-				if rand:
+				if rand % 2:
 					self.destination["y"] *= -1
 		elif self.side == WEST and ballSpeedX < 0 or self.side == EAST and ballSpeedX > 0:
 			self.destination["y"] = self.calculate_impact(ballX, ballY, ballSpeedX, ballSpeedY)
-			self.destination["y"] *= 1.01
+			# self.destination["y"] *= 1.02
+			self.destination["y"] *= (0.98 + 0.01 * rand)
 
 
 	def calculate_impact(self, ballX, ballY, ballSpeedX, ballSpeedY):

@@ -93,6 +93,7 @@ export default class Pong2DView extends BaseView {
 			ball: null,
 			paddle:[],
 			paddleLight:[],
+			nameTag:[null, null, null, null],
 			scoreBoard:[
 				{name: null, lives: null},
 				{name: null, lives: null},
@@ -223,8 +224,9 @@ export default class Pong2DView extends BaseView {
 
 	onGameStart() {
 		console.log("onGameStart");
-		this.createScoreBoard();
 		this.findPlayerDirection();
+		this.createScoreBoard();
+		this.createNameTag();
 		this.setupInputListeners();
 		this.startGameLoop();
 
@@ -259,7 +261,6 @@ export default class Pong2DView extends BaseView {
 	}
 
 	handleInput() {
-		console.log(this.direction)
 		if (this.socket && this.socket.readyState === WebSocket.OPEN) {
 			this.sendInput();
 		}
@@ -395,7 +396,6 @@ export default class Pong2DView extends BaseView {
 	// }
 
 	handleKeyDown(e, player, direction) {
-		console.log("handleKeyDown : " + e.key);
 		if (e.key === CONTROLS[player][direction].up) 
 			this.pressKey[player].key_up = true;
 		else if (e.key === CONTROLS[player][direction].down) 
@@ -403,12 +403,13 @@ export default class Pong2DView extends BaseView {
 	}
 
 	handleKeyUp(e, player, direction) {
-		console.log("handleKeyUp : " + e.key);
 		if (e.key === CONTROLS[player][direction].up) this.pressKey[player].key_up = false;
 		else if (e.key === CONTROLS[player][direction].down) this.pressKey[player].key_down = false;
 	}
 
 	resize() {
+		const resolutionScale = 1;
+
 		var newWidth = window.innerWidth;
 		var newHeight = window.innerWidth;
 		if (window.innerHeight < window.innerWidth) {
@@ -416,16 +417,9 @@ export default class Pong2DView extends BaseView {
 			newHeight = window.innerHeight;
 		}
 
-		newWidth *= 0.9;
-		newHeight *= 0.9;
-
-		var pixelRatio = 1;
-		if (newWidth > 400) {
-			pixelRatio = 400 / newWidth;
-		}
-		this.renderer.setPixelRatio( window.devicePixelRatio * pixelRatio);
-		console.log("pixelRatio = " + this.renderer.getPixelRatio());
-		this.renderer.setSize(newWidth, newHeight);
+		this.renderer.setSize(newWidth * resolutionScale, newHeight * resolutionScale);
+		this.renderer.domElement.style.width = `${newWidth * 0.85}px`;
+		this.renderer.domElement.style.height = `${newHeight * 0.85}px`;
 	}
 
 
@@ -433,6 +427,7 @@ export default class Pong2DView extends BaseView {
 	{
 		this.updateBall();
 		this.updatePaddles();
+		this.updateNameTag();
 		this.updateScoreBoard();
 		if (this.game_state === 3)
 			this.drawGameOver();
@@ -473,6 +468,16 @@ export default class Pong2DView extends BaseView {
 				this.objects.environment.wall[dir].position.z = 0
 				this.objects.paddle[dir].position.z = -1;
 				this.objects.paddleLight[dir].position.z = -1;
+			}
+		}
+	}
+
+	updateNameTag() {
+		for (let i = 0; i < this.number_of_players; i++) {
+			if (this.objects.nameTag[i]) {
+				this.objects.nameTag[i].position.x = this.objects.paddle[i].position.x;
+				this.objects.nameTag[i].position.y = this.objects.paddle[i].position.y;
+				this.objects.nameTag[i].position.z = this.objects.paddle[i].position.z + 0.5;
 			}
 		}
 	}
@@ -576,7 +581,7 @@ export default class Pong2DView extends BaseView {
 	}
 
 	createRenderer() {
-		this.renderer = new THREE.WebGLRenderer();
+		this.renderer = new THREE.WebGLRenderer({ antialias: true });
 		this.renderer.setSize(1200, 1200);
 		this.renderer.shadowMap.enabled = true;
 		this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -647,6 +652,19 @@ export default class Pong2DView extends BaseView {
 		}
 	}
 
+	createNameTag() {
+		for (let i = 0; i < this.number_of_players; i++) {
+			if (this.direction != i) {
+				var name = this.players[i].id;
+				if (name[0] == '!')
+					name = 'AI';
+				const sprite = createTextSprite(name, 'white', 1);
+				this.objects.nameTag[i] = sprite;
+				this.scene.add(sprite);
+			}
+		}
+	}
+
 	async createGameOver() {
 		{
 			var geometry = new TextGeometry(`[press SPACE to continue]`, {
@@ -692,9 +710,39 @@ export default class Pong2DView extends BaseView {
 	}
 
 ////////////////////////////////////////////////////////////////////////////////
+}
 
+function createTextSprite(message, color, size) {
+	console.log("createTextSprite");
+	const fontSize = 40;
 
+	const tempCanvas = document.createElement('canvas');
+	const tempContext = tempCanvas.getContext('2d');
+	tempContext.font = `${fontSize}px Arial`;
+	const textWidth = tempContext.measureText(message).width;
 
+	const canvas = document.createElement('canvas');
+	canvas.width = textWidth;
+	canvas.height = fontSize * 1.2;
+
+	const context = canvas.getContext('2d');
+	context.font = `${fontSize}px Arial`;
+	context.fillStyle = color;
+
+	context.clearRect(0, 0, canvas.width, canvas.height);
+
+	const xPosition = (canvas.width - textWidth) / 2; // Center the text
+	context.fillText(message, xPosition, fontSize) ; // Draw the text
+
+	const texture = new THREE.Texture(canvas);
+	texture.needsUpdate = true;
+
+	const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
+	const sprite = new THREE.Sprite(spriteMaterial);
+
+	sprite.scale.set((textWidth / fontSize) * size, size, size)
+
+	return sprite;
 }
 
 function centerTextGeometry(geometry) {
