@@ -118,7 +118,7 @@ class Player3D(Player):
 
 class PongLobby3D(PongLobby):
 	service_direction = -1
-	service_count = 0
+	service_count = -1
 	is_service = False
 
 	def __init__(self, lobby_id: str, players_list: List[str], settings: Dict[str, Any], tournId=None) -> None:
@@ -176,6 +176,13 @@ class PongLobby3D(PongLobby):
 			direction = EAST
 		else:
 			return
+
+		if self.is_service and time.time() - 5 >= self.service_time:
+			print("service direction = ", self.service_direction)
+			self.ball["speed"]["x"] = MIN_SPEED * (-self.service_direction)
+			self.ball["last_hit"]["x"] = self.ball["x"]
+			self.ball["last_hit"]["y"] = self.ball["y"]
+			self.is_service = False
 
 		if check_collision((self.players[direction].coordinates["x"], self.players[direction].coordinates["y"]),
 										self.players[direction].coordinates["width"],
@@ -315,6 +322,14 @@ class PongLobby3D(PongLobby):
 
 	def	reset_ball(self):
 		self.is_service = True
+		self.service_time = time.time()
+
+		# alternate every 2 services
+		self.service_count += 1
+		print("service count = ", self.service_count)
+		if self.service_count >= 2:
+			self.service_count = 0
+			self.service_direction *= -1
 
 		self.ball["last_hit"]['x'] = -REBOUND_LINE_X * self.service_direction
 		self.ball["last_hit"]['y'] = 0
@@ -331,12 +346,6 @@ class PongLobby3D(PongLobby):
 		self.players[WEST].coordinates["y"] = 0
 		self.players[EAST].coordinates["x"] = TABLE_LENGHT/2 + 0.1
 		self.players[EAST].coordinates["y"] = 0
-
-		# alternate every 2 services
-		self.service_count += 1
-		if self.service_count >= 2:
-			self.service_count = 0
-			self.service_direction *= -1
 
 
 	def generate_JSON(self) -> Dict[str, Any]:
