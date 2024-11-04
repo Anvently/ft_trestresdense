@@ -168,8 +168,9 @@ export default class Pong2DView extends BaseView {
 
 	async handleWebSocketMessage(msg) {
 		if (!msg["type"]) return;
-		if (msg["type"] === "ping") 
+		if (msg["type"] === "ping") {
 			await this.sendJoinGame(msg);
+		}
 		else if (msg["type"] === "send_game_state")
 			await this.updateGameState(msg);
 	}
@@ -239,6 +240,7 @@ export default class Pong2DView extends BaseView {
 		// this.createNameTag();
 		if (!this.isSpectator) this.setupInputListeners();
 		this.startGameLoop();
+		this.resize();
 
 		this.gameHasStarted = true;
 	}
@@ -246,12 +248,12 @@ export default class Pong2DView extends BaseView {
 	displayControls() {
 		if (this.isLocalMatch) {
 			console.log("local");
-			document.getElementById('controls-local').style.display = 'block';  // Show local controls
-			document.getElementById('controls-online').style.display = 'none';   // Hide online controls
+			document.getElementById('controls-local').classList.remove('d-none');  // Show local controls
+			document.getElementById('controls-online').classList.add('d-none');   // Hide online controls
 		} else {
 			console.log("online");
-			document.getElementById('controls-online').style.display = 'block'; // Show online controls
-			document.getElementById('controls-local').style.display = 'none';   // Hide local controls
+			document.getElementById('controls-online').classList.remove('d-none'); // Show online controls
+			document.getElementById('controls-local').classList.add('d-none');   // Hide local controls
 		}
 	}
 
@@ -433,14 +435,19 @@ export default class Pong2DView extends BaseView {
 
 		var newWidth = window.innerWidth;
 		var newHeight = window.innerWidth;
-		if (window.innerHeight < window.innerWidth) {
-			newWidth = window.innerHeight;
-			newHeight = window.innerHeight;
+		if (window.innerHeight * 0.7 < window.innerWidth) {
+			newWidth = window.innerHeight * 0.7;
+			newHeight = window.innerHeight * 0.7;
 		}
-
-		this.renderer.setSize(newWidth * resolutionScale, newHeight * resolutionScale);
-		this.renderer.domElement.style.width = `${newWidth * 0.7}px`;
-		this.renderer.domElement.style.height = `${newHeight * 0.7}px`;
+		var navHeight = document.querySelector('.navbar').clientHeight;
+		const controlDiv = document.querySelector('.controls:not(.d-none)');
+		var controlsHeight = controlDiv ? controlDiv.clientHeight : 0;
+		var scoreHeight = document.querySelector('#scoreboard').clientHeight;
+		var maxHeight = window.innerHeight - (navHeight + controlsHeight + scoreHeight + 50);
+		newWidth = (newWidth > maxHeight ? maxHeight : newWidth);
+		this.renderer.domElement.style.width = `${newWidth}px`;
+		this.renderer.domElement.style.height = `${newWidth}px`;
+		// const 
 	}
 
 
@@ -610,7 +617,9 @@ export default class Pong2DView extends BaseView {
 
 	createRenderer() {
 		this.renderer = new THREE.WebGLRenderer({ antialias: true });
+		// const containerCanva = document.getElementById('container-canva');
 		this.renderer.setSize(1200, 1200);
+		// this.renderer.setSize(containerCanva.clientWidth, containerCanva.clientHeight);
 		this.renderer.shadowMap.enabled = true;
 		this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 		document.getElementById('container-canva').appendChild(this.renderer.domElement);

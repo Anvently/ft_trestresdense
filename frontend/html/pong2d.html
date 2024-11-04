@@ -39,7 +39,9 @@
 		#wrapper {
 			display: flex;
 			flex-direction: column;
-			height: 100vh;
+			/* height: 100vh; */
+			align-items: center;
+			gap: 10px;
 		}
 
 		#container-canva {
@@ -47,17 +49,25 @@
 			flex-direction: column;
 			justify-content: center;
 			align-items: center;
+			width: fit-content;
+			height: fit-content;
+			max-width: 1200px;
+			max-height: 1200px;
+			/* width: 1200px; */
+			/* height: 1200px; */
 		}
 
 		#scoreboard {
+			position: fixed;
+			bottom: 0px;
+			left: 0px;
 			display: flex;
-			flex-wrap: wrap;
+			flex-wrap: nowrap;
 			justify-content: space-around;
 			width: 100%;
-			margin-top: 10px;
-			background-color: #f0f0f0;
+			background-color: var(--bs-secondary-bg-subtle);
 			padding: 10px;
-			border-radius: 8px;
+			/* border-radius: 8px; */
 		}
 
 		.player-info {
@@ -79,14 +89,18 @@
 		}
 
 		.controls {
-			background-color: #ffffff; /* White background for controls */
+			/* background-color: #ffffff; White background for controls */
 			padding: 15px;
 			border-radius: 8px;
-			box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Subtle shadow for depth */
-			margin: 20px;
+			box-shadow: 0 4px 8px var(--bs-secondary); /* Subtle shadow for depth */
 			text-align: center; /* Center text */
+			width: 100%;
 		}
 
+		.controls p {
+			margin: 0px;
+		}
+	
 		.control-description {
 			font-size: 1.1em; /* Slightly larger description */
 			color: #666; /* Lighter text color for description */
@@ -96,11 +110,28 @@
 			font-weight: bold; /* Emphasize control keys */
 			color: #007bff; /* Blue color for emphasis */
 		}
+
+		footer {
+			display: none;
+		}
+
 	</style>
 </head>
 <body>
 	<div id="wrapper">
-	<div id="container-canva">
+		<div id="controls-local" class="controls d-none">
+			<p class="control-description">
+				Control Player 1: <span class="control-key">W/S</span><br>
+				Control Player 2: <span class="control-key">↑/↓</span>
+			</p>
+		</div>
+		<div id="controls-online" class="controls d-none">
+			<p class="control-description">
+				Use the <span class="control-key">directional arrows</span> to move.
+			</p>
+		</div>
+		<div id="container-canva">
+		</div>
 	</div>
 	<div id="scoreboard">
 		<div class="player-info" id="player0" style="display: none;">
@@ -124,18 +155,5 @@
 			<span class="player-score">0</span>
 		</div>
 	</div>
-	<div id="controls-local" class="controls">
-		<p class="control-description">
-			Control Player 1: <span class="control-key">W/S</span><br>
-			Control Player 2: <span class="control-key">↑/↓</span>
-		</p>
-	</div>
-	<div id="controls-online" class="controls" style="display: none;">
-		<p class="control-description">
-			Use the <span class="control-key">directional arrows</span> to move.
-		</p>
-	</div>
-</div>
-
 </body>
 </html>
