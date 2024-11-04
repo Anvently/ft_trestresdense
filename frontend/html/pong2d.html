@@ -77,6 +77,25 @@
 		.player-score {
 			font-size: 1.2em;
 		}
+
+		.controls {
+			background-color: #ffffff; /* White background for controls */
+			padding: 15px;
+			border-radius: 8px;
+			box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Subtle shadow for depth */
+			margin: 20px;
+			text-align: center; /* Center text */
+		}
+
+		.control-description {
+			font-size: 1.1em; /* Slightly larger description */
+			color: #666; /* Lighter text color for description */
+		}
+
+		.control-key {
+			font-weight: bold; /* Emphasize control keys */
+			color: #007bff; /* Blue color for emphasis */
+		}
 	</style>
 </head>
 <body>
@@ -104,6 +123,17 @@
 			<span class="player-name" style="color: magenta;">Player 4:</span>
 			<span class="player-score">0</span>
 		</div>
+	</div>
+	<div id="controls-local" class="controls">
+		<p class="control-description">
+			Control Player 1: <span class="control-key">W/S</span><br>
+			Control Player 2: <span class="control-key">↑/↓</span>
+		</p>
+	</div>
+	<div id="controls-online" class="controls" style="display: none;">
+		<p class="control-description">
+			Use the <span class="control-key">directional arrows</span> to move.
+		</p>
 	</div>
 </div>
 
