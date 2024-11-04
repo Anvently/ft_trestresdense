@@ -54,6 +54,7 @@ const textureLoader = new THREE.TextureLoader();
 export default class Pong3DView extends BaseView {
 	constructor() {
 		super("pong3d-view");
+		this.isSpectator = true;
 		this.initialize();
 	}
 
@@ -150,9 +151,27 @@ export default class Pong3DView extends BaseView {
 	async handleWebSocketMessage(msg) {
 		if (!msg["type"]) return;
 		if (msg["type"] == "ping")
-			this.socket.send(JSON.stringify({ type: "join_game", username: `${authenticatedUser.username}` }));
+			this.sendJoinGame(msg);
 		else if (msg["type"] === "send_game_state")
 			await this.updateGameState(msg);
+	}
+
+	isGuestId(id) {
+		if (id.includes(".") && id.indexOf(".") > 0)
+			return true;
+		return false;
+	}
+
+	sendJoinGame(msg) {
+		console.log(msg);
+		for (let i = 0; i < msg.player_list.length; i++) {
+			if (msg.player_list[i] === authenticatedUser.username || msg.player_list[i].split('.')[0] === authenticatedUser.username) {
+				if (this.isGuestId(msg.player_list[i])) this.isLocalMatch = true;
+				this.isSpectator = false;
+				console.log(`${msg.player_list[i]} joined the game`);
+				this.socket.send(JSON.stringify({ type: "join_game", username: `${msg.player_list[i]}` }));
+			}
+		}
 	}
 
 	async updateGameState(msg) {
@@ -197,7 +216,7 @@ export default class Pong3DView extends BaseView {
 		this.findPlayerDirection();
 		this.createScoreBoards();
 		this.createNameTag();
-		this.setupInputListeners();
+		if (!this.isSpectator) this.setupInputListeners();
 		this.startGameLoop();
 	}
 
