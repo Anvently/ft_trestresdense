@@ -1,7 +1,6 @@
 ./manage.py makemigrations
 ./manage.py migrate
 
-echo ded $PRODUCTION def
 if [ -z "$PRODUCTION" ]; then
 	export DJANGO_SUPERUSER_PASSWORD=admin
 	export DJANGO_SUPERUSER_USERNAME=admin
