@@ -106,7 +106,7 @@ export default class Pong2DView extends BaseView {
 		};
 		this.font = null;
 
-		this.playerInfos = [];
+		this.playerInfos = {};
 		this.scene = null;
 		this.camera = null;
 		this.renderer = null;
@@ -150,7 +150,7 @@ export default class Pong2DView extends BaseView {
 			// this.startGameLoop();
 		}
 
-		this.socket.onmessage = (e) => this.handleWebSocketMessage(JSON.parse(e.data));
+		this.socket.onmessage =async (e) => await this.handleWebSocketMessage(JSON.parse(e.data));
 		this.socket.onerror = (error) => console.error('WebSocket error:', error);
 		this.socket.onclose = () => console.log('WebSocket is closed now.');
 		this.connectionTimeout = setTimeout(() => {
@@ -163,15 +163,15 @@ export default class Pong2DView extends BaseView {
 		  }, 1000);
 	}
 
-	handleWebSocketMessage(msg) {
+	async handleWebSocketMessage(msg) {
 		if (!msg["type"]) return;
 		if (msg["type"] === "ping") 
-			this.sendJoinGame(msg);
+			await this.sendJoinGame(msg);
 		else if (msg["type"] === "send_game_state")
-			this.updateGameState(msg);
+			await this.updateGameState(msg);
 	}
 
-	sendJoinGame(msg) {
+	async sendJoinGame(msg) {
 		for (let i = 0; i < 4; i++) {
 			if (msg.player_list[i] === authenticatedUser.username || msg.player_list[i].split('.')[0] === authenticatedUser.username) {
 				if (this.isGuestId(msg.player_list[i])) this.isLocalMatch = true;
@@ -179,10 +179,19 @@ export default class Pong2DView extends BaseView {
 				console.log(`${msg.player_list[i]} joined the game`);
 				this.socket.send(JSON.stringify({ type: "join_game", username: `${msg.player_list[i]}` }));
 			}
+			if (msg.player_list[i] !== '!wall') {
+				if (msg.player_list[i][0] === '!') {
+					this.playerInfos[msg.player_list[i]] = new User('!bot');
+				} else {
+					const user = new User(msg.player_list[i], await userManager.getUserInfo(msg.player_list[i], false, true));
+					this.playerInfos[msg.player_list[i]] = user;
+				}
+			} 
 		}
+		console.log(this.playerInfos);
 	}
 
-	updateGameState(msg) {
+	async updateGameState(msg) {
 		this.number_of_players = parseInt(msg.number_of_players);
 		this.ball.x = parseFloat(msg.ball_x);
 		this.ball.y = parseFloat(msg.ball_y);
@@ -649,12 +658,12 @@ export default class Pong2DView extends BaseView {
 	}
 
 	createNameTag() {
+		console.log(this.playerInfos);
 		for (let i = 0; i < this.number_of_players; i++) {
+			console.log(i, this.direction);
 			if (this.direction != i) {
-				var name = this.players[i].id;
-				if (name[0] == '!')
-					name = 'AI';
-				const sprite = createTextSprite(name, 'white', 1);
+				var id = this.players[i].id;
+				const sprite = createTextSprite(this.playerInfos[id].display_name, 'white', 1);
 				this.objects.nameTag[i] = sprite;
 				this.scene.add(sprite);
 			}

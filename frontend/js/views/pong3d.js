@@ -55,6 +55,7 @@ export default class Pong3DView extends BaseView {
 	constructor() {
 		super("pong3d-view");
 		this.isSpectator = true;
+		this.playerInfos = {};
 		this.initialize();
 	}
 
@@ -151,7 +152,7 @@ export default class Pong3DView extends BaseView {
 	async handleWebSocketMessage(msg) {
 		if (!msg["type"]) return;
 		if (msg["type"] == "ping")
-			this.sendJoinGame(msg);
+			await this.sendJoinGame(msg);
 		else if (msg["type"] === "send_game_state")
 			await this.updateGameState(msg);
 	}
@@ -162,8 +163,7 @@ export default class Pong3DView extends BaseView {
 		return false;
 	}
 
-	sendJoinGame(msg) {
-		console.log(msg);
+	async sendJoinGame(msg) {
 		for (let i = 0; i < msg.player_list.length; i++) {
 			if (msg.player_list[i] === authenticatedUser.username || msg.player_list[i].split('.')[0] === authenticatedUser.username) {
 				if (this.isGuestId(msg.player_list[i])) this.isLocalMatch = true;
@@ -171,6 +171,14 @@ export default class Pong3DView extends BaseView {
 				console.log(`${msg.player_list[i]} joined the game`);
 				this.socket.send(JSON.stringify({ type: "join_game", username: `${msg.player_list[i]}` }));
 			}
+			if (msg.player_list[i] !== '!wall') {
+				if (msg.player_list[i][0] === '!') {
+					this.playerInfos[msg.player_list[i]] = new User('!bot');
+				} else {
+					const user = new User(msg.player_list[i], await userManager.getUserInfo(msg.player_list[i], false, true));
+					this.playerInfos[msg.player_list[i]] = user;
+				}
+			} 
 		}
 	}
 
