@@ -31,6 +31,7 @@ export default class MatchmakingView extends BaseView {
 		this.inviteFriendsButton = document.getElementById('inviteFriendsButton');
 		this.addLocalPlayerButton = document.getElementById('addLocalPlayerButton');
 		this.beReadyButton = document.getElementById('beReadyButton');
+		this.getLobbyIdButton = document.getElementById("getLobbyId");
 		this.leaveLobbyButton = document.getElementById('leaveLobbyButton');
 		this.submitNicknameButton = document.getElementById('submitNicknameButton');
 		this.joinLobbyButton = document.getElementById('joinLobbyButton');
@@ -43,6 +44,8 @@ export default class MatchmakingView extends BaseView {
 		this.createLobbyButton.addEventListener('click', () => this.createLobby());
 		this.submitNicknameButton.addEventListener('click', () => this.submitNickname());
 		this.addLocalPlayerButton.addEventListener('click', () => this.addLocalPlayer());
+		this.getLobbyIdButton.addEventListener('click', () => this.getLobbyId());
+
 
 		document.getElementById('displayBracketButton').addEventListener('click', async () => {
 			if (this.lobbyData && this.lobbyData.tournament_id)
@@ -263,6 +266,19 @@ export default class MatchmakingView extends BaseView {
 		tableElement.appendChild(row);
 	}
 
+	async getLobbyId()
+	{
+		const lobby_id = this.lobbyId;
+		navigator.clipboard.writeText(lobby_id).then(() => {
+			const button = document.getElementById('getLobbyId');
+			const originalText = button.textContent;
+			button.textContent = 'Copied!';
+
+			setTimeout(() => {
+				button.textContent = originalText;
+			}, 2000);
+		}).catch(err => {this.errorHandler('Failed to copy id')});
+	}
 
 	async submitNickname() {
 
@@ -587,6 +603,7 @@ export default class MatchmakingView extends BaseView {
 			document.getElementById('displayBracketButton').classList.remove('d-none');
 			document.getElementById('inviteFriendsButton').classList.add('d-none');
 			document.getElementById('addLocalPlayerButton').classList.add("d-none");
+			document.getElementById('getLobbyId').classList.add("d-none");
 		}
 		else if (message.match_type === "local_match" || message.match_type === "local_tournament_initial_lobby")
 		{
@@ -595,16 +612,20 @@ export default class MatchmakingView extends BaseView {
 			document.getElementById('inviteFriendsButton').classList.add('d-none');
 			document.getElementById('addLocalPlayerButton').classList.remove('d-none');
 			document.getElementById('displayBracketButton').classList.add('d-none');
+			document.getElementById('getLobbyId').classList.add("d-none");
+
 		}
 		else if (message.match_type === "local_tournament_lobby") {
 			document.getElementById('inviteFriendsButton').classList.add('d-none');
 			document.getElementById('addLocalPlayerButton').classList.add('d-none');
 			document.getElementById('displayBracketButton').classList.add('d-none');
+			document.getElementById('getLobbyId').classList.add("d-none");
 		}
 		else {
 			document.getElementById('inviteFriendsButton').classList.remove('d-none');
 			document.getElementById('displayBracketButton').classList.add('d-none');
 			document.getElementById('addLocalPlayerButton').classList.add("d-none");
+			document.getElementById('getLobbyId').classList.remove("d-none");
 		}
 		document.getElementById('lobbyName').textContent = message.name;
 		const lobbyNameEl = document.getElementById('lobbyName');

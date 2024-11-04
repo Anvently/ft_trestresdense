@@ -689,19 +689,6 @@ export default class Pong2DView extends BaseView {
 		}
 	}
 
-	// createNameTag() {
-	// 	console.log(this.playerInfos);
-	// 	for (let i = 0; i < this.number_of_players; i++) {
-	// 		console.log(i, this.direction);
-	// 		if (this.direction != i) {
-	// 			var id = this.players[i].id;
-	// 			const sprite = createTextSprite(this.playerInfos[id].display_name, 'white', 1);
-	// 			this.objects.nameTag[i] = sprite;
-	// 			this.scene.add(sprite);
-	// 		}
-	// 	}
-	// }
-
 	async createGameOver() {
 		{
 			var geometry = new TextGeometry(`[press SPACE to continue]`, {
@@ -722,10 +709,7 @@ export default class Pong2DView extends BaseView {
 		var winner_idx = 0;
 		for (winner_idx = 0; winner_idx < this.number_of_players; winner_idx++) {
 			if (this.players[winner_idx].lives != 0) {
-				var userInfo = await userManager.getUserInfo(this.players[winner_idx].id);
-				console.log(userInfo);
-				if (userInfo && userInfo.display_name)
-					winner = userInfo.display_name;
+				winner = this.playerInfos[this.players[winner_idx].id].display_name
 				break;
 			}
 		}
