@@ -235,11 +235,24 @@ export default class Pong2DView extends BaseView {
 		console.log("onGameStart");
 		this.findPlayerDirection();
 		this.createScoreBoard();
+		this.displayControls();
 		// this.createNameTag();
 		if (!this.isSpectator) this.setupInputListeners();
 		this.startGameLoop();
 
 		this.gameHasStarted = true;
+	}
+
+	displayControls() {
+		if (this.isLocalMatch) {
+			console.log("local");
+			document.getElementById('controls-local').style.display = 'block';  // Show local controls
+			document.getElementById('controls-online').style.display = 'none';   // Hide online controls
+		} else {
+			console.log("online");
+			document.getElementById('controls-online').style.display = 'block'; // Show online controls
+			document.getElementById('controls-local').style.display = 'none';   // Hide local controls
+		}
 	}
 
 	findPlayerDirection() {
@@ -426,16 +439,18 @@ export default class Pong2DView extends BaseView {
 		}
 
 		this.renderer.setSize(newWidth * resolutionScale, newHeight * resolutionScale);
-		this.renderer.domElement.style.width = `${newWidth * 0.8}px`;
-		this.renderer.domElement.style.height = `${newHeight * 0.8}px`;
+		this.renderer.domElement.style.width = `${newWidth * 0.7}px`;
+		this.renderer.domElement.style.height = `${newHeight * 0.7}px`;
 	}
 
 
 	draw3D()
 	{
-		this.updateBall();
-		this.updatePaddles();
-		// this.updateNameTag();
+		if (this.game_state !== 3) {
+			this.updateBall();
+			this.updatePaddles();
+		}
+
 		this.updateScoreBoard();
 		if (this.game_state === 3)
 			this.drawGameOver();
@@ -527,9 +542,11 @@ export default class Pong2DView extends BaseView {
 		for (let i = 0; i < this.number_of_players; i++) {
 			const score = this.players[i].lives;
 			if (this.previous_score[i] !== score) {
+				console.log("score = ", score)
 				let player = document.getElementById(`player${i}`);
 				let player_score = player.querySelector('.player-score');
 				player_score.textContent = score;
+				this.previous_score[i] = score;
 			}
 		}
 	}
