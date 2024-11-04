@@ -301,7 +301,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 
 	async def switch_lobby(self, target_lobby):
 
-		actual_lobby = online_players[self.username]['lobby_id']
+		actual_lobby = self.get_lobby_id()
 		if lobbies[target_lobby].add_player(self.username):
 			lobbies[actual_lobby].remove_player(self.username)
 			await self.channel_layer.group_discard(actual_lobby, self.channel_name)
@@ -309,11 +309,13 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 			online_players[self.username]['status'] = get_status_from_lobby(target_lobby)
 			await self.channel_layer.group_add(target_lobby, self.channel_name)
 			self._lobby_id = target_lobby
+			self._is_host = False
 			await self.send_lobby_update(actual_lobby)
 			await self.send_lobby_update(target_lobby)
 			await self.send_general_update()
 		else:
 			await self._send_error(msg="Could not switch to the requested lobby", code=Errors.JOIN_ERROR, close=False)
+
 
 	async def add_bot(self, content):
 		if self.get_status() == PlayerStatus.IN_LOBBY and self._is_host:
