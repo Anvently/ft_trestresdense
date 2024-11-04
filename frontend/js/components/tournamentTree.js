@@ -160,7 +160,7 @@ export default class TournamentTree extends ComponentView {
 		const rounds = this.organizeMatches(lobbies_set, nbr_rounds);
 		const max_index = nbr_rounds - 1;
 
-		rounds.reverse().forEach((round, roundIndex) => {
+		await Promise.all(rounds.reverse().map(async (round, roundIndex) => {
 			roundIndex = max_index - roundIndex;
 			const roundDiv = document.createElement('div');
 			roundDiv.className = 'round';
@@ -175,14 +175,14 @@ export default class TournamentTree extends ComponentView {
 			// for (var i = 0; i < 2^roundIndex; i++) {
 
 			// }
-			round.forEach(async (match, matchIndex) => {
+			await Promise.all(round.map(async (match, matchIndex) => {
 				const matchDiv = await this.createMatchElement(match, roundIndex, rounds.length);
 				matchContainers[matchIndex].appendChild(matchDiv);
-			});
+			}));
 			
 			matchContainers.forEach(container => roundDiv.appendChild(container));
 			treeContainer.appendChild(roundDiv);
-		});
+		}));
 	}
 	
 	createMatchContainers(max_index, roundIndex, count) {
@@ -228,7 +228,7 @@ export default class TournamentTree extends ComponentView {
 	}
 	
 	getRoundName(index) {
-		const roundNames = ['Finale', 'Demi-finales', 'Quarts de finale'];
+		const roundNames = ['Final', 'Semis', 'Quarters'];
 		return roundNames[index] || `Round ${index + 1}`;
 	}
 	
@@ -236,7 +236,7 @@ export default class TournamentTree extends ComponentView {
 		var htmlContent = "";
 
 		if (match.completed) {
-			await match.scores_set.forEach(async score => {
+			for (const score of match.scores_set) {
 				const player = new User(score.username, await userManager.getUserInfo(score.username));
 				htmlContent += `
 				<div class="user-info user-${player.username} player ${score.has_win ? 'winner' : ''}">
@@ -249,11 +249,10 @@ export default class TournamentTree extends ComponentView {
 					<span>${score.score}</span>
 				</div>
 				`;
-			});
+			}
 		} else {
-			htmlContent = `<p>En attente...</p>`;
+			htmlContent = `<p>Waiting ...</p>`;
 		}
-
 		return htmlContent;
 	}
 }
@@ -302,13 +301,13 @@ export class LocalTournamentTree extends TournamentTree {
 		const button = document.createElement('button');
 		button.classList = "btn btn-primary";
 		if (match.status === "ready")
-			button.innerText = "Demarrer";
+			button.innerText = "Start";
 		else if (match.status === "terminated") {
-			button.innerText = "Termine";
+			button.innerText = "Completed";
 			button.disabled = true;
 		}
 		else {
-			button.innerText = "En attente";
+			button.innerText = "Waiting";
 			button.disabled = true;
 		}
 		button.addEventListener('click', async (e) => {
@@ -324,7 +323,7 @@ export class LocalTournamentTree extends TournamentTree {
 
 		if (match.completed) {
 			if (match.status === "terminated") {
-				await match.scores_set.forEach(async score => {
+				await Promise.all(match.scores_set.map(async score => {
 					const player = new User(score.username, await userManager.getUserInfo(score.username));
 					htmlContent += `
 					<div class="user-info user-${player.username} player ${score.has_win ? 'winner' : ''}">
@@ -337,9 +336,9 @@ export class LocalTournamentTree extends TournamentTree {
 						<span>${score.score}</span>
 					</div>
 					`;
-				});
+				}));
 			} else {
-				await match.players.forEach(async player => {
+				await Promise.all(match.players.map(async player => {
 					const playerObj = new User(player, await userManager.getUserInfo(player));
 					htmlContent += `
 					<div class="user-info user-${playerObj.username} player">
@@ -351,7 +350,7 @@ export class LocalTournamentTree extends TournamentTree {
 						<span class="user-name">${playerObj.display_name}</span>
 					</div>
 					`;
-				});
+				}));
 			}
 		} else {
 			htmlContent = `<p>En attente...</p>`;

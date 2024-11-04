@@ -493,6 +493,7 @@ class LocalTournamentLobby(Lobby):
 		self.created_at = time.time()
 		self.tournament = tournament
 		self.id = self.tournament.id
+		self.game_type = self.tournament.game_type
 
 	async def handle_results(self, results: Dict[str, Any]):
 		online_players[self.tournament.hostname]['status'] = PlayerStatus.IN_LOCAL_TOURNAMENT_LOBBY

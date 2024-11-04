@@ -72,7 +72,8 @@ export default class Pong3DView extends BaseView {
 			paddle:[],
 			scoreBoard:[],
 			environment: {room: null, table: null},
-			nameTag:[null, null]
+			nameTag:[null, null],
+			winnerDisplay: null
 		};
 
 		this.previousScore = [0, 0];
@@ -306,8 +307,83 @@ export default class Pong3DView extends BaseView {
 		this.updateNameTag();
 		this.updateScoreBoard(); //need to update only when there is a goal
 
+		if (this.game_state === 3) {
+			this.drawGameOver();
+		}
+
 		this.renderer.render(this.scene, this.camera);
 	}
+
+	async drawGameOver() {
+		if (this.objects.winnerDisplay == null) {
+			const winnerDisplay = await this.createGameOver();
+
+			const  returnToIndex = (event) => {
+				if (event.code === 'Space') {
+					window.removeEventListener('keydown', returnToIndex);
+					window.location.href = '#';
+				}
+			}
+
+			window.addEventListener('keydown', returnToIndex);
+			this.eventListeners.push( {type: 'keydown', returnToIndex} );
+
+			this.objects.winnerDisplay = winnerDisplay;
+			this.scene.add(this.objects.winnerDisplay);
+		} else {
+			this.objects.winnerDisplay.rotation.z = this.camera.rotation.z;
+		}
+	}
+
+	async createGameOver() {
+		const groupMesh = new THREE.Group();
+
+		{
+			var geometry = new TextGeometry(`[press SPACE to continue]`, {
+				font: this.font,
+				size: 0.5,
+				depth: 0,
+				curveSegments: 24
+			});
+			geometry = centerTextGeometry(geometry);
+			const material = new THREE.MeshBasicMaterial({ color: 0xffffff });
+			const mesh = new THREE.Mesh(geometry, material);
+			mesh.position.set(0, -2, 0);
+			mesh.rotation.set(Math.PI /2, 0, 0)
+
+			groupMesh.add(mesh);
+		}
+
+		var winner = 'AI';
+		var winner_idx = 0;
+		for (winner_idx = 0; winner_idx < this.number_of_players; winner_idx++) {
+			if (this.players[winner_idx].lives != 0) {
+				winner = this.playerInfos[this.players[winner_idx].id].display_name
+				break;
+			}
+		}
+		var geometry = new TextGeometry(`${winner} won the game !`, {
+			font: this.font,
+			size: 2,
+			depth: 0.5,
+			curveSegments: 24
+		});
+		geometry = centerTextGeometry(geometry);
+		const material = new THREE.MeshStandardMaterial({ color: PADDLE_COLOR[winner_idx] });
+		const mesh = new THREE.Mesh(geometry, material);
+
+		mesh.position.set(0, 0, 2);
+		mesh.rotation.set(Math.PI /2, 0, 0)
+
+		mesh.castShadow = true;
+		mesh.receiveShadow = true;
+
+		groupMesh.add(mesh);
+
+		groupMesh.position.set(0, 0, 3)
+		return groupMesh;
+	}
+
 
 	updateBall() {
 		this.objects.ball.position.x = this.ball.x * 10;
@@ -907,4 +983,17 @@ function trackFrequency() {
 		callCount = 0; // Reset call count
 		lastTimestamp = currentTime; // Reset the timestamp
 	}
+}
+
+function centerTextGeometry(geometry) {
+	geometry.computeBoundingBox();
+	const boundingBox = geometry.boundingBox;
+
+	const xOffset = (boundingBox.max.x - boundingBox.min.x) / 2;
+	const yOffset = (boundingBox.max.y - boundingBox.min.y) / 2;
+	const zOffset = (boundingBox.max.z - boundingBox.min.z) / 2;
+
+	geometry.translate(-xOffset, -yOffset, -zOffset);
+
+	return geometry;
 }

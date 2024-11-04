@@ -57,7 +57,7 @@ export default class LobbyView extends BaseView {
 
 	async displayPlayerScores() {
 		const scoreTable = document.getElementById('scores-table');
-		this.lobbyData.scores_set.forEach(async score => {
+		await Promise.all(this.lobbyData.scores_set.map(async score => {
 			const user = new User(score.username, await userManager.getUserInfo(score.username));
 			const row = document.createElement('tr');
 			row.classList.add(score.has_win ? 'winner' : 'loser');
@@ -76,7 +76,7 @@ export default class LobbyView extends BaseView {
 			<td class="${score.won ? 'winner' : ''}">${score.has_win ? 'Won' : 'Lost'}</td>
 			`;
 			scoreTable.appendChild(row);
-		});
+		}));
 	}
 
 	async updateUserInfos(username, userInfo) {

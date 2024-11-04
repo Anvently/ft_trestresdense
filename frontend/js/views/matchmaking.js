@@ -648,13 +648,13 @@ export default class MatchmakingView extends BaseView {
 				this.localTournamentTree = undefined;
 				document.getElementById('lobbyPlayersTable').classList.remove('d-none');
 			}
-			await Object.entries(message.players).forEach(async ([playerId, playerData]) => {
+			await Promise.all(Object.entries(message.players).map(async ([playerId, playerData]) => {
 				if (isLoc){
 					await this.appendLocPlayerEntry(playerListEl, playerId, playerData, message.host, isTnMatch);
 				}
 				else{
 					await this.appendPlayerEntry(playerListEl, playerId, playerData, message.host, isTnMatch, isLoc);}
-			});
+			}));
 
 			// Gérer les slots libres
 			let players_len = Object.keys(message.players).length;
