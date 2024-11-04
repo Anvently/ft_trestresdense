@@ -120,6 +120,7 @@ class PongLobby3D(PongLobby):
 	service_direction = -1
 	service_count = -1
 	is_service = False
+	last_move
 
 	def __init__(self, lobby_id: str, players_list: List[str], settings: Dict[str, Any], tournId=None) -> None:
 		super().__init__(lobby_id, players_list, settings, tournId)
