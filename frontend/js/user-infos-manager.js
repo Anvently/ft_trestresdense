@@ -30,7 +30,7 @@ export class UserInfoManager {
 	 * Users absent from the cache will be fetched in the background.
 	 * Set a callback handler to have the view updated dynamically.
 	 */
-	getUserInfo(username, suscribe_changes = true) {
+	async getUserInfo(username, suscribe_changes = true, fetchMissing = false) {
 		if (username.includes('.')) username = username.split('.')[0];
 		let userInfo = this.userCache.getUser(username);
 		if (suscribe_changes)
@@ -38,8 +38,12 @@ export class UserInfoManager {
 		if (userInfo) {
 			return Promise.resolve(userInfo);	
 		} else {
-			this.backgroundUpdater.registerUserToUpdate(username);
-			return Promise.resolve(undefined);
+			if (fetchMissing) {
+				return Promise.resolve(await this.fetchUserInfo(username));
+			} else {
+				this.backgroundUpdater.registerUserToUpdate(username);
+				return Promise.resolve(undefined);
+			}
 		}
 	}
 	
