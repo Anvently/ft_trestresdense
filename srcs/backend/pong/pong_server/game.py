@@ -79,6 +79,7 @@ class PongLobby:
 		self.winner = None
 		self.game_type = None
 		self.counter = self.simple_call_counter()
+		self.nbr_websocket = 0
 		print(f"game {lobby_id} initialized, await players {players_list}")
 
 	def check_game_start(self) -> bool:
@@ -194,23 +195,23 @@ class PongLobby:
 			while time.time() - loop_start < 3600 and self.gameState == 0:
 				await asyncio.sleep(0.016)
 				data = self.compute_game()
-				await player_channel.group_send(self.lobby_id, data)
+				if self.nbr_websocket: await player_channel.group_send(self.lobby_id, data)
 				# print("waiting for = ", self.waiting_for)
 				if self.waiting_for == 0:
 					self.gameState = 1
 			if self.gameState <= 0:
-				await player_channel.group_send(self.lobby_id, {"type": "cancel",
+				if self.nbr_websocket: await player_channel.group_send(self.lobby_id, {"type": "cancel",
 																"message": "A Player failed to load"
 																})
 				await self.send_result()
 				return
-			await player_channel.group_send(self.lobby_id, {"type": "game_start"})
+			if self.nbr_websocket: await player_channel.group_send(self.lobby_id, {"type": "game_start"})
 			loop_start = time.time()
 			print("game will start in 3 sec")
 			while time.time() - loop_start < 3:
 				await asyncio.sleep(0.016)
 				data = self.compute_game()
-				await player_channel.group_send(self.lobby_id, data)
+				if self.nbr_websocket: await player_channel.group_send(self.lobby_id, data)
 			if self.gameState != -1:
 				self.gameState = 2
 			# play !
@@ -221,20 +222,20 @@ class PongLobby:
 				await asyncio.sleep(0.016)	# 0.16 -> 60Hz
 				self.counter()
 				data = self.compute_game()
-				await player_channel.group_send(self.lobby_id, data)
+				if self.nbr_websocket: await player_channel.group_send(self.lobby_id, data)
 			if self.gameState < 0:
-				await player_channel.group_send(self.lobby_id, {"type": "cancel",
+				if self.nbr_websocket: await player_channel.group_send(self.lobby_id, {"type": "cancel",
 																"message": "Cancel by matchmaking."
 																})
 			else:
-				await player_channel.group_send(
+				if self.nbr_websocket: await player_channel.group_send(
 					self.lobby_id, {
 						"type": "game_finish",
 						"winner": self.winner
 					}
 				)
 			await self.send_result()
-			await player_channel.group_send(
+			if self.nbr_websocket: await player_channel.group_send(
 				self.lobby_id, {
 					"type": "leave_lobby"
 				}
@@ -242,7 +243,7 @@ class PongLobby:
 			logging.info(f"Lobby {self.lobby_id}: Terminating game loop.")
 		except Exception as e:
 			logging.error(e)
-			await player_channel.group_send(self.lobby_id, {'type':'error', 'detail':'error in game loop'})
+			if self.nbr_websocket: await player_channel.group_send(self.lobby_id, {'type':'error', 'detail':'error in game loop'})
 			traceback.print_exc()
 
 	def	compute_game(self):

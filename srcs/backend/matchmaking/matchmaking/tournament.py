@@ -124,6 +124,7 @@ class Tournament:
 		from matchmaking.consumers import MatchMakingConsumer
 		from channels.layers import get_channel_layer
 		channel_layer = get_channel_layer()
+		print(results)
 		if results['status'] == 'cancelled':
 			self.delete()
 			return
@@ -133,7 +134,7 @@ class Tournament:
 			if score['has_win'] == True and stage != 0:
 				""" We need to instantiate the new lobby if it doesn't exist yet,
 				 and assign player to it. """
-				next_match_id = self.setup_next_match(stage, match_idx)
+				next_match_id = self.setup_next_match(stage, match_idx)		
 				self.reassign_player(score['username'], next_match_id, PlayerStatus.IN_TOURNAMENT_LOBBY)
 				if score['username'][0] != "!":
 					await channel_layer.group_send(score['username'], {'type' : 'switch_to_first_match'})

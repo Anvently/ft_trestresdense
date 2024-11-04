@@ -100,12 +100,13 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 		return True
 
 	# ONLY FOR DEBUG, given username in sent content will be used
-	DISABLE_AUTH = True
+	DISABLE_AUTH = False
 
 	async def connect(self):
 		await self.accept()
 		if self._is_valid_client():
 			await self.channel_layer.group_add(self.lobby_id, self.channel_name)
+			lobbies_list[self.lobby_id].nbr_websocket += 1
 		else:
 			await self._send_error(self.scope['error'], self.scope['error_code'], True)
 			print("Connection rejected because: {0}".format(self.scope['error']))
@@ -119,13 +120,10 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 			for user in self.users:
 				if self.lobby_id in lobbies_list:
 					lobbies_list[self.lobby_id].player_leave(user)
-			await self.channel_layer.group_send(
-				self.lobby_id, {
-					"type": "info_message",
-					"data": "{users} left the game.".format(users=",".join(self.users))
-				})
 			print(f"user {self.username} disconnected")
 			await self.channel_layer.group_discard(self.lobby_id, self.channel_name)
+		if self.lobby_id in lobbies_list:
+			lobbies_list[self.lobby_id].nbr_websocket -= 1
 
 	async def receive_json(self, content, **kwargs):
 		# if not "username" in content:

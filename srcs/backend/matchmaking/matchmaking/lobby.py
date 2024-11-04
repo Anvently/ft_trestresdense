@@ -429,9 +429,7 @@ class TournamentMatchLobby(Lobby):
 	async def handle_results(self, results: Dict[str, Any]):
 		if self.tournament_id in tournaments: #Probably not necessary to check that
 			await super().handle_results(results)
-			print("results sent to api")
-			tournaments[self.tournament_id].handle_result(results)
-			print("pouet")
+			await tournaments[self.tournament_id].handle_result(results)
 		self.delete()
 		print("was deleted")
 
