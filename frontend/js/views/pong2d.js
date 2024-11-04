@@ -67,6 +67,7 @@ const CONTROLS = [
 export default class Pong2DView extends BaseView {
 	constructor() {
 		super("pong2d-view");
+		this.isSpectator = true;
 		this.initialize();
 	}
 
@@ -171,18 +172,20 @@ export default class Pong2DView extends BaseView {
 	}
 
 	sendJoinGame(msg) {
+		console.log(msg, authenticatedUser);
 		for (let i = 0; i < 4; i++) {
-			if (this.isGuestId(msg.player_list[i])) {
-				this.isLocalMatch = true;
+			if (msg.player_list[i] === authenticatedUser.username || msg.player_list[i].split('.')[0] === authenticatedUser.username) {
+				if (this.isGuestId(msg.player_list[i])) this.isLocalMatch = true;
+				this.isSpectator = false;
 				console.log(`${msg.player_list[i]} joined the game`);
 				this.socket.send(JSON.stringify({ type: "join_game", username: `${msg.player_list[i]}` }));
 			}
 		}
 
-		if (!this.isLocalMatch) {
-			console.log(`${authenticatedUser.username} joined the game`);
-			this.socket.send(JSON.stringify({ type: "join_game", username: `${authenticatedUser.username}` }));
-		}
+		// if (!this.isLocalMatch) {
+		// 	console.log(`${authenticatedUser.username} joined the game`);
+		// 	this.socket.send(JSON.stringify({ type: "join_game", username: `${authenticatedUser.username}` }));
+		// }
 	}
 
 	updateGameState(msg) {
@@ -227,7 +230,7 @@ export default class Pong2DView extends BaseView {
 		this.findPlayerDirection();
 		this.createScoreBoard();
 		this.createNameTag();
-		this.setupInputListeners();
+		if (!this.isSpectator) this.setupInputListeners();
 		this.startGameLoop();
 
 		this.gameHasStarted = true;
@@ -273,6 +276,7 @@ export default class Pong2DView extends BaseView {
 
 	sendInput() {		
 		// if localMatch
+		if (this.isSpectator) return;
 		if (this.isLocalMatch) {
 			if (this.pressKey[0].key_up === true)
 				this.socket.send(JSON.stringify({ type: 'key_input', username: this.players[0].id, input: "up" }));

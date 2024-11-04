@@ -160,6 +160,8 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 		if content['username'] not in self.users:
 			await self._send_error('Invalid username')
 			return
+		if not self.lobby_id in lobbies_list:
+			return
 		lobbies_list[self.lobby_id].player_input(content['username'], content['input'])
 
 	async def cancel(self, content):

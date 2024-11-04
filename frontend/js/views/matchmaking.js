@@ -450,11 +450,6 @@ export default class MatchmakingView extends BaseView {
 		if (this.lobbyId) {
 			document.getElementById('lobbyView').classList.remove('d-none');
 			document.getElementById('mainView').classList.add('d-none');
-			if (this.isHost) {
-				document.getElementById('hostOptions').classList.remove('d-none');
-			} else {
-				document.getElementById('hostOptions').classList.add('d-none');
-			}
 		} else {
 			document.getElementById('mainView').classList.remove('d-none');
 			document.getElementById('lobbyView').classList.add('d-none');
