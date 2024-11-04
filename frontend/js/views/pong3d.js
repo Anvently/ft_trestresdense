@@ -620,10 +620,8 @@ export default class Pong3DView extends BaseView {
 	createNameTag() {
 		for (let i = 0; i < 2; i++) {
 			if (this.direction != i) {
-				var name = this.players[i].id;
-				if (name[0] == '!')
-					name = 'AI';
-				const sprite = createTextSprite(name, 'white', 1);
+				var id = this.players[i].id;
+				const sprite = createTextSprite(this.playerInfos[id].display_name, 'white', 1);
 				this.objects.nameTag[i] = sprite;
 				this.scene.add(sprite);
 			}
