@@ -42,7 +42,7 @@ const WALL_POSITION = {
 	rotY: [Math.PI/2, 0, Math.PI/2, 0]
 };
 
-const MAX_WIDTH = 1000; // in pixels
+const MAX_WIDTH = 1200; // in pixels
 
 // SOUND
 var ping_sound = new Audio("sound/ping_sound.mp3");
@@ -84,7 +84,6 @@ export default class Pong3DView extends BaseView {
 			key_right: false
 		};
 		this.mousePosition = { x: 0, y: 0, toggle: false};
-		// this.mouseMovement = { x: 0, y: 0 };
 
 		this.players = [
 			{points: 0, x: 0, y: 0, angle: 0, width: 0, height: 0, id: ''},
@@ -265,8 +264,6 @@ export default class Pong3DView extends BaseView {
 			x: (this.players[this.direction].x + 1.1) / 0.6,// - (PADDLE_MAX_X[this.direction] - PADDLE_MIN_X[this.direction]),
 			y: (this.players[this.direction].y * PADDLE_LEFT_DIR[this.direction]) / 2
 		}
-
-		// console.log("player_rel_pos = ", player_rel_pos);
 
 		// MOUSE
 		if (this.mousePosition.toggle) {

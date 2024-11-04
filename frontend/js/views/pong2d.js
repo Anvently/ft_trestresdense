@@ -94,13 +94,13 @@ export default class Pong2DView extends BaseView {
 			ball: null,
 			paddle:[],
 			paddleLight:[],
-			nameTag:[null, null, null, null],
-			scoreBoard:[
-				{name: null, lives: null},
-				{name: null, lives: null},
-				{name: null, lives: null},
-				{name: null, lives: null},
-			],
+			// nameTag:[null, null, null, null],
+			// scoreBoard:[
+			// 	{name: null, lives: null, avatar: null},
+			// 	{name: null, lives: null, avatar: null},
+			// 	{name: null, lives: null, avatar: null},
+			// 	{name: null, lives: null, avatar: null},
+			// ],
 			environment: {field: null, corner: [], wall: []},
 			winnerDisplay: null
 		};
@@ -116,6 +116,9 @@ export default class Pong2DView extends BaseView {
 		
 		this.animationId = undefined;
 		this.eventListeners = [];
+
+
+		this.score
 	}
 
 
@@ -232,7 +235,7 @@ export default class Pong2DView extends BaseView {
 		console.log("onGameStart");
 		this.findPlayerDirection();
 		this.createScoreBoard();
-		this.createNameTag();
+		// this.createNameTag();
 		if (!this.isSpectator) this.setupInputListeners();
 		this.startGameLoop();
 
@@ -423,8 +426,8 @@ export default class Pong2DView extends BaseView {
 		}
 
 		this.renderer.setSize(newWidth * resolutionScale, newHeight * resolutionScale);
-		this.renderer.domElement.style.width = `${newWidth * 0.85}px`;
-		this.renderer.domElement.style.height = `${newHeight * 0.85}px`;
+		this.renderer.domElement.style.width = `${newWidth * 0.8}px`;
+		this.renderer.domElement.style.height = `${newHeight * 0.8}px`;
 	}
 
 
@@ -432,7 +435,7 @@ export default class Pong2DView extends BaseView {
 	{
 		this.updateBall();
 		this.updatePaddles();
-		this.updateNameTag();
+		// this.updateNameTag();
 		this.updateScoreBoard();
 		if (this.game_state === 3)
 			this.drawGameOver();
@@ -477,53 +480,56 @@ export default class Pong2DView extends BaseView {
 		}
 	}
 
-	updateNameTag() {
-		for (let i = 0; i < this.number_of_players; i++) {
-			if (this.objects.nameTag[i]) {
-				this.objects.nameTag[i].position.x = this.objects.paddle[i].position.x;
-				this.objects.nameTag[i].position.y = this.objects.paddle[i].position.y;
-				this.objects.nameTag[i].position.z = this.objects.paddle[i].position.z + 0.5;
-			}
-		}
+	// updateNameTag() {
+	// 	for (let i = 0; i < this.number_of_players; i++) {
+	// 		if (this.objects.nameTag[i]) {
+	// 			this.objects.nameTag[i].position.x = this.objects.paddle[i].position.x;
+	// 			this.objects.nameTag[i].position.y = this.objects.paddle[i].position.y;
+	// 			this.objects.nameTag[i].position.z = this.objects.paddle[i].position.z + 0.5;
+	// 		}
+	// 	}
+	// }
+
+	getName(id) {
+		let name = this.playerInfos[id].display_name;
+		if (name.length > 10)
+			name = name.substring(0, 10) + '.';
+		return name;
 	}
 
 	createScoreBoard() {
+		let player;
 		for (let i = 0; i < this.number_of_players; i++) {
-				var geometry = new TextGeometry('', {
-					font: this.font,
-					size: 0.75,
-					depth: 0,
-					curveSegments: 24
-				});
+			let id = this.players[i].id;
+			player = document.getElementById(`player${i}`);
+			
+			player.style.display = 'flex';
 
-				geometry = centerTextGeometry(geometry);
-				const material = new THREE.MeshBasicMaterial({ color: PADDLE_INIT.COLOR[i] });
-				const mesh = new THREE.Mesh(geometry, material);
+			// name
+			let player_name = player.querySelector('.player-name');
+			player_name.textContent = this.getName(id) + " :";
 
-				this.objects.scoreBoard[i].lives = mesh;
-				mesh.position.set(SCORE_POSITION[i].X, SCORE_POSITION[i].Y, 0);
-				this.scene.add(mesh);
+			// avatar
+			const player_avatar = document.createElement('img');
+			player_avatar.src = this.playerInfos[id].avatar; // Set the new image path
+			player_avatar.className = player.querySelector('img').className; // Copy the same class/style if needed
+			player_avatar.style.width = '40px'; // Set width and other styles as required
+			player_avatar.style.height = '40px';
+			player_avatar.style.borderRadius = '50%'; // Same styling for round shape
+
+			const oldAvatar = player.querySelector('img');
+			player.replaceChild(player_avatar, oldAvatar);
 		}
 	}
 
 	updateScoreBoard() {
+
 		for (let i = 0; i < this.number_of_players; i++) {
 			const score = this.players[i].lives;
 			if (this.previous_score[i] !== score) {
-				console.log("updateScoreBoard");
-				const geometry = new TextGeometry(score.toString(), {
-					font: this.font,
-					size: 0.75,
-					depth: 0,
-					curveSegments: 24
-				});
-				const centeredGeometry = centerTextGeometry(geometry);
-				const oldMesh = this.objects.scoreBoard[i].lives;
-				if (oldMesh.geometry) {
-					oldMesh.geometry.dispose();
-				}
-				oldMesh.geometry = centeredGeometry;
-				this.previous_score[i] = score;
+				let player = document.getElementById(`player${i}`);
+				let player_score = player.querySelector('.player-score');
+				player_score.textContent = score;
 			}
 		}
 	}
@@ -657,18 +663,18 @@ export default class Pong2DView extends BaseView {
 		}
 	}
 
-	createNameTag() {
-		console.log(this.playerInfos);
-		for (let i = 0; i < this.number_of_players; i++) {
-			console.log(i, this.direction);
-			if (this.direction != i) {
-				var id = this.players[i].id;
-				const sprite = createTextSprite(this.playerInfos[id].display_name, 'white', 1);
-				this.objects.nameTag[i] = sprite;
-				this.scene.add(sprite);
-			}
-		}
-	}
+	// createNameTag() {
+	// 	console.log(this.playerInfos);
+	// 	for (let i = 0; i < this.number_of_players; i++) {
+	// 		console.log(i, this.direction);
+	// 		if (this.direction != i) {
+	// 			var id = this.players[i].id;
+	// 			const sprite = createTextSprite(this.playerInfos[id].display_name, 'white', 1);
+	// 			this.objects.nameTag[i] = sprite;
+	// 			this.scene.add(sprite);
+	// 		}
+	// 	}
+	// }
 
 	async createGameOver() {
 		{
