@@ -219,7 +219,7 @@ export default class ProfileView extends BaseView {
 		
 		friendsList.innerHTML = '';
 		console.log(authenticatedUser.friends);
-		authenticatedUser.friends.forEach(async user => {
+		await Promise.all(authenticatedUser.friends.map(async user => {
 			const friend = new User(user, await userManager.getUserInfo(user));
 			// console.log(friend);
 			const friendElement = document.createElement('div');
@@ -239,7 +239,7 @@ export default class ProfileView extends BaseView {
 			});
 			
 			friendsList.appendChild(friendElement);
-		});
+		}));
 	}
 
 	async removeFriend(userId) {

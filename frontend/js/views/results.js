@@ -56,7 +56,7 @@ export default class ResultsView extends BaseView {
 		}
 		const lobbiesTable = document.getElementById('lobbies-table');
 		lobbiesTable.innerHTML = "";
-		await this.lobbiesResults.forEach(async lobby => {
+		await Promise.all(this.lobbiesResults.map(async lobby => {
 			const hostName = (lobby.host ? lobby.host : lobby.tournament_host);
 			const host = new User(hostName, await userManager.getUserInfo(hostName)); 
 			const row = document.createElement('tr');
@@ -76,7 +76,7 @@ export default class ResultsView extends BaseView {
 			<td>${lobby.game_name}</td>
 			<td>${lobby.scores_set.length}</td>`;
 			lobbiesTable.appendChild(row);
-		});
+		}));
 	}
 
 	async displayTournaments() {
@@ -85,7 +85,7 @@ export default class ResultsView extends BaseView {
 		}
 		const tournamentsTable = document.getElementById('tournaments-table');
 		tournamentsTable.innerHTML = "";
-		await this.tournaments.forEach(async tournament => {
+		await Promise.all(this.tournaments.map(async tournament => {
 			const host = new User(tournament.host, await userManager.getUserInfo(tournament.host)); 
 			const row = document.createElement('tr');
 			row.innerHTML = `
@@ -104,7 +104,7 @@ export default class ResultsView extends BaseView {
 			<td>${tournament.game_name}</td>
 			<td>${tournament.number_players}</td>`;
 			tournamentsTable.appendChild(row);
-		});
+		}));
 	}
 
 	async updateUserInfos(username, userInfo) {

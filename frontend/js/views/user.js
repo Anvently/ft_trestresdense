@@ -88,7 +88,7 @@ export default class UserView extends BaseView {
 			return;
 		const friendsList = document.getElementById('friends-list');
 		friendsList.innerHTML = ''; // Clear existing content
-		this.userInfo.friends.forEach(async user => {
+		Promise.all(this.userInfo.friends.map(async user => {
 			const friend = new User(user, await userManager.getUserInfo(user));
 			const friendElement = document.createElement('div');
 			friendElement.classList.add('friend-element', 'col', `user-${user}`);
@@ -102,7 +102,7 @@ export default class UserView extends BaseView {
 				<div class="friend-name user-${user}">${friend.display_name}</div>
 			`;
 			friendsList.appendChild(friendElement);
-		});
+		}));
 	}
 	convertDate(ugly_date) {
 		const date = new Date(ugly_date);

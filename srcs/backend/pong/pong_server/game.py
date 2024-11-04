@@ -211,7 +211,8 @@ class PongLobby:
 				await asyncio.sleep(0.016)
 				data = self.compute_game()
 				await player_channel.group_send(self.lobby_id, data)
-			self.gameState = 2
+			if self.gameState != -1:
+				self.gameState = 2
 			# play !
 				# launch ball
 			self.reset_ball()
