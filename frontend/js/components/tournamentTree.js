@@ -175,10 +175,10 @@ export default class TournamentTree extends ComponentView {
 			// for (var i = 0; i < 2^roundIndex; i++) {
 
 			// }
-			await Promise.all(round.map(async (match, matchIndex) => {
+			await round.forEach(async (match, matchIndex) => {
 				const matchDiv = await this.createMatchElement(match, roundIndex, rounds.length);
 				matchContainers[matchIndex].appendChild(matchDiv);
-			}));
+			});
 			
 			matchContainers.forEach(container => roundDiv.appendChild(container));
 			treeContainer.appendChild(roundDiv);

@@ -80,6 +80,9 @@ services:
       - API42_UUID=${API42_UUID}
       - API42_SECRET=${API42_SECRET}
       - SERVER_PORT=8000
+      - APPLICATION_NAME=auth_server.wsgi:application
+      - SERVER_TYPE=gunicorn
+      - PRODUCTION=${PRODUCTION}
     secrets:
       - rsa-key
     restart: always
@@ -111,6 +114,9 @@ services:
           condition: service_started
     environment:
       - SERVER_PORT=8002
+      - APPLICATION_NAME=pong_server.asgi:application
+      - SERVER_TYPE=daphne
+      - PRODUCTION=${PRODUCTION}
     volumes:
       - ./srcs/backend/pong/:/code
       - ${DATA_DIR}keys/rsa/pub.pem:/etc/certificate/pub.pem
@@ -128,7 +134,6 @@ services:
     build:
       context: ./srcs/django_builds
       target: django_usersapi
-    # command: python3 manage.py runserver 0.0.0.0:8001
     volumes:
       - ./srcs/backend/users/:/code
       - ${DATA_DIR}keys/rsa/pub.pem:/etc/certificate/pub.pem
@@ -148,6 +153,9 @@ services:
       - POSTGRES_PORT=${POSTGRES_PORT}
       - POSTGRES_DB=${POSTGRES_DB_USERS}
       - SERVER_PORT=8001
+      - APPLICATION_NAME=users_server.wsgi:application
+      - SERVER_TYPE=gunicorn
+      - PRODUCTION=${PRODUCTION}
     restart: always
     # healthcheck:
     #   test: ["CMD-SHELL", "curl -f http://users_api:8001/ || (($? == 22))"]
@@ -163,7 +171,6 @@ services:
       target: django_websocketapi
     ports:
       - "8003:8003"
-    # command: python3 manage.py runserver 0.0.0.0:8003
     depends_on:
         auth:
           condition: service_started
@@ -175,6 +182,9 @@ services:
           condition: service_started
     environment:
       - SERVER_PORT=8003
+      - APPLICATION_NAME=matchmaking.asgi:application
+      - SERVER_TYPE=daphne
+      - PRODUCTION=${PRODUCTION}
     # healthcheck:
     #   test: ["CMD-SHELL", "curl -f http://matchmaking:8003/ || (($? == 22))"]
       # interval: 10s
@@ -187,20 +197,6 @@ services:
       - ${DATA_DIR}keys/rsa/pub.pem:/etc/certificate/pub.pem
       - ${DATA_DIR}keys/api-tokens/matchmaking:/etc/certificate/api-token
     restart: always
-
-  # web2:
-  #   container_name: web2_c
-  #   build:
-  #     context: ./srcs/django_builds
-  #     target: django_main
-  #   command: python manage.py runserver 0.0.0.0:8001
-  #   volumes:
-  #     - ./srcs/backend/webapp/code:/code
-  #   ports:
-  #     - "8001:8001"
-  #   env_file: ./.env
-  #   depends_on:
-  #     - db
 
 secrets:
   ssl-key:
