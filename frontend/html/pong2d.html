@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="en">
 <head>
 	<meta charset="UTF-8">
@@ -17,11 +17,109 @@
 			/* align-items: center; */
 			height: 100vh; /* Full viewport height */
 		}
-		/* #container-canva:hover { */
-			/* cursor:none; */
-		/* } */
 	</style>
 </head>
 <div id="container-canva" >
 
+</div> -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Pong 2D</title>
+	<style>
+		#wrapper {
+			display: flex;
+			flex-direction: column;
+			height: 100vh;
+		}
+
+		#container-canva {
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			align-items: center;
+		}
+
+		#scoreboard {
+			display: flex;
+			flex-wrap: wrap;
+			justify-content: space-around;
+			width: 100%;
+			margin-top: 10px;
+			background-color: #f0f0f0;
+			padding: 10px;
+			border-radius: 8px;
+		}
+
+		.player-info {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			margin: 5px;
+		}
+
+		.player-info img {
+			width: 40px;
+			height: 40px;
+			border-radius: 50%;
+		}
+
+		.player-name,
+		.player-score {
+			font-size: 1.2em;
+		}
+	</style>
+</head>
+<body>
+	<div id="wrapper">
+	<div id="container-canva">
+		<!-- Canvas for the game will be dynamically created and inserted here -->
+		
+		<!-- Scoreboard below the game rendering -->
+	</div>
+	<div id="scoreboard">
+		<div class="player-info" id="player1">
+			<img src="avatar1.png" alt="Player 1 Avatar">
+			<span class="player-name" style="color: blue;">Player 1:</span>
+			<span class="player-score">0</span>
+		</div>
+		<div class="player-info" id="player2">
+			<img src="avatar2.png" alt="Player 2 Avatar">
+			<span class="player-name" style="color: red;">Player 2:</span>
+			<span class="player-score">0</span>
+		</div>
+		<!-- Optional players for 4-player mode -->
+		<div class="player-info" id="player3" style="display: none;">
+			<img src="avatar3.png" alt="Player 3 Avatar">
+			<span class="player-name" style="color: green;">Player 3:</span>
+			<span class="player-score">0</span>
+		</div>
+		<div class="player-info" id="player4" style="display: none;">
+			<img src="avatar4.png" alt="Player 4 Avatar">
+			<span class="player-name" style="color: purple;">Player 4:</span>
+			<span class="player-score">0</span>
+		</div>
+	</div>
 </div>
+	<script>
+		// Render your game within the #container-canva element
+		const container = document.getElementById('container-canva');
+		const canvas = document.createElement('canvas');
+		canvas.width = container.clientWidth;
+		canvas.height = container.clientHeight * 0.7; // Adjust canvas height as needed
+		container.insertBefore(canvas, container.firstChild); // Insert canvas as the first child
+
+		// Function to manage player display in the scoreboard
+		function setupScoreboard(numPlayers) {
+			document.getElementById('player3').style.display = numPlayers > 2 ? 'flex' : 'none';
+			document.getElementById('player4').style.display = numPlayers > 2 ? 'flex' : 'none';
+		}
+
+		// Call this with 2 or 4 based on the game mode
+		setupScoreboard(4); // Change to 2 if only two players are active
+	</script>
+</body>
+</html>

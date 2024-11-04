@@ -96,10 +96,10 @@ export default class Pong2DView extends BaseView {
 			paddleLight:[],
 			nameTag:[null, null, null, null],
 			scoreBoard:[
-				{name: null, lives: null},
-				{name: null, lives: null},
-				{name: null, lives: null},
-				{name: null, lives: null},
+				{name: null, lives: null, avatar: null},
+				{name: null, lives: null, avatar: null},
+				{name: null, lives: null, avatar: null},
+				{name: null, lives: null, avatar: null},
 			],
 			environment: {field: null, corner: [], wall: []},
 			winnerDisplay: null
@@ -116,6 +116,9 @@ export default class Pong2DView extends BaseView {
 		
 		this.animationId = undefined;
 		this.eventListeners = [];
+
+
+		this.score
 	}
 
 
@@ -414,8 +417,8 @@ export default class Pong2DView extends BaseView {
 		}
 
 		this.renderer.setSize(newWidth * resolutionScale, newHeight * resolutionScale);
-		this.renderer.domElement.style.width = `${newWidth * 0.85}px`;
-		this.renderer.domElement.style.height = `${newHeight * 0.85}px`;
+		this.renderer.domElement.style.width = `${newWidth * 0.8}px`;
+		this.renderer.domElement.style.height = `${newHeight * 0.8}px`;
 	}
 
 
@@ -478,7 +481,22 @@ export default class Pong2DView extends BaseView {
 		}
 	}
 
+	getName(id) {
+		
+		return 
+	}
+
 	createScoreBoard() {
+		let player;
+		for (let i = 1; i <= this.number_of_players; i++) {
+			player = document.getElementById(`player${i}`);
+			let player_name = player.querySelector('.player-name');
+			player_name.textContent = this.getName(this.players[i - 1].id);
+
+		}
+
+
+		// OLD
 		for (let i = 0; i < this.number_of_players; i++) {
 				var geometry = new TextGeometry('', {
 					font: this.font,
