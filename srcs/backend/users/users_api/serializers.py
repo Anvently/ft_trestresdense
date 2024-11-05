@@ -27,7 +27,7 @@ class ScoreListSerializer(serializers.ListSerializer):
 	def validate(self, attrs):
 		return attrs
 		# return super().validate(attrs)
-	
+
 	@classmethod
 	def many_init(cls, *args, **kwargs):
 		# Instantiate the child serializer.
@@ -107,7 +107,7 @@ class LobbySerializer(DynamicFieldsSerializer):
 			tournament = validated_data.get("tournament", None)
 		)
 		lobby.save()
-		
+
 		scores_list = validated_data.pop('scores_set')
 		for score_data in scores_list:
 			try:
@@ -144,7 +144,7 @@ class TournamentSerializer(serializers.HyperlinkedModelSerializer):
 			if 'host' in attrs:
 				attrs['host'] = User.objects.get(username=attrs['host']['username'])
 		except:
-			raise serializers.ValidationError({"host": [f"User {attrs['host']['username']} does not exists."]})	
+			raise serializers.ValidationError({"host": [f"User {attrs['host']['username']} does not exists."]})
 		return attrs
 
 	def create(self, validated_data):
@@ -172,7 +172,7 @@ class UserSerializer(serializers.HyperlinkedModelSerializer):
 
 	def get_avatar(self, obj: User):
 		return obj.get_avatar_url()
-	
+
 	def get_friends(self, obj: User):
 		return [friend.username for friend in obj.friends.all()]
 

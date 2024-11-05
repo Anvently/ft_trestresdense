@@ -169,5 +169,10 @@ LOGGING = {
             'handlers': ['console'],
             'level': 'INFO',
         },
+        'pong_server': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
     },
 }

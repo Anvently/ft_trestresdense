@@ -13,6 +13,7 @@ from pong_server.game import PongLobby
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from typing import Dict, Any, List
+logger = logging.getLogger(__name__)
 
 def verify_jwt(token, is_ttl_based=False, ttl_key="exp"):
 	data = jwt.decode(token, settings.RSA_PUBLIC_KEY, algorithms=["RS512"])
@@ -109,7 +110,7 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 			lobbies_list[self.lobby_id].nbr_websocket += 1
 		else:
 			await self._send_error(self.scope['error'], self.scope['error_code'], True)
-			print("Connection rejected because: {0}".format(self.scope['error']))
+			logger.info("Connection rejected because: {0}".format(self.scope['error']))
 			return
 
 		player_list = [player.player_id for player in lobbies_list[self.lobby_id].players]
@@ -120,7 +121,7 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 			for user in self.users:
 				if self.lobby_id in lobbies_list:
 					lobbies_list[self.lobby_id].player_leave(user)
-			print(f"user {self.username} disconnected")
+			logger.info(f"user {self.username} disconnected")
 			await self.channel_layer.group_discard(self.lobby_id, self.channel_name)
 		if self.lobby_id in lobbies_list:
 			lobbies_list[self.lobby_id].nbr_websocket -= 1

@@ -27,7 +27,7 @@ def tournament_creator(data: Dict[str, Any]) -> bool:
 		tournament = Tournament(data)
 		tournaments[tournament.id] = tournament
 	except Exception as e :
-		logging.error(e)
+		logger.error(e)
 		return False
 	return True
 
