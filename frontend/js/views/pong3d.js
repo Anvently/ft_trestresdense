@@ -218,9 +218,20 @@ export default class Pong3DView extends BaseView {
 
 		this.findPlayerDirection();
 		this.createScoreBoards();
+		this.displayControls();
 		this.createNameTag();
 		this.setupInputListeners();
 		this.startGameLoop();
+	}
+
+	displayControls() {
+		if (this.isSpectator) {
+			document.getElementById('controls-spectator').classList.remove('d-none');
+			document.getElementById('controls-player').classList.add('d-none');
+		} else {
+			document.getElementById('controls-player').classList.remove('d-none');
+			document.getElementById('controls-spectator').classList.add('d-none');
+		}
 	}
 
 	findPlayerDirection() {
