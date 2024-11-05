@@ -97,11 +97,6 @@ class AuthenticatedUser extends User {
 		if (!response.ok) {
 			this.valid_info = false;
 			throw new Error(`Failed to fetch user informations: status=${response.statusText}`);
-			// throw (new Error("Seems your auth-token is not valid"));
-			// console.log(response.status);
-			// if (response.status === 401) {
-			// 	logOut();
-			// }
 		}
 		Object.assign(this, await response.json());
 		this.valid_info = true;
@@ -248,7 +243,6 @@ document.querySelectorAll('.logoutButton').forEach(function (el) {
 // Middleware d'authentification
 router.use((path, next) => {
 	if (path !== '#login' && !authenticatedUser.isAuthenticated) {
-		console.log("Not logged in, redirecting to login page.");
 		router.navigate('#login');
 	} else {
 		next();

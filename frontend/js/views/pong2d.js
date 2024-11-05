@@ -135,20 +135,15 @@ export default class Pong2DView extends BaseView {
 	}
 
 	initWebSocket() {
-		console.log("initWebSocket");
 		const sockAdd = this.urlParams.get('id');
 		if (!sockAdd) window.location.hash = '#';
 
 		this.socket = new WebSocket(`wss://${location.hostname}:8083/ws/pong/${sockAdd}/`);
 
-		this.socket.onopen = () => {
-			console.log("WebSocket is now open");
-			// this.startGameLoop();
-		}
-
+		// this.socket.onopen = () => console.log("WebSocket is now open");
 		this.socket.onmessage =async (e) => await this.handleWebSocketMessage(JSON.parse(e.data));
 		this.socket.onerror = (error) => console.error('WebSocket error:', error);
-		this.socket.onclose = () => console.log('WebSocket is closed now.');
+		// this.socket.onclose = () => console.log('WebSocket is closed now.');
 		this.connectionTimeout = setTimeout(() => {
 			if (this.socket.readyState !== WebSocket.OPEN) {
 			  console.error('WebSocket connection failed to open within 1 seconds');
@@ -173,7 +168,6 @@ export default class Pong2DView extends BaseView {
 			if (msg.player_list[i] === authenticatedUser.username || msg.player_list[i].split('.')[0] === authenticatedUser.username) {
 				if (this.isGuestId(msg.player_list[i])) this.isLocalMatch = true;
 				this.isSpectator = false;
-				console.log(`${msg.player_list[i]} joined the game`);
 				this.socket.send(JSON.stringify({ type: "join_game", username: `${msg.player_list[i]}` }));
 			}
 			if (msg.player_list[i] !== '!wall') {
@@ -185,7 +179,6 @@ export default class Pong2DView extends BaseView {
 				}
 			} 
 		}
-		console.log(this.playerInfos);
 	}
 
 	async updateGameState(msg) {
@@ -226,7 +219,6 @@ export default class Pong2DView extends BaseView {
 	}
 
 	onGameStart() {
-		console.log("onGameStart");
 		this.findPlayerDirection();
 		this.createScoreBoard();
 		this.displayControls();
@@ -240,11 +232,9 @@ export default class Pong2DView extends BaseView {
 
 	displayControls() {
 		if (this.isLocalMatch) {
-			console.log("local");
 			document.getElementById('controls-local').classList.remove('d-none');
 			document.getElementById('controls-online').classList.add('d-none');
 		} else {
-			console.log("online");
 			document.getElementById('controls-online').classList.remove('d-none');
 			document.getElementById('controls-local').classList.add('d-none');
 		}
@@ -264,7 +254,6 @@ export default class Pong2DView extends BaseView {
 	}
 
 	startGameLoop() {
-		console.log("startGameLoop");
 		const loop = (timestamp) => {
 			this.handleInput();
 			this.draw3D();
@@ -330,10 +319,8 @@ export default class Pong2DView extends BaseView {
 	}
 
 	setupInputListeners() {
-		console.log("setupInputListeners");
 
 		if (this.isLocalMatch) {
-			console.log("-> is localMatch");
 			if (this.isGuestId(this.players[DIRECTIONS.WEST].id)) {
 				const keydownListener = (e) => this.handleKeyDown(e, 0, DIRECTIONS.WEST);
 				window.addEventListener("keydown", keydownListener);
@@ -497,7 +484,6 @@ export default class Pong2DView extends BaseView {
 		for (let i = 0; i < this.number_of_players; i++) {
 			const score = this.players[i].lives;
 			if (this.previous_score[i] !== score) {
-				console.log("score = ", score)
 				let player = document.getElementById(`player${i}`);
 				let player_score = player.querySelector('.player-score');
 				player_score.textContent = score;
@@ -530,7 +516,6 @@ export default class Pong2DView extends BaseView {
 	}
 
 	cleanupView() {
-		console.log("Cleaning Pong2d view");
 		if (this.animationId) cancelAnimationFrame(this.animationId);
 		if (this.socket) this.socket.close();
 		this.cleanupListeners();
@@ -539,7 +524,6 @@ export default class Pong2DView extends BaseView {
 
 	cleanupListeners() {
 		for (const { type, listener } of this.eventListeners) {
-			console.log("type: " + type + ", listener: " + listener + " removed;")
 			window.removeEventListener(type, listener);
 		}
 		this.eventListeners = []; // Clear the array after removing
