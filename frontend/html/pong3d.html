@@ -12,6 +12,14 @@
 			overflow: hidden;
 		}
 
+		#wrapper {
+			display: flex;
+			flex-direction: column;
+			/* height: 100vh; */
+			align-items: center;
+			gap: 10px;
+		}
+
 		#container-canva {
 			display: flex;
 			justify-content: center;
@@ -19,7 +27,43 @@
 			height: 100vh; /* Full viewport height */
 		}
 
+		.controls {
+			/* background-color: #ffffff; White background for controls */
+			padding: 10px;
+			border-radius: 5px;
+			box-shadow: 0 4px 8px var(--bs-secondary); /* Subtle shadow for depth */
+			text-align: center; /* Center text */
+			width: 100%;
+		}
+
+		.controls p {
+			margin: 0px;
+		}
+	
+		.control-description {
+			font-size: 1em; 
+			color: #666;
+		}
+
+		.control-key {
+			font-weight: bold;
+			color: #007bff;
+		}
+
 	</style>
 </head>
-<div id="container-canva" >
+<div id="wrapper">
+	<div id="controls-player" class="controls d-none">
+		<p class="control-description">
+			Use the <span class="control-key">directional arrows</span> or the <span class="control-key">mouse</span> to move.
+		</p>
+	</div>
+	<div id="controls-spectator" class="controls d-none">
+		<p class="control-description">
+			Use the <span class="control-key"> spacebar </span> to change the view.
+		</p>
+	</div>
+	<div id="container-canva">
+	</div>
 </div>
+
