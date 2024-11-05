@@ -12,7 +12,7 @@ from matchmaking.common import online_players, PlayerStatus, lobbies, tournament
 from channels.layers import get_channel_layer
 from asgiref.sync import sync_to_async, async_to_sync
 
-def generate_id(public, spectate ,prefix=''):
+def generate_id(public, spectate, prefix=''):
 	""" Simplr => S
 	 	TurnamentInit => I
 		 TournamentLobby T
@@ -239,6 +239,7 @@ class Lobby():
 class SimpleMatchLobby(Lobby):
 
 	def __init__(self, settings: Dict[str, Any], prefix:str='S') -> None:
+		print(f"init simple match {settings}")
 		super().__init__(settings, prefix=prefix)
 		self.add_player(self.hostname)
 
@@ -250,13 +251,15 @@ class SimpleMatchLobby(Lobby):
 		return "simple_match"
 
 	def check_rules(self):
-
+		print(f"rules check on {self.game_type} {self.player_num} {self.settings['lives']}")
 		match (self.game_type, self.player_num, self.settings['lives']):
 			case ("pong2d", x, y) if x in (2, 4) and y > 0:
+				print("OK")
 				pass
 			case ("pong3d", x, y) if x == 2 and y > 0:
 				pass
 			case _:
+				print("NOT OK")
 				raise KeyError("Wrong settings")
 
 
@@ -522,7 +525,7 @@ class LocalTournamentLobby(Lobby):
 			'match_type': str(self),
 			'lobbies_set': [match for id, match in self.tournament.matches.items()]
 		}
-	
+
 	def __str__(self) -> str:
 		return "local_tournament_lobby"
 

@@ -16,9 +16,10 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from matchmaking.views import PostResultView
+from matchmaking.views import PostResultView, PostBotLobbyView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
 	path('result/', PostResultView.as_view()),
+	path('create/', PostBotLobbyView.as_view()),
 ]
