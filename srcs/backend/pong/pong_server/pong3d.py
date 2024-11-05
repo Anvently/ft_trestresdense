@@ -177,12 +177,13 @@ class PongLobby3D(PongLobby):
 		else:
 			return
 
-		if self.is_service and time.time() - 5 >= self.service_time:
-			print("service direction = ", self.service_direction)
-			self.ball["speed"]["x"] = MIN_SPEED * (-self.service_direction)
-			self.ball["last_hit"]["x"] = self.ball["x"]
-			self.ball["last_hit"]["y"] = self.ball["y"]
-			self.is_service = False
+		# Auto serve after 5 secs
+		# if self.is_service and time.time() - 5 >= self.service_time:
+		# 	print("service direction = ", self.service_direction)
+		# 	self.ball["speed"]["x"] = MIN_SPEED * (-self.service_direction)
+		# 	self.ball["last_hit"]["x"] = self.ball["x"]
+		# 	self.ball["last_hit"]["y"] = self.ball["y"]
+		# 	self.is_service = False
 
 		if check_collision((self.players[direction].coordinates["x"], self.players[direction].coordinates["y"]),
 										self.players[direction].coordinates["width"],

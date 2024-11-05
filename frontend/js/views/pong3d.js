@@ -258,26 +258,54 @@ export default class Pong3DView extends BaseView {
 			cancelAnimationFrame(this.animationId);
 			return;
 		}
+
+
 	}
 
 	sendInput() {
-		var player_rel_pos = {
-			x: (this.players[this.direction].x + 1.1) / 0.6,// - (PADDLE_MAX_X[this.direction] - PADDLE_MIN_X[this.direction]),
-			y: (this.players[this.direction].y * PADDLE_LEFT_DIR[this.direction]) / 2
+		// MOUSE
+
+		// get paddle screen position
+		let paddle_screen_pos = new THREE.Vector3();
+		paddle_screen_pos = paddle_screen_pos.setFromMatrixPosition(this.objects.paddle[this.direction].matrixWorld);
+		paddle_screen_pos.project(this.camera);
+		
+		let widthHalf = this.renderer.domElement.clientWidth / 2;
+		let heightHalf = this.renderer.domElement.clientHeight / 2;
+		
+		paddle_screen_pos.x = (paddle_screen_pos.x * widthHalf) + widthHalf;
+		paddle_screen_pos.y = - (paddle_screen_pos.y * heightHalf) + heightHalf;
+		paddle_screen_pos.z = 0;
+		
+		// console.log(paddle_screen_pos);
+		if (this.mousePosition.toggle) {
+			if (this.mousePosition.x > paddle_screen_pos.x + PLAYER_SPEED * 1000)
+				this.socket.send(JSON.stringify({type: 'key_input', username: this.username,  input: "right" }));
+			else if (this.mousePosition.x < paddle_screen_pos.x - PLAYER_SPEED * 1000)
+				this.socket.send(JSON.stringify({ type: 'key_input', username: this.username, input: "left" }));
+					
+			if (this.mousePosition.y > paddle_screen_pos.y + PLAYER_SPEED * 1000)
+				this.socket.send(JSON.stringify({ type: 'key_input', username: this.username, input: "down" }));
+			else if (this.mousePosition.y < paddle_screen_pos.y - PLAYER_SPEED * 1000)
+				this.socket.send(JSON.stringify({type: 'key_input', username: this.username,  input: "up" }));
 		}
 
-		// MOUSE
-		if (this.mousePosition.toggle) {
-			if (this.mousePosition.x > player_rel_pos.x + PLAYER_SPEED)
-				this.socket.send(JSON.stringify({type: 'key_input', username: this.username,  input: "up" }));
-			else if (this.mousePosition.x < player_rel_pos.x - PLAYER_SPEED)
-				this.socket.send(JSON.stringify({ type: 'key_input', username: this.username, input: "down" }));
+		// OLD MOUSE CONTROLS
+		// var player_rel_pos = {
+		// 	x: (this.players[this.direction].x + 1.1) / 0.6,// - (PADDLE_MAX_X[this.direction] - PADDLE_MIN_X[this.direction]),
+		// 	y: (this.players[this.direction].y * PADDLE_LEFT_DIR[this.direction]) / 2
+		// }
+		// if (this.mousePosition.toggle) {
+		// 	if (this.mousePosition.x > player_rel_pos.x + PLAYER_SPEED)
+		// 		this.socket.send(JSON.stringify({type: 'key_input', username: this.username,  input: "up" }));
+		// 	else if (this.mousePosition.x < player_rel_pos.x - PLAYER_SPEED)
+		// 		this.socket.send(JSON.stringify({ type: 'key_input', username: this.username, input: "down" }));
 	
-			if (this.mousePosition.y > player_rel_pos.y + PLAYER_SPEED)
-				this.socket.send(JSON.stringify({type: 'key_input', username: this.username,  input: "right" }));
-			else if (this.mousePosition.y < player_rel_pos.y - PLAYER_SPEED)
-				this.socket.send(JSON.stringify({ type: 'key_input', username: this.username, input: "left" }));
-		}
+		// 	if (this.mousePosition.y > player_rel_pos.y + PLAYER_SPEED)
+		// 		this.socket.send(JSON.stringify({type: 'key_input', username: this.username,  input: "right" }));
+		// 	else if (this.mousePosition.y < player_rel_pos.y - PLAYER_SPEED)
+		// 		this.socket.send(JSON.stringify({ type: 'key_input', username: this.username, input: "left" }));
+		// }
 
 		// KEYBOARD
 		if (this.pressKey.key_up === true) {
@@ -522,8 +550,14 @@ export default class Pong3DView extends BaseView {
 	}
 
 	handleMouseMove(event) {
-		this.mousePosition.x = (event.clientY / window.innerHeight - 0.5) * -1.5;
-		this.mousePosition.y = (event.clientX / window.innerWidth - 0.5) * 1.5;
+		// this.mousePosition.x = (event.clientY / window.innerHeight - 0.5) * -1.5;
+		// this.mousePosition.y = (event.clientX / window.innerWidth - 0.5) * 1.5;
+
+
+		const rect =  this.renderer.domElement.getBoundingClientRect();
+		this.mousePosition.x = event.clientX - rect.left;
+		this.mousePosition.y = event.clientY - rect.top;
+		console.log("mouse pos = ", this.mousePosition);
 		this.mousePosition.toggle = true;
 	}
 
