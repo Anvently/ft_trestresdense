@@ -200,7 +200,7 @@ class Lobby():
 			results['lobby_name'] = self.name
 			# results['scores_set'] = [el for el in results['scores_set'] if el['username'][0] != '!']
 			try:
-				response = await sync_to_async(requests.post)('http://users_api:8001/post-result/?format=json',
+				response = await sync_to_async(requests.post)('http://users-api:8001/post-result/?format=json',
 						data=json.dumps(results),
 						headers = {
 							'Host': 'localhost',

@@ -69,8 +69,6 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'auth_server.wsgi.application'
-
 ISSUER_URL = os.getenv('ISSUER_URL')
 
 with open('/run/secrets/rsa-key', 'rb') as file:
@@ -149,3 +147,31 @@ STATIC_URL = 'api/static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'filters': {
+        'exclude_health_check': {
+            '()': 'django.utils.log.CallbackFilter',
+            'callback': lambda record: 'health/' not in record.getMessage()
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'filters': ['exclude_health_check'],
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+        'gunicorn.access': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+    },
+}
+

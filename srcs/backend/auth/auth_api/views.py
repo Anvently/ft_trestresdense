@@ -181,3 +181,11 @@ class SignIn42CallbackView(APIView):
 					{"error": f"Failed to generate token: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
 				)
 		return response
+
+from django.http import HttpResponse
+from django.views import View
+
+class HealthCheckView(View):
+	def dispatch(self, *args, **kwargs):
+		return HttpResponse(status=200)
+

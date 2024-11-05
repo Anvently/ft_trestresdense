@@ -27,13 +27,13 @@ services:
       - ssl-key
     depends_on:
       auth:
-        condition: service_started
+        condition: service_healthy
       pong:
-        condition: service_started
-      users_api:
-        condition: service_started
+        condition: service_healthy
+      users-api:
+        condition: service_healthy
       matchmaking:
-        condition: service_started
+        condition: service_healthy
       db:
         condition: service_healthy
 
@@ -54,6 +54,7 @@ services:
       retries: 3
       start_period: 10s
       start_interval: 2s
+    restart: on-failure:3
 
   auth:
     container_name: auth_c
@@ -85,13 +86,13 @@ services:
       - PRODUCTION=${PRODUCTION}
     secrets:
       - rsa-key
-    restart: always
-    # healthcheck:
-    #   test: ["CMD-SHELL", "curl -f http://auth:8000/ || (($? == 22))"]
-      # interval: 10s
-      # timeout: 5s
-      # retries: 3
-      # start_period: 3s
+    restart: on-failure:3
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://auth:8000/health/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 3s
 
   redis:
     container_name: redis_c
@@ -111,7 +112,7 @@ services:
         redis:
           condition: service_started
         auth:
-          condition: service_started
+          condition: service_healthy
     environment:
       - SERVER_PORT=8002
       - APPLICATION_NAME=pong_server.asgi:application
@@ -121,16 +122,16 @@ services:
       - ./srcs/backend/pong/:/code
       - ${DATA_DIR}keys/rsa/pub.pem:/etc/certificate/pub.pem
       - ${DATA_DIR}keys/api-tokens/pong:/etc/certificate/api-token
-    restart: always
-    # healthcheck:
-    #   test: ["CMD-SHELL", "curl -f http://pong:8002/ || (($? == 22))"]
-      # interval: 10s
-      # timeout: 5s
-      # retries: 3
-      # start_period: 3s
+    restart: on-failure:3
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://pong:8002/health/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 3s
 
-  users_api:
-    container_name: users_api_c
+  users-api:
+    container_name: users-api_c
     build:
       context: ./srcs/django_builds
       target: django_usersapi
@@ -156,13 +157,13 @@ services:
       - APPLICATION_NAME=users_server.wsgi:application
       - SERVER_TYPE=gunicorn
       - PRODUCTION=${PRODUCTION}
-    restart: always
-    # healthcheck:
-    #   test: ["CMD-SHELL", "curl -f http://users_api:8001/ || (($? == 22))"]
-      # interval: 10s
-      # timeout: 5s
-      # retries: 3
-      # start_period: 3s
+    restart: on-failure:3
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://users-api:8001/health/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 3s
 
   matchmaking:
     container_name: matchmaking_c
@@ -173,30 +174,30 @@ services:
       - "8003:8003"
     depends_on:
         auth:
-          condition: service_started
+          condition: service_healthy
         redis:
           condition: service_started
         pong:
-          condition: service_started
-        users_api:
-          condition: service_started
+          condition: service_healthy
+        users-api:
+          condition: service_healthy
     environment:
       - SERVER_PORT=8003
       - APPLICATION_NAME=matchmaking.asgi:application
       - SERVER_TYPE=daphne
       - PRODUCTION=${PRODUCTION}
-    # healthcheck:
-    #   test: ["CMD-SHELL", "curl -f http://matchmaking:8003/ || (($? == 22))"]
-      # interval: 10s
-      # timeout: 5s
-      # retries: 3
-      # start_period: 3s
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://matchmaking:8003/health/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 3s
         
     volumes:
       - ./srcs/backend/matchmaking/:/code
       - ${DATA_DIR}keys/rsa/pub.pem:/etc/certificate/pub.pem
       - ${DATA_DIR}keys/api-tokens/matchmaking:/etc/certificate/api-token
-    restart: always
+    restart: on-failure:3
 
 secrets:
   ssl-key:

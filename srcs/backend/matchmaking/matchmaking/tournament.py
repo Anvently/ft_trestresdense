@@ -50,7 +50,7 @@ class Tournament:
 			'number_players': self.number_players
 		}
 		try:
-			response = requests.post('http://users_api:8001/api/tournaments/?format=json',
+			response = requests.post('http://users-api:8001/api/tournaments/?format=json',
 					data=json.dumps(data),
 					headers = {
 						'Host': 'localhost',

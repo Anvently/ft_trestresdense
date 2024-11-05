@@ -16,9 +16,10 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from matchmaking.views import PostResultView
+from matchmaking.views import PostResultView, HealthCheckView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
 	path('result/', PostResultView.as_view()),
+	path('health/', HealthCheckView.as_view(), name='health-check'),
 ]
