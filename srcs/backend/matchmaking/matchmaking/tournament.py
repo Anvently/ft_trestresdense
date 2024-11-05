@@ -5,6 +5,8 @@ import requests, json
 from django.conf import settings
 import asyncio
 from asgiref.sync import sync_to_async
+import logging
+logger = logging.getLogger(__name__)
 
 SUFFIXES = {
 	2: ".0",
@@ -124,7 +126,7 @@ class Tournament:
 		from matchmaking.consumers import MatchMakingConsumer
 		from channels.layers import get_channel_layer
 		channel_layer = get_channel_layer()
-		print(results)
+		logger.debug(results)
 		if results['status'] == 'cancelled':
 			self.delete()
 			return
@@ -145,7 +147,7 @@ class Tournament:
 						if next_match_id in lobbies and not lobbies[next_match_id].started:
 							absent = await lobbies[next_match_id].get_default_winner()
 							if absent == "?cancel":
-								print("No one joined the next macth, canceling ...")
+								logger.info("No one joined the next match, canceling ...")
 								lobbies[next_match_id].delete()
 								self.delete()
 							elif absent == "?ok":
@@ -153,7 +155,7 @@ class Tournament:
 							else:
 								await channel_layer.group_send(next_match_id, {'type' : "not_show_up", 'stage' : stage})
 								await lobbies[next_match_id].handle_default_results(absent)
-								print(f"asbent player is {absent}")
+								logger.info(f"asbent player is {absent}")
 					asyncio.create_task(countdown())
 			else:
 				""" If someone lose or it was a final, it's up to the
@@ -267,7 +269,7 @@ class LocalTournament(Tournament):
 		except KeyError:
 			raise Exception(f"Invalid id ({lobby_id}) for local tournament {self.tournament.id}")
 		except Exception as e:
-			print(f"ERROR: Failed to post game initialization to pong api: {e}")
+			logger.error(f"ERROR: Failed to post game initialization to pong api: {e}")
 			return None
 		self.current_match_id = match['lobby_id']
 		return self.id

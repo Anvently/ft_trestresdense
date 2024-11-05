@@ -13,6 +13,7 @@ import traceback
 from abc import abstractmethod
 import logging, threading
 from asgiref.sync import sync_to_async
+logger = logging.getLogger(__name__)
 
 # Constants
 PADDLE_LENGTH = 0.16
@@ -80,7 +81,7 @@ class PongLobby:
 		self.game_type = None
 		self.counter = self.simple_call_counter()
 		self.nbr_websocket = 0
-		print(f"game {lobby_id} initialized, await players {players_list}")
+		logger.info(f"game {lobby_id} initialized, await players {players_list}")
 
 	def check_game_start(self) -> bool:
 		if self.waiting_for == 0:
@@ -106,7 +107,6 @@ class PongLobby:
 		return False
 
 	async def stop_game_loop(self):
-		print("Setting gameState to -1")
 		self.gameState = -1
 
 	async def start_game_loop(self):
@@ -123,7 +123,7 @@ class PongLobby:
 			return True
 		self.players[self.match_id_pos[player_id]].has_joined = True
 		self.waiting_for -= 1
-		print(f"player {player_id} joined, {self.waiting_for} remaining")
+		logger.info(f"player {player_id} joined, {self.waiting_for} remaining")
 		return True
 
 	def player_leave(self, player_id: str):
@@ -160,7 +160,7 @@ class PongLobby:
 			if response.status_code != 200:
 				raise Exception(f"expected status 201 but got {response.status_code}")
 		except Exception as e:
-			logging.error(f"Failed to send results of lobby {self.lobby_id}: {e}")
+			logger.error(f"Failed to send results of lobby {self.lobby_id}: {e}")
 		# API call to send result to matchmaking
 			# -> gameState == 3 match was played -> get stats in self and send them
 			# -> gameState == 0 game was canceled
@@ -188,7 +188,7 @@ class PongLobby:
 
 	async def	game_loop(self):
 		try:
-			print(f"Lobby {self.lobby_id}: Game loop has started")
+			logger.info(f"Lobby {self.lobby_id}: Game loop has started")
 			loop_start = time.time()
 			player_channel = get_channel_layer()
 			# pregame : check that all players are present
@@ -207,7 +207,7 @@ class PongLobby:
 				return
 			if self.nbr_websocket: await player_channel.group_send(self.lobby_id, {"type": "game_start"})
 			loop_start = time.time()
-			print("game will start in 3 sec")
+			logger.debug("game will start in 3 sec")
 			while time.time() - loop_start < 3:
 				await asyncio.sleep(0.016)
 				data = self.compute_game()
@@ -217,7 +217,7 @@ class PongLobby:
 			# play !
 				# launch ball
 			self.reset_ball()
-			print("game has started")
+			logger.info("game has started")
 			while self.gameState == 2:
 				await asyncio.sleep(0.016)	# 0.16 -> 60Hz
 				self.counter()
@@ -240,9 +240,9 @@ class PongLobby:
 					"type": "leave_lobby"
 				}
 			)
-			logging.info(f"Lobby {self.lobby_id}: Terminating game loop.")
+			logger.info(f"Lobby {self.lobby_id}: Terminating game loop.")
 		except Exception as e:
-			logging.error(e)
+			logger.error(e)
 			if self.nbr_websocket: await player_channel.group_send(self.lobby_id, {'type':'error', 'detail':'error in game loop'})
 			traceback.print_exc()
 
@@ -258,7 +258,7 @@ class PongLobby:
 
 		self.winner = self.check_winner()
 		if self.winner:
-			print(f"{self.winner} won the game")
+			logger.info(f"{self.winner} won the game")
 			self.gameState = 3
 
 		return self.generate_JSON()

@@ -15,7 +15,6 @@ class UserPermission(BasePermission):
 		elif view.action in ['retrieve', 'update', 'partial_update', 'destroy']:
 			return request.user.is_authenticated
 		else:
-			print(view.action)
 			return False
 																								
 	def has_object_permission(self, request, view, obj):

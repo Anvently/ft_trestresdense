@@ -10,6 +10,8 @@ import json
 from django.conf import settings
 import traceback
 import copy
+import logging
+logger = logging.getLogger(__name__)
 
 # Constants
 PADDLE_LENGTH = 0.16
@@ -81,8 +83,8 @@ class Player2D(Player):
 		while True:
 			iterations += 1
 			if iterations > 10000:
-				print("calculate_impact loop detected")
-				print(f"ballX = ${ballX}, ballY = ${ballY}, ballSpeedX = ${ballSpeedX}, ballSpeedY = ${ballSpeedY}")
+				logger.error("calculate_impact loop detected")
+				logger.error(f"ballX = ${ballX}, ballY = ${ballY}, ballSpeedX = ${ballSpeedX}, ballSpeedY = ${ballSpeedY}")
 				return 0
 
 			if abs(fspeed_x) < 1e-6 and abs(fspeed_y) < 1e-6:

@@ -15,7 +15,8 @@ from matchmaking.lobby import Lobby, LocalMatchLobby, SimpleMatchLobby, Tourname
 import copy
 from asgiref.sync import sync_to_async
 import requests
-
+import logging
+logger = logging.getLogger(__name__)
 
 def verify_jwt(token, is_ttl_based=False, ttl_key="exp"):
 	data = jwt.decode(token, settings.RSA_PUBLIC_KEY, algorithms=["RS512"])
@@ -201,7 +202,6 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		else:
 			await self._send_error(self.scope['error'], self.scope['error_code'], True)
 			return
-		print(online_players)
 		await self.send_general_update()
 
 	async def disconnect(self, code):
@@ -228,12 +228,12 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		if self._messageId != None:
 			content['id'] = self._messageId
 		self._messageId = None
-		print(f"\n SENDING {content} \n")
+		logger.debug(f"\n SENDING {content} \n")
 		return await super().send_json(content, close)
 
 	async def receive_json(self, content, **kwargs):
 		# perform some basic checks ?
-		print(f"\n RECEIVED : {content} \n")
+		logger.debug(f"\n RECEIVED {content} \n")
 		try:
 			if 'id' in content:
 				self._messageId = content['id']
@@ -505,7 +505,6 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 	async def switch_to_local_tournament_lobby(self, content):
 		await self.channel_layer.group_discard(self._lobby_id, self.channel_name)
 		new_lobby = content['new_id']
-		print(f"new lobby is {new_lobby}")
 		online_players[self.username]['lobby_id'] = new_lobby
 		self._lobby_id = new_lobby
 		online_players[self.username]['tournament_id'] = new_lobby
@@ -514,17 +513,6 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		await self.send_json({'type': 'set_unready'})
 		await self.send_json({"type" : 'lobby_joined', 'lobby_id' : self._lobby_id, 'is_host' : True})
 		await self.send_lobby_update(self.get_lobby_id())
-
-
-
-
-
-
-
-
-
-
-
 
 	async def player_unready(self, content):
 		if self.get_status() not in (PlayerStatus.IN_LOBBY, PlayerStatus.IN_TOURNAMENT_LOBBY):
@@ -608,7 +596,6 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 			return
 		lobbies[self._lobby_id].player_not_ready(self.username)
 		player_id = self.username + '.' + content['nickname']
-		print(f"trying to add {player_id} to localLobby")
 		if not lobbies[self._lobby_id].add_local_player(player_id):
 			await self._send_error("Could not add a player to lobby")
 		await self.send_lobby_update(self._lobby_id)
@@ -661,7 +648,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 				if not lobbies[current_lobby].started:
 					await self.player_ready(None)
 			else:
-				print("player left during the window")
+				logger.info("A player left during the window")
 
 		asyncio.create_task(delayed_ready())
 # """

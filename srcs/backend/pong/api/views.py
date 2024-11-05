@@ -9,6 +9,8 @@ from pong_server.consumers import lobbies_list
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from daphne.server import twisted_loop
+import logging
+logger = logging.getLogger(__name__)
 
 class PostGameView(APIView):
 	parser_classes = [JSONParser,]
@@ -28,7 +30,7 @@ class CancelLobbyView(APIView):
 	permission_classes = [IsApiAuthenticatedAs("matchmaking")]
 
 	async def delete(self, request, lobby_id):
-		print(f"canceling lobby {lobby_id}")
+		logger.info(f"canceling lobby {lobby_id}")
 		if not lobby_id in lobbies_list:
 			return Response({"Lobby not found"}, status=status.HTTP_404_NOT_FOUND)
 		await lobbies_list[lobby_id].stop_game_loop()
@@ -40,14 +42,13 @@ class PlayerConcedeView(APIView):
 	permission_classes = [IsApiAuthenticatedAs("matchmaking")]
 
 	async def post(self, request, lobby_id, player_id):
-		print(f"player {player_id} has left game {lobby_id}")
+		logger.info(f"player {player_id} has left game {lobby_id}")
 		if not lobby_id in lobbies_list:
 			return Response({"Lobby not found"}, status=status.HTTP_404_NOT_FOUND)
 		
 		# set player lives to 0
 		player = lobbies_list[lobby_id].get_user(player_id)
 		if player:
-			print("kill_player")
 			player.kill_player()
 
 		return Response(status=status.HTTP_201_CREATED)

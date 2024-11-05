@@ -166,5 +166,10 @@ LOGGING = {
             'handlers': ['console'],
             'level': 'INFO',
         },
+        'matchmaking': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': True,
+        },
     },
 }
