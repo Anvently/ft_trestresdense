@@ -377,13 +377,11 @@ export default class Pong2DView extends BaseView {
 	}
 
 	resize() {
-		const resolutionScale = 1;
-
 		var newWidth = window.innerWidth;
 		var newHeight = window.innerWidth;
-		if (window.innerHeight * 0.7 < window.innerWidth) {
-			newWidth = window.innerHeight * 0.7;
-			newHeight = window.innerHeight * 0.7;
+		if (window.innerHeight < window.innerWidth) {
+			newWidth = window.innerHeight;
+			newHeight = window.innerHeight;
 		}
 		var navHeight = document.querySelector('.navbar').clientHeight;
 		const controlDiv = document.querySelector('.controls:not(.d-none)');
@@ -394,7 +392,6 @@ export default class Pong2DView extends BaseView {
 		this.renderer.domElement.style.width = `${newWidth}px`;
 		this.renderer.domElement.style.height = `${newWidth}px`;
 	}
-
 
 	draw3D()
 	{
