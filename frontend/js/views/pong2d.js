@@ -461,7 +461,7 @@ export default class Pong2DView extends BaseView {
 
 			// name
 			let player_name = player.querySelector('.player-name');
-			player_name.textContent = this.getName(id) + " :";
+			player_name.textContent = this.getName(id) + "\u00A0:";
 
 			// avatar
 			const player_avatar = document.createElement('img');
