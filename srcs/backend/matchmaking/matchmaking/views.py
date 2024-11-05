@@ -8,6 +8,7 @@ from matchmaking.authentication import ApiJWTAuthentication, IsApiAuthenticatedA
 from matchmaking.tournament import tournaments
 from matchmaking.lobby import SimpleMatchLobby, TournamentInitialLobby
 import copy
+from matchmaking.consumers import MatchMakingConsumer
 
 class PostResultView(APIView):
 	parser_classes = [JSONParser,]
@@ -28,8 +29,8 @@ class PostResultView(APIView):
 
 class PostBotLobbyView(APIView):
 	parser_classes = [JSONParser,]
-	# authentication_classes = [ApiJWTAuthentication]
-	# permission_classes = [IsApiAuthenticatedAs("matchmaking")]
+	authentication_classes = [ApiJWTAuthentication]
+	permission_classes = [IsApiAuthenticatedAs("matchmaking")]
 
 
 	async def post(self, request):
@@ -42,14 +43,7 @@ class PostBotLobbyView(APIView):
 		data['allow_spectators'] = True
 		data['settings'] = {'lives' : request.data.get('lives', 5) }
 		try:
-			match lobby_type:
-				case 'simple_match':
-					new_lobby = SimpleMatchLobby(copy.deepcopy(data))
-				case 'tournament_lobby':
-					new_lobby = TournamentInitialLobby(copy.deepcopy(data))
-				case _:
-					raise KeyError("Wrong lobby type")
-
+				new_lobby = SimpleMatchLobby(copy.deepcopy(data))
 		except KeyError as e:
 			return Response({f'Wrong settings'}, status=status.HTTP_400_BAD_REQUEST)
 		except TypeError as e:
@@ -57,6 +51,7 @@ class PostBotLobbyView(APIView):
 		lobbies[new_lobby.id] = new_lobby
 		for _ in range(0, data['nbr_players']-1):
 			lobbies[new_lobby.id].add_bot()
+		await MatchMakingConsumer.static_general_update()
 		return Response(status=status.HTTP_201_CREATED)
 
 
