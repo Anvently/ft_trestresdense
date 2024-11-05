@@ -11,6 +11,7 @@ import time, logging, random, string
 from matchmaking.common import online_players, PlayerStatus, lobbies, tournaments, tournament_creator
 from channels.layers import get_channel_layer
 from asgiref.sync import sync_to_async, async_to_sync
+logger = logging.getLogger(__name__)
 
 def generate_id(public, spectate, prefix=''):
 	""" Simplr => S
@@ -84,7 +85,7 @@ class Lobby():
 			return True
 
 		if len(self.players) == self.player_num:
-			logging.warning(f"Trying to add a player ({player_id}) to a full lobby")
+			logger.warning(f"Trying to add a player ({player_id}) to a full lobby")
 			return False
 
 		self.players[player_id] = {
@@ -109,7 +110,7 @@ class Lobby():
 		""" Mark a player as ready and return True if it was the last player
 		 and the game was initiated with success. """
 		if self.started == True:
-			logging.warning(f"{player_id} marked as ready but game has already started.")
+			logger.warning(f"{player_id} marked as ready but game has already started.")
 			return False
 		if player_id not in self.players:
 			return False
@@ -176,7 +177,7 @@ class Lobby():
 			if response.status_code != 201:
 				raise Exception(f"expected status 201 got {response.status_code} ({response.content})")
 		except Exception as e:
-			print(f"ERROR: Failed to post game initialization to pong api: {e}")
+			logger.error(f"ERROR: Failed to post game initialization to pong api: {e}")
 			return False
 		# Update player status
 		for player_id, player in self.iterate_human_player():
@@ -200,7 +201,7 @@ class Lobby():
 			results['lobby_name'] = self.name
 			# results['scores_set'] = [el for el in results['scores_set'] if el['username'][0] != '!']
 			try:
-				response = await sync_to_async(requests.post)('http://users_api:8001/post-result/?format=json',
+				response = await sync_to_async(requests.post)('http://users-api:8001/post-result/?format=json',
 						data=json.dumps(results),
 						headers = {
 							'Host': 'localhost',
@@ -211,7 +212,7 @@ class Lobby():
 				if response.status_code != 201:
 					raise Exception(f"expected status 201 got {response.status_code} ({response.content})")
 			except Exception as e:
-				logging.error(f"Failed to post results to users_info: {e}")
+				logger.error(f"Failed to post results to users_info: {e}")
 
 	def check_time_out(self):
 		pass
@@ -267,11 +268,9 @@ class LocalMatchLobby(SimpleMatchLobby):
 
 	def __init__(self, settings: Dict[str, Any], prefix='L') -> None:
 		settings['public'] = False
-		print(f"Setting for local match {settings}")
 		super().__init__(settings, prefix)
 		self.remove_player(self.hostname)
 		self.hostnickname = self.hostname + '.' + settings['nickname']
-		print(f"registering hostnickname {self.hostnickname}")
 		self.add_player(self.hostnickname)
 
 	async def handle_results(self, results: Dict[str, Any]):
@@ -297,7 +296,6 @@ class LocalMatchLobby(SimpleMatchLobby):
 			del lobbies[self.id]
 
 	def add_local_player(self, player_id):
-		print("addlocalplayer")
 		if len(self.players) == self.player_num:
 			return False
 		if player_id in self.players:
@@ -307,7 +305,6 @@ class LocalMatchLobby(SimpleMatchLobby):
 			'is_ready': True,
 			'is_bot': False
 		}
-		print(self.players)
 		return True
 
 	def player_not_ready(self, player_id):
@@ -319,7 +316,7 @@ class LocalMatchLobby(SimpleMatchLobby):
 		""" Mark a player as ready and return True if it was the last player
 		 and the game was initiated with success. """
 		if self.started == True:
-			logging.warning(f"{player_id} marked as ready but game has already started.")
+			logger.warning(f"{player_id} marked as ready but game has already started.")
 			return False
 		if player_id != self.hostname:
 			return False
@@ -357,7 +354,7 @@ class LocalMatchLobby(SimpleMatchLobby):
 			if response.status_code != 201:
 				raise Exception(f"expected status 201 got {response.status_code} ({response.content})")
 		except Exception as e:
-			print(f"ERROR: Failed to post game initialization to pong api: {e}")
+			logger.error(f"ERROR: Failed to post game initialization to pong api: {e}")
 			return False
 		# Update player status
 		online_players[self.hostname]['status'] = PlayerStatus.IN_GAME
@@ -412,7 +409,7 @@ class TournamentInitialLobby(Lobby):
 			'id': self.id,
 			'players': list(self.players.keys())
 		}):
-			print("error creating tournament")
+			logger.error("error creating tournament")
 			return False
 		self.delete()
 		return True
@@ -434,7 +431,6 @@ class TournamentMatchLobby(Lobby):
 			await super().handle_results(results)
 			await tournaments[self.tournament_id].handle_result(results)
 		self.delete()
-		print("was deleted")
 
 	async def handle_default_results(self, leaver_id):
 		result = dict()
@@ -451,7 +447,6 @@ class TournamentMatchLobby(Lobby):
 				result['scores_set'].append({'username' : player, 'score' : self.settings['lives'], 'has_win' : True})
 		result['scores_set'].append({'username' : leaver_id, 'score' : 0, 'has_win' : False})
 
-		print(result)
 		await self.handle_results(result)
 
 
@@ -533,7 +528,6 @@ class LocalTournamentInitialLobby(LocalMatchLobby):
 	def __init__(self, settings: Dict[str, Any]) -> None:
 		settings['public'] = False
 		settings['allow_spectators'] = False
-		print(f"settings are {settings}")
 		super().__init__(settings, prefix='J')
 
 	def __str__(self) -> str:
@@ -559,9 +553,7 @@ class LocalTournamentInitialLobby(LocalMatchLobby):
 			'players' : list(self.players.keys())}
 		from matchmaking.tournament import LocalTournament
 		tournament = LocalTournament(data)
-		print("tournament created")
 		lobbies[tournament.id] = LocalTournamentLobby(tournament)
-		print('lobby created')
 		channel_layer = get_channel_layer()
 		await channel_layer.group_send(self.hostname, {"type" : "switch_to_local_tournament_lobby", "new_id" : tournament.id})
 
@@ -571,7 +563,6 @@ class LocalTournamentInitialLobby(LocalMatchLobby):
 			return
 		if len(self.players) != self.player_num:
 			return
-		print("time to init the lobby")
 		await self.init_game()
 		self.delete()
 		return False

@@ -21,7 +21,6 @@ export class ViewManager {
     }
 
     defaultErrorHandler(error) {
-        console.log('Error loading view: ', error);
         alert(`Une erreur est survenue lors du chargement de la page : ${error.message}`);
     }
 

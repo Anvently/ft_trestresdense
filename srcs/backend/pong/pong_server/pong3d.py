@@ -11,6 +11,8 @@ from django.conf import settings
 import traceback
 from pong_server.game import PongLobby, Player
 import copy
+import logging
+logger = logging.getLogger(__name__)
 
 # # Constants
 TABLE_LENGHT = 9 / 5
@@ -177,6 +179,7 @@ class PongLobby3D(PongLobby):
 		else:
 			return
 
+		# Auto serve after 5 secs
 		if self.is_service and time.time() - 5 >= self.service_time:
 			print("service direction = ", self.service_direction)
 			self.ball["speed"]["x"] = MIN_SPEED * (-self.service_direction)
@@ -298,10 +301,8 @@ class PongLobby3D(PongLobby):
 
 	def check_winner(self) -> str:
 		if (self.players[0].points >= self.points_to_win and self.players[0].points >= self.players[1].points + 2) or self.players[1].lives == 0:
-			print(f"Lobby {self.lobby_id}: Winner is :", self.players[0].player_id)
 			return self.players[0].player_id
 		elif (self.players[1].points >= self.points_to_win and self.players[1].points >= self.players[0].points + 2) or self.players[0].lives == 0:
-			print(f"Lobby {self.lobby_id}: Winner is:", self.players[1].player_id)
 			return self.players[1].player_id
 		return ''
 
@@ -326,7 +327,7 @@ class PongLobby3D(PongLobby):
 
 		# alternate every 2 services
 		self.service_count += 1
-		print("service count = ", self.service_count)
+		logger.debug("service count = ", self.service_count)
 		if self.service_count >= 2:
 			self.service_count = 0
 			self.service_direction *= -1

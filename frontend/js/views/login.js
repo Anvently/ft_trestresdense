@@ -87,14 +87,11 @@ export default class LoginView extends BaseView {
 			response.json()
 			.then((data) => {
 				if (response.status === 200) {
-					// Connexion réussie
-					console.log('Connexion réussie');
 					authenticatedUser.getInfos();
 					// Rediriger vers la page principale ou effectuer d'autres actions
 					window.location.hash = '#';
 				}
 				else if (response.status === 202) {
-					console.log("Two factor is requested.");
 					const errorDiv = document.getElementById('errorLogin');
 					errorDiv.style.display = 'block';
 					errorDiv.classList.add('alert-warning');
@@ -153,7 +150,6 @@ export default class LoginView extends BaseView {
 	}
 
 	async register () {
-		console.log('Enregistrement en cours');
 		const errorDiv = document.getElementById('errorRegister');
 		try {
 			const response = await fetch(this.registerUrl, {
@@ -167,7 +163,6 @@ export default class LoginView extends BaseView {
 			});
 			if (response.status === 400) {
 				const res = await response.json();
-				console.log(res);
 				this.showErrorRegister(Object.entries(res));
 				return;
 			}
@@ -195,7 +190,6 @@ export default class LoginView extends BaseView {
 				const data = await response.json();
 				throw new Error(data.error || data.message);
 			}
-			console.log('Connexion réussie');
 			authenticatedUser.getInfos();
 			// Rediriger vers la page principale ou effectuer d'autres actions
 			window.location.hash = '#';

@@ -55,3 +55,8 @@ class PostBotLobbyView(APIView):
 		return Response(status=status.HTTP_201_CREATED)
 
 
+
+
+class HealthCheckView(APIView):
+	async def get(self, request):
+		return Response(status=200)

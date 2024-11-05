@@ -141,3 +141,35 @@ CHANNEL_LAYERS = {
         },
     },
 }
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'filters': {
+        'exclude_health_check': {
+            '()': 'django.utils.log.CallbackFilter',
+            'callback': lambda record: 'health/' not in record.getMessage()
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'filters': ['exclude_health_check'],
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+        'daphne': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+        'matchmaking': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+    },
+}

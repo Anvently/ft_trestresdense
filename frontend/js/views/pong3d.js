@@ -125,20 +125,15 @@ export default class Pong3DView extends BaseView {
 	}
 
 	initWebSocket() {
-		console.log("initWebSocket");
 		const sockAdd = this.urlParams.get('id');
 		if (!sockAdd) window.location.hash = '#';
 
 		this.socket = new WebSocket(`wss://${location.hostname}:8083/ws/pong/${sockAdd}/`);
 
-		this.socket.onopen = () => {
-			console.log("WebSocket is now open");
-			// this.startGameLoop();
-		}
-
+		// this.socket.onopen = () => console.log("WebSocket is now open");
 		this.socket.onmessage = async (e) => this.handleWebSocketMessage(JSON.parse(e.data));
 		this.socket.onerror = (error) => console.error('WebSocket error:', error);
-		this.socket.onclose = () => console.log('WebSocket is closed now.');
+		// this.socket.onclose = () => console.log('WebSocket is closed now.');
 		this.connectionTimeout = setTimeout(() => {
 			if (this.socket.readyState !== WebSocket.OPEN) {
 			  console.error('WebSocket connection failed to open within 1 seconds');
@@ -168,7 +163,6 @@ export default class Pong3DView extends BaseView {
 			if (msg.player_list[i] === authenticatedUser.username || msg.player_list[i].split('.')[0] === authenticatedUser.username) {
 				if (this.isGuestId(msg.player_list[i])) this.isLocalMatch = true;
 				this.isSpectator = false;
-				console.log(`${msg.player_list[i]} joined the game`);
 				this.socket.send(JSON.stringify({ type: "join_game", username: `${msg.player_list[i]}` }));
 			}
 			if (msg.player_list[i] !== '!wall') {
@@ -218,7 +212,6 @@ export default class Pong3DView extends BaseView {
 	}
 
 	async onGameStart() {
-		console.log("onGameStart");
 		this.gameHasStarted = true;
 
 		this.findPlayerDirection();
@@ -236,7 +229,6 @@ export default class Pong3DView extends BaseView {
 	}
 
 	startGameLoop() {
-		console.log("startGameLoop");
 		const loop = (timestamp) => {
 			this.handleInput();
 			this.draw3D();
@@ -258,26 +250,54 @@ export default class Pong3DView extends BaseView {
 			cancelAnimationFrame(this.animationId);
 			return;
 		}
+
+
 	}
 
 	sendInput() {
-		var player_rel_pos = {
-			x: (this.players[this.direction].x + 1.1) / 0.6,// - (PADDLE_MAX_X[this.direction] - PADDLE_MIN_X[this.direction]),
-			y: (this.players[this.direction].y * PADDLE_LEFT_DIR[this.direction]) / 2
+		// MOUSE
+
+		// get paddle screen position
+		let paddle_screen_pos = new THREE.Vector3();
+		paddle_screen_pos = paddle_screen_pos.setFromMatrixPosition(this.objects.paddle[this.direction].matrixWorld);
+		paddle_screen_pos.project(this.camera);
+		
+		let widthHalf = this.renderer.domElement.clientWidth / 2;
+		let heightHalf = this.renderer.domElement.clientHeight / 2;
+		
+		paddle_screen_pos.x = (paddle_screen_pos.x * widthHalf) + widthHalf;
+		paddle_screen_pos.y = - (paddle_screen_pos.y * heightHalf) + heightHalf;
+		paddle_screen_pos.z = 0;
+		
+		// console.log(paddle_screen_pos);
+		if (this.mousePosition.toggle) {
+			if (this.mousePosition.x > paddle_screen_pos.x + PLAYER_SPEED * 1000)
+				this.socket.send(JSON.stringify({type: 'key_input', username: this.username,  input: "right" }));
+			else if (this.mousePosition.x < paddle_screen_pos.x - PLAYER_SPEED * 1000)
+				this.socket.send(JSON.stringify({ type: 'key_input', username: this.username, input: "left" }));
+					
+			if (this.mousePosition.y > paddle_screen_pos.y + PLAYER_SPEED * 1000)
+				this.socket.send(JSON.stringify({ type: 'key_input', username: this.username, input: "down" }));
+			else if (this.mousePosition.y < paddle_screen_pos.y - PLAYER_SPEED * 1000)
+				this.socket.send(JSON.stringify({type: 'key_input', username: this.username,  input: "up" }));
 		}
 
-		// MOUSE
-		if (this.mousePosition.toggle) {
-			if (this.mousePosition.x > player_rel_pos.x + PLAYER_SPEED)
-				this.socket.send(JSON.stringify({type: 'key_input', username: this.username,  input: "up" }));
-			else if (this.mousePosition.x < player_rel_pos.x - PLAYER_SPEED)
-				this.socket.send(JSON.stringify({ type: 'key_input', username: this.username, input: "down" }));
+		// OLD MOUSE CONTROLS
+		// var player_rel_pos = {
+		// 	x: (this.players[this.direction].x + 1.1) / 0.6,// - (PADDLE_MAX_X[this.direction] - PADDLE_MIN_X[this.direction]),
+		// 	y: (this.players[this.direction].y * PADDLE_LEFT_DIR[this.direction]) / 2
+		// }
+		// if (this.mousePosition.toggle) {
+		// 	if (this.mousePosition.x > player_rel_pos.x + PLAYER_SPEED)
+		// 		this.socket.send(JSON.stringify({type: 'key_input', username: this.username,  input: "up" }));
+		// 	else if (this.mousePosition.x < player_rel_pos.x - PLAYER_SPEED)
+		// 		this.socket.send(JSON.stringify({ type: 'key_input', username: this.username, input: "down" }));
 	
-			if (this.mousePosition.y > player_rel_pos.y + PLAYER_SPEED)
-				this.socket.send(JSON.stringify({type: 'key_input', username: this.username,  input: "right" }));
-			else if (this.mousePosition.y < player_rel_pos.y - PLAYER_SPEED)
-				this.socket.send(JSON.stringify({ type: 'key_input', username: this.username, input: "left" }));
-		}
+		// 	if (this.mousePosition.y > player_rel_pos.y + PLAYER_SPEED)
+		// 		this.socket.send(JSON.stringify({type: 'key_input', username: this.username,  input: "right" }));
+		// 	else if (this.mousePosition.y < player_rel_pos.y - PLAYER_SPEED)
+		// 		this.socket.send(JSON.stringify({ type: 'key_input', username: this.username, input: "left" }));
+		// }
 
 		// KEYBOARD
 		if (this.pressKey.key_up === true) {
@@ -505,8 +525,6 @@ export default class Pong3DView extends BaseView {
 	}
 
 	setupInputListeners() {
-		console.log("setupInputListeners");
-
 		const keydownListener = (e) => this.handleKeyDown(e);
 		window.addEventListener("keydown", keydownListener);
 		this.eventListeners.push( {type: 'keydown', listener: keydownListener});
@@ -522,8 +540,13 @@ export default class Pong3DView extends BaseView {
 	}
 
 	handleMouseMove(event) {
-		this.mousePosition.x = (event.clientY / window.innerHeight - 0.5) * -1.5;
-		this.mousePosition.y = (event.clientX / window.innerWidth - 0.5) * 1.5;
+		// this.mousePosition.x = (event.clientY / window.innerHeight - 0.5) * -1.5;
+		// this.mousePosition.y = (event.clientX / window.innerWidth - 0.5) * 1.5;
+
+
+		const rect =  this.renderer.domElement.getBoundingClientRect();
+		this.mousePosition.x = event.clientX - rect.left;
+		this.mousePosition.y = event.clientY - rect.top;
 		this.mousePosition.toggle = true;
 	}
 
@@ -549,7 +572,6 @@ export default class Pong3DView extends BaseView {
 	}
 
 	handleKeyDown(e) {
-		console.log("handleKeyDown");
 		if (e.key === "ArrowUp") this.pressKey.key_up = true;
 		else if (e.key === "ArrowDown") this.pressKey.key_down = true;
 		else if (e.key === "ArrowLeft") this.pressKey.key_left = true;
@@ -557,7 +579,6 @@ export default class Pong3DView extends BaseView {
 	}
 
 	handleKeyUp(e) {
-		console.log("handleKeyUp");
 		if (e.key === "ArrowUp") this.pressKey.key_up = false;
 		else if (e.key === "ArrowDown") this.pressKey.key_down = false;
 		else if (e.key === "ArrowLeft") this.pressKey.key_left = false;
@@ -565,7 +586,6 @@ export default class Pong3DView extends BaseView {
 	}
 
 	cleanupView() {
-		console.log("Cleaning Pong3d view");
 		if (this.animationId) cancelAnimationFrame(this.animationId);
 		if (this.socket) this.socket.close();
 		this.cleanupListeners();
@@ -574,7 +594,6 @@ export default class Pong3DView extends BaseView {
 
 	cleanupListeners() {
 		for (const { type, listener } of this.eventListeners) {
-			console.log("type: " + type + ", listener: " + listener + " removed;")
 			window.removeEventListener(type, listener);
 		}
 		this.eventListeners = []; // Clear the array after removing
@@ -735,7 +754,6 @@ export default class Pong3DView extends BaseView {
 }
 
 function createTextSprite(message, color, size) {
-	console.log("createTextSprite");
 	const fontSize = 20;
 
 	const tempCanvas = document.createElement('canvas');

@@ -18,7 +18,8 @@ from django.contrib import admin
 from django.urls import path
 from rest_framework import routers
 from auth_api.views import VerifyToken, LoginView, \
-            UserViewSet, SignIn42CallbackView, LogoutView, TwoFactorAuthView
+            UserViewSet, SignIn42CallbackView, LogoutView, TwoFactorAuthView, \
+			HealthCheckView
 
 # router = routers.DefaultRouter()
 # router.register(r'users', UserView)
@@ -33,5 +34,6 @@ urlpatterns = [
 	path("api/auth/me/", UserViewSet.as_view({'get': 'retrieve', 'patch': 'update', 'delete': 'destroy'}), name="update"),
 	path("api/auth/logout/", LogoutView.as_view()),
 	path("api/auth/42-api-callback", SignIn42CallbackView.as_view(), name="42-callback"),
-    path("api/auth/2fa/", TwoFactorAuthView.as_view())
+    path("api/auth/2fa/", TwoFactorAuthView.as_view()),
+	path('health/', HealthCheckView.as_view(), name='health-check'),
 ]

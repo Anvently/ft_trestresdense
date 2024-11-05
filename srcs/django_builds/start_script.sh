@@ -8,9 +8,9 @@ if [ -z "$PRODUCTION" ]; then
 	exec python3 manage.py runserver 0.0.0.0:${SERVER_PORT}
 else
 	if [ "$SERVER_TYPE" = daphne ]; then
-		exec daphne -b 0.0.0.0 -p ${SERVER_PORT} ${APPLICATION_NAME}
+		exec daphne -v 0 -b 0.0.0.0 -p ${SERVER_PORT} ${APPLICATION_NAME}
 	elif [ "$SERVER_TYPE" = gunicorn ]; then
-		exec gunicorn ${APPLICATION_NAME} --bind 0.0.0.0:${SERVER_PORT} --capture-output --enable-stdio-inheritance
+		exec gunicorn ${APPLICATION_NAME} --bind 0.0.0.0:${SERVER_PORT}
 	else
 		echo >&2 "Warning: production variable defined but missing server type. Starting on development server."
 		exec python3 manage.py runserver 0.0.0.0:${SERVER_PORT}

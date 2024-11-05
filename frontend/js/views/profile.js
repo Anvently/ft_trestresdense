@@ -77,12 +77,10 @@ export default class ProfileView extends BaseView {
 	async retrieveAuthInfos() {
 		try {
 			const response = await fetch(this.patchCredentialsUrl, {method: 'GET'});
-			console.log(response.status);
 			if (!response.ok) {
 				throw new Error("Error retrieving authentication informations");
 			}
 			this.credentialsInfos = await response.json();
-			console.log(this.credentialsInfos);
 		} catch (error) {
 			this.errorHandler(error);
 		}
@@ -92,7 +90,6 @@ export default class ProfileView extends BaseView {
 	async getUserName()
 	{
 		const name = authenticatedUser.username;
-		console.log(`getUsername ${name}`);
 		navigator.clipboard.writeText(name).then(() => {
 			const button = document.getElementById('getMyUsername');
 			const originalText = button.textContent;
@@ -151,7 +148,6 @@ export default class ProfileView extends BaseView {
 		securityMessage.style.display = 'block';
 
 		const inputs = form.querySelectorAll('input:not(#enable2FA)');
-		console.log(inputs);
 		inputs.forEach(input => input.disabled = true);
 	}
 
@@ -187,7 +183,7 @@ export default class ProfileView extends BaseView {
 	}
 
 	async submitUserInfos() {
-		console.log('Envoi des données du profil');
+		('Envoi des données du profil');
 		const formData = new FormData();
 		formData.append("url_avatar", this.avatarUrl.value);
 		formData.append("display_name", this.profileForm.displayName.value);
@@ -212,7 +208,6 @@ export default class ProfileView extends BaseView {
 
 	async submitCredentials()
 	{
-		console.log('Envoi des données de securite');
 		try {
 			const response = await fetch(this.patchCredentialsUrl, {
 				method: 'PATCH',
@@ -240,10 +235,8 @@ export default class ProfileView extends BaseView {
 		const friendsList = document.getElementById('friends-list');
 
 		friendsList.innerHTML = '';
-		console.log(authenticatedUser.friends);
 		await Promise.all(authenticatedUser.friends.map(async user => {
 			const friend = new User(user, await userManager.getUserInfo(user));
-			// console.log(friend);
 			const friendElement = document.createElement('div');
 			friendElement.classList.add('friend-element', 'col', `user-${user}`);
 			friendElement.innerHTML = `

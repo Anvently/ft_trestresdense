@@ -29,7 +29,7 @@ def post_new_user(username: str, url_avatar: str = None, display_name: str = Non
 	if url_avatar:
 		data["url_avatar"] = url_avatar
 	try:
-		response = requests.post('http://users_api:8001/edit-users/?format=json',
+		response = requests.post('http://users-api:8001/edit-users/?format=json',
 						data=data,
 						headers={
 							'Host': 'localhost',
@@ -44,7 +44,7 @@ def post_new_user(username: str, url_avatar: str = None, display_name: str = Non
 
 def delete_user(username: str) -> bool:
 	try:
-		response = requests.delete('http://users_api:8001/edit-users/{0}/?format=json'.format(username),
+		response = requests.delete('http://users-api:8001/edit-users/{0}/?format=json'.format(username),
 						headers={
 								'Host': 'localhost',
 								'Authorization': 'Bearer {0}'.format(settings.API_TOKEN.decode('ASCII'))

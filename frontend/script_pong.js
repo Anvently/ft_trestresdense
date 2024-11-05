@@ -163,7 +163,6 @@ function create_paddles(number_of_players)
 		paddle.receiveShadow = true;
 
 		paddles.push(paddle);
-		console.log("create paddle");
 		scene.add(paddle);
 	}
 }
@@ -175,12 +174,6 @@ create_paddles(4);
 
 
 window.onload = function() {
-	// Afficher une fenêtre popup pour demander à l'utilisateur d'entrer une valeur
-	user_id = prompt("Veuillez entrer une valeur :");
-
-	// Afficher la valeur dans la console pour vérification
-	console.log("Valeur saisie par l'utilisateur : " + user_id);
-
 	const wsRef = new WebSocket(
 		'wss://'
 		+ `${location.hostname}` + ':8083'
@@ -238,7 +231,6 @@ function init_3d_map()
 
 function draw_3d()
 {
-	// console.log(number_of_players)
 	sphere.position.x = ball.x * 10;
 	sphere.position.y = ball.y * 10;
 	for (var dir = 0; dir < 4; dir++)

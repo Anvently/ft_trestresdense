@@ -100,7 +100,6 @@ export default class MatchmakingView extends BaseView {
 						this.errorHandler('Received a message which had no resolve entry.');
 					}
 				} else {
-					console.log('Received message:', message);
 					this.dispatch(message)
 				}
 			};
@@ -354,16 +353,17 @@ export default class MatchmakingView extends BaseView {
 		}
 
 		// Logique de création de lobby (API, stockage, etc.)
-		console.log({
-			gameType,
-			matchType,
-			lobbyName,
-			maxPlayers,
-			botsCount,
-			lobbyPrivacy,
-			spectators,
-			nbrLives
-		});
+		// console.log({
+		// 	gameType,
+		// 	matchType,
+		// 	lobbyName,
+		// 	maxPlayers,
+		// 	botsCount,
+		// 	lobbyPrivacy,
+		// 	spectators,
+		// 	nbrLives
+		// });
+
 		modal.hide();
 		if (matchType === "local_match" || matchType === "local_tournament_lobby")
 		{
@@ -379,7 +379,6 @@ export default class MatchmakingView extends BaseView {
 		const nicknameForm = document.getElementById('nicknameForm');
 		const nicknameError = document.getElementById('nicknameError');
 		this.nickName = "";
-		console.log("addLocalPlayer");
 		const validateNickname = (nickname) => {
 			if (nickname.length === 0) {return "Nickname is requiered";}
 			if (nickname.length > 15) {return "Nickname must be 15 characters or less";}
@@ -390,7 +389,6 @@ export default class MatchmakingView extends BaseView {
 		nicknameInput.addEventListener('input', () => {
 			const nickname = nicknameInput.value;
 			const error = validateNickname(nickname);
-			console.log("submit error is ", error);
 			if (error) {
 				nicknameInput.classList.add('is-invalid');
 				nicknameError.textContent = error;
@@ -455,7 +453,6 @@ export default class MatchmakingView extends BaseView {
 
 	joinLobbyById() {
 		const lobbyId = document.getElementById('lobbyIdInput').value;
-		console.log('Rejoindre le lobby avec l\'ID:', lobbyId);
 		this.joinLobby(lobbyId);
 		const modal = bootstrap.Modal.getInstance(document.getElementById('joinLobbyModal'));
 		modal.hide();
@@ -521,8 +518,6 @@ export default class MatchmakingView extends BaseView {
 
 	not_show_up(content)
 	{
-		console.log("a player failed to show up in time");
-		console.log(content);
 		const stage = content.stage;
 		if (stage == 1)
 		{
@@ -549,7 +544,6 @@ export default class MatchmakingView extends BaseView {
 
 	in_game(content)
 	{
-		console.log(content);
 		const lobby_id = content.lobby_id;
 
 		let modal = new bootstrap.Modal(document.getElementById('inGame'));
@@ -584,16 +578,12 @@ export default class MatchmakingView extends BaseView {
 
 	lobby_joined(message)
 	{
-		console.log("lobby_join event");
-		console.log(message);
-		console.log(message.lobby_id)
 		const lobby_id = message.lobby_id;
 		this.lobbyId = lobby_id;
 		this.updateCurrentView();
 	}
 
 	async lobby_update(message) {
-		console.log("lobby update", message)
 		let isTnMatch = false;
 		let isLoc = false;
 		if (message.match_type === "tournament_match")
@@ -608,7 +598,6 @@ export default class MatchmakingView extends BaseView {
 		else if (message.match_type === "local_match" || message.match_type === "local_tournament_initial_lobby")
 		{
 			isLoc = true;
-			console.log(message);
 			document.getElementById('inviteFriendsButton').classList.add('d-none');
 			document.getElementById('addLocalPlayerButton').classList.remove('d-none');
 			document.getElementById('displayBracketButton').classList.add('d-none');
@@ -705,7 +694,6 @@ export default class MatchmakingView extends BaseView {
 		const actionCell = document.createElement('td');
 		actionCell.classList.add('right');
 		if (playerId !== hostId && !isTnMatch) {
-			console.log("creating kick button");
 			const kickButton = document.createElement('button');
 			kickButton.className = 'btn btn-danger';
 			kickButton.textContent = 'Expulser';
@@ -773,7 +761,6 @@ export default class MatchmakingView extends BaseView {
 		const actionCell = document.createElement('td');
 		actionCell.classList.add('right');
 		if (this.isHost && playerId !== hostId && !isTnMatch) {
-			console.log("creating kick button");
 			const kickButton = document.createElement('button');
 			kickButton.className = 'btn btn-danger';
 			kickButton.textContent = 'Kick';
@@ -844,7 +831,6 @@ export default class MatchmakingView extends BaseView {
 		const nicknameForm = document.getElementById('nicknameForm');
 		const nicknameError = document.getElementById('nicknameError');
 		this.nickName = "";
-		console.log("addLocalPlayer");
 		const validateNickname = (nickname) => {
 			if (nickname.length === 0) {return "Nickname is requiered";}
 			if (nickname.length > 15) {return "Nickname must be 15 characters or less";}
@@ -892,7 +878,6 @@ export default class MatchmakingView extends BaseView {
 		  nicknameForm.removeEventListener('submit', submitNickname);
 		  nicknameInput.removeEventListener('input', validateNickname);
 		  nicknameInput.value = '';
-		  console.log(`Adding local player with nickname ${this.nickName}`);
 		 if (this.nickName != "")
 		  	this.sendMessage({'type': 'add_local_player', 'nickname': this.nickName});
 		  this.nickName = "";
@@ -998,7 +983,6 @@ export default class MatchmakingView extends BaseView {
 		userAvatar.classList.add(`dynamicAvatarUrl`, `user-${player_id}`);
 		userNameSpan.classList.add(`dynamicDisplayName`, `user-${player_id}`);
 		userManager.getUserAttr(player_id, 'display_name', player_id).then(displayName => {
-			console.log(`display name is ${displayName}`);
 			userNameSpan.textContent = displayName;
 		});
 		linkBlock.href = `https://${window.location.host}/api/users/${player_id}/`;
@@ -1046,8 +1030,6 @@ export default class MatchmakingView extends BaseView {
 		this.sendMessage({'type' : 'get_online_players'}, 1000)
 		.then ((message) => {
 			const players = message.players;
-			console.log(`online players`);
-			console.log(players);
 			this.displayOnlinePlayers(players);
 		})
 		.catch (error => this.errorHandler(error));
@@ -1056,10 +1038,6 @@ export default class MatchmakingView extends BaseView {
 
 	appendPlayerStatusEntry(tableElement, player_id, player_data, modal)
 	{
-
-		console.log('adding player');
-		console.log(player_id);
-		console.log(self.username);
 		if (player_id == authenticatedUser.username)
 		{
 			return ;
@@ -1157,7 +1135,6 @@ export default class MatchmakingView extends BaseView {
 
 	// Connecter le WebSocket au chargement de la page
 	dispatch(message) {
-		console.log(message.type)
 		if (message.type === 'error')
 			this.errorHandler(message);
 		else if (typeof this[message.type] === "function") {
@@ -1170,7 +1147,6 @@ export default class MatchmakingView extends BaseView {
 	}
 
 	async updateUserInfos(username, userInfo) {
-		console.log(`updating ${username} informations`);
 		document.querySelectorAll(`.dynamicDisplayName.user-${username}`).forEach(el => {
 			el.textContent = userInfo.display_name;
 		});
