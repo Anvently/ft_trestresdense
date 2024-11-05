@@ -400,19 +400,44 @@ export default class Pong3DView extends BaseView {
 		return groupMesh;
 	}
 
+	// updateBall() {
+	// 	this.objects.ball.position.x = this.ball.x * 10;
+	// 	this.objects.ball.position.y = this.ball.y * 10;
+	// 	this.objects.ball.position.z = this.setBallHeight();
+	// }
 
+	// WITH LERP TO SMOOTH MVMENT
 	updateBall() {
-		this.objects.ball.position.x = this.ball.x * 10;
-		this.objects.ball.position.y = this.ball.y * 10;
-		this.objects.ball.position.z = this.setBallHeight();
+		const targetPosition = new THREE.Vector3(
+			this.ball.x * 10,
+			this.ball.y * 10,
+			this.setBallHeight()
+		);
+	
+		this.objects.ball.position.lerp(targetPosition, 0.8); // value is the lerp factor
 	}
 
+	// updatePaddles() {
+	// 	this.objects.paddle.forEach((paddle, i) => {
+	// 		paddle.position.x = this.players[i].x * 10;
+	// 		paddle.position.y = this.players[i].y * 10;
+	// 		this.setPaddleHeight(i);
+	// 		paddle.rotation.z = this.players[i].angle + Math.PI / 2;
+	// 	});
+	// }
+
+	// WITH LERP TO SMOOTH MVMENT
 	updatePaddles() {
 		this.objects.paddle.forEach((paddle, i) => {
-			paddle.position.x = this.players[i].x * 10;
-			paddle.position.y = this.players[i].y * 10;
-			this.setPaddleHeight(i);
+			const targetPosition = new THREE.Vector3(
+				this.players[i].x * 10,
+				this.players[i].y * 10,
+				paddle.position.z
+			);
+	
+			paddle.position.lerp(targetPosition, 0.8); // Adjust lerp for speed
 			paddle.rotation.z = this.players[i].angle + Math.PI / 2;
+			this.setPaddleHeight(i);
 		});
 	}
 
