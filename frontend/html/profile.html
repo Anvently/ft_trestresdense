@@ -168,7 +168,7 @@
 				opacity: 1;
 			}
 		}
-	</style> 
+	</style>
 </head>
 <body>
 	<div id="main-container" class="container mt-5">
@@ -178,17 +178,18 @@
 				<!-- Les avatars des amis seront insérés ici par JavaScript -->
 			</div>
 		</div>
-		<div class="mb-3">
+		<div class="mb-3 d-flex flex-column gap-2">
 			<div class="input-group">
 			  <input type="text" class="form-control" id="new-friend-input" placeholder="username">
 			  <button class="btn btn-primary" type="button" id="add-friend-btn">Add friend</button>
 			</div>
+			<button class="btn btn-secondary" type="button" id="getMyUsername">Get my username</button>
 		</div>
-		
+
 		<hr class="my-5">
 
 		<h1 class="mb-4">Edit profile</h1>
-		
+
 		<form id="profileForm" class="needs-validation was-validated">
 			<div class="mb-3">
 				<label for="avatar" class="form-label">Avatar</label>
@@ -203,20 +204,20 @@
 					</div>
 				</div>
 			</div>
-			
+
 			<div class="mb-3">
 				<label for="displayName" class="form-label">Display name</label>
 				<input type="text" class="form-control" id="displayName" required>
 			</div>
-			
+
 			<button type="submit" class="btn btn-primary">Save informations</button>
 			<button id="resetFormButton" class="btn btn-primary">Cancel modifications</button>
 		</form>
-		
+
 		<hr class="my-5">
-		
+
 		<h2 class="mb-4">Update login credentials</h2>
-		
+
 		<div class="alert alert-warning security-message" role="alert">
 			Some field are disabled for accounts registered with 42.
 		</div>
@@ -228,7 +229,7 @@
 					Email required.
 				</div>
 			</div>
-			
+
 			<div class="mb-3">
 				<label for="password" class="form-label">New password</label>
 				<input type="password" class="form-control" id="password">
@@ -236,7 +237,7 @@
 					Password required.
 				</div>
 			</div>
-			
+
 			<div class="mb-3">
 				<label for="confirmPassword" class="form-label">Confirm password</label>
 				<input type="password" class="form-control" id="confirmPassword">
@@ -249,10 +250,10 @@
 				<input type="checkbox" class="form-check-input" id="enable2FA">
 				<label for="enable2FA" class="form-check-label">Enable two factors authentication</label>
 			</div>
-			
+
 			<button type="submit" class="btn btn-primary">Save changes</button>
 		</form>
-		
+
 		<div id="container-2FA" class="my-5 d-none">
 			<form>
 				<h2 class="mb-4">Two factors authentication</h2>
