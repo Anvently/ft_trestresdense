@@ -54,6 +54,7 @@ services:
       retries: 3
       start_period: 10s
       start_interval: 2s
+    restart: on-failure:3
 
   auth:
     container_name: auth_c
@@ -85,7 +86,7 @@ services:
       - PRODUCTION=${PRODUCTION}
     secrets:
       - rsa-key
-    restart: always
+    restart: on-failure:3
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://auth:8000/health/ || exit 1"]
       interval: 10s
@@ -121,7 +122,7 @@ services:
       - ./srcs/backend/pong/:/code
       - ${DATA_DIR}keys/rsa/pub.pem:/etc/certificate/pub.pem
       - ${DATA_DIR}keys/api-tokens/pong:/etc/certificate/api-token
-    restart: always
+    restart: on-failure:3
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://pong:8002/health/ || exit 1"]
       interval: 10s
@@ -156,7 +157,7 @@ services:
       - APPLICATION_NAME=users_server.wsgi:application
       - SERVER_TYPE=gunicorn
       - PRODUCTION=${PRODUCTION}
-    restart: always
+    restart: on-failure:3
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://users-api:8001/health/ || exit 1"]
       interval: 10s
@@ -196,7 +197,7 @@ services:
       - ./srcs/backend/matchmaking/:/code
       - ${DATA_DIR}keys/rsa/pub.pem:/etc/certificate/pub.pem
       - ${DATA_DIR}keys/api-tokens/matchmaking:/etc/certificate/api-token
-    restart: always
+    restart: on-failure:3
 
 secrets:
   ssl-key:
