@@ -305,5 +305,3 @@ class PongLobby:
 	# 			return self.winner
 	# 	return None
 
-
-

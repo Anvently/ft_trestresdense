@@ -938,7 +938,7 @@ export default class MatchmakingView extends BaseView {
 		this.sendMessage({"type": "invite_player", "invite_id" : friend_id});
 	}
 
-	be_invited(message)
+	async be_invited(message)
 	{
 			let modal = new bootstrap.Modal(document.getElementById('receiveInvitation'));
             const inviteContainer = document.getElementById('invitation');
@@ -948,10 +948,9 @@ export default class MatchmakingView extends BaseView {
             let inviting_player = message.invite_from;
             const lobby_id = message.lobby_id;
 
-            userManager.getUserAttr(inviting_player, 'display_name', inviting_player).then(displayName => {
-                inviting_player = displayName;
-                inviteText.textContent = `${inviting_player} wants to challenge you!`;
-            });
+			const user = new User(inviting_player, await userManager.getUserInfo(inviting_player, false, true));
+
+			inviteText.textContent = `${user.display_name} wants to challenge you!`;
 
             joinButton.onclick = () => {
                 modal.hide();
