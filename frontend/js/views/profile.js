@@ -22,7 +22,8 @@ export default class ProfileView extends BaseView {
 		this.confirmPassword = document.getElementById('confirmPassword');
 		this.addFriendBtn = document.getElementById('add-friend-btn');
 		this.friendInput = document.getElementById('new-friend-input');
-	
+		this.getUsernameButton = document.getElementById('getMyUsername');
+
 		this.avatarFile.addEventListener('change', (e) => {
 			e.preventDefault();
 			this.onAvatarFileChange(e.target.files[0])
@@ -56,16 +57,21 @@ export default class ProfileView extends BaseView {
 			this.addFriend();
 		});
 
+		this.getUsernameButton.addEventListener('click', () =>
+		{
+			 this.getUserName();
+		})
+
 		this.resetForm();
 		await this.retrieveAuthInfos();
 		await this.initSecurityForm();
 		await this.init2FA();
-		
+
 		userManager.setDynamicUpdateHandler(this.updateUserInfos);
 		await this.updateFriendsList();
 		await userManager.forceUpdate();
 
-		
+
 	}
 
 	async retrieveAuthInfos() {
@@ -80,6 +86,22 @@ export default class ProfileView extends BaseView {
 		} catch (error) {
 			this.errorHandler(error);
 		}
+	}
+
+
+	async getUserName()
+	{
+		const name = authenticatedUser.username;
+		console.log(`getUsername ${name}`);
+		navigator.clipboard.writeText(name).then(() => {
+			const button = document.getElementById('getMyUsername');
+			const originalText = button.textContent;
+			button.textContent = 'Copied!';
+
+			setTimeout(() =>{
+				button.textContent = originalText;
+			}, 2000);
+		});
 	}
 
 	async initSecurityForm() {
@@ -122,12 +144,12 @@ export default class ProfileView extends BaseView {
 	disableSecurityForm() {
 		const form = document.getElementById('securityForm');
 		const securityMessage = document.querySelector('.security-message');
-		
+
 		// form.classList.add('form-disabled');
 		form.password.value = "";
 		form.confirmPassword.value = "";
 		securityMessage.style.display = 'block';
-		
+
 		const inputs = form.querySelectorAll('input:not(#enable2FA)');
 		console.log(inputs);
 		inputs.forEach(input => input.disabled = true);
@@ -136,16 +158,16 @@ export default class ProfileView extends BaseView {
 	enableSecurityForm() {
 		const form = document.getElementById('securityForm');
 		const securityMessage = document.querySelector('.security-message');
-		
+
 		form.classList.remove('form-disabled');
 		securityMessage.style.display = 'none';
-		
+
 		const inputs = form.querySelectorAll('input:not(#enable2FA)');
 		inputs.forEach(input => input.disabled = false);
 	}
 
 	async onAvatarUrlChange(url) {
-		if (url) {	
+		if (url) {
 			try {
 				const response = await fetch(url, {
 					method: 'HEAD'
@@ -216,7 +238,7 @@ export default class ProfileView extends BaseView {
 
 	async updateFriendsList() {
 		const friendsList = document.getElementById('friends-list');
-		
+
 		friendsList.innerHTML = '';
 		console.log(authenticatedUser.friends);
 		await Promise.all(authenticatedUser.friends.map(async user => {
@@ -227,7 +249,7 @@ export default class ProfileView extends BaseView {
 			friendElement.innerHTML = `
 				<div class="friend-status ${friend.is_online ? 'online' : 'offline'}">
 					<img src="${friend.avatar}"
-						class="friend-avatar" 
+						class="friend-avatar"
 						onclick="window.location.href='#user?username=${user}'">
 						<span class="friend-tooltip">${friend.display_name}</span>
 						<div class="remove-friend user-${user}">✕</div>
@@ -237,7 +259,7 @@ export default class ProfileView extends BaseView {
 			friendElement.querySelector(`.remove-friend.user-${user}`).addEventListener('click', async () => {
 				this.removeFriend(user);
 			});
-			
+
 			friendsList.appendChild(friendElement);
 		}));
 	}
@@ -253,7 +275,7 @@ export default class ProfileView extends BaseView {
 
 		await this.updateFriendsList();
 	}
-	
+
 	async addFriend() {
 		const newFriendName = this.friendInput.value.trim();
 		if (newFriendName) {

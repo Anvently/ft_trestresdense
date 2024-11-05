@@ -177,6 +177,7 @@ class PongLobby3D(PongLobby):
 		else:
 			return
 
+		# Auto serve after 5 secs
 		if self.is_service and time.time() - 5 >= self.service_time:
 			print("service direction = ", self.service_direction)
 			self.ball["speed"]["x"] = MIN_SPEED * (-self.service_direction)
