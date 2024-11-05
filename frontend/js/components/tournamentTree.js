@@ -152,7 +152,6 @@ export default class TournamentTree extends ComponentView {
 
 	async renderTournament() {
 		const { lobbies_set } = this.tournamentData;
-		console.log(this.tournamentData);
 
 		
 		const nbr_rounds = this.computeNbrRounds(this.tournamentData.number_players);
@@ -292,7 +291,6 @@ export class LocalTournamentTree extends TournamentTree {
 	// }
 
 	async createMatchElement(match) {
-		console.log(match);
 		const matchDiv = document.createElement('div');
 		matchDiv.classList.add('match')
 		if (!match.completed)

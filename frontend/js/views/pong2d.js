@@ -94,13 +94,6 @@ export default class Pong2DView extends BaseView {
 			ball: null,
 			paddle:[],
 			paddleLight:[],
-			// nameTag:[null, null, null, null],
-			// scoreBoard:[
-			// 	{name: null, lives: null, avatar: null},
-			// 	{name: null, lives: null, avatar: null},
-			// 	{name: null, lives: null, avatar: null},
-			// 	{name: null, lives: null, avatar: null},
-			// ],
 			environment: {field: null, corner: [], wall: []},
 			winnerDisplay: null
 		};
@@ -142,20 +135,15 @@ export default class Pong2DView extends BaseView {
 	}
 
 	initWebSocket() {
-		console.log("initWebSocket");
 		const sockAdd = this.urlParams.get('id');
 		if (!sockAdd) window.location.hash = '#';
 
 		this.socket = new WebSocket(`wss://${location.hostname}:8083/ws/pong/${sockAdd}/`);
 
-		this.socket.onopen = () => {
-			console.log("WebSocket is now open");
-			// this.startGameLoop();
-		}
-
+		// this.socket.onopen = () => console.log("WebSocket is now open");
 		this.socket.onmessage =async (e) => await this.handleWebSocketMessage(JSON.parse(e.data));
 		this.socket.onerror = (error) => console.error('WebSocket error:', error);
-		this.socket.onclose = () => console.log('WebSocket is closed now.');
+		// this.socket.onclose = () => console.log('WebSocket is closed now.');
 		this.connectionTimeout = setTimeout(() => {
 			if (this.socket.readyState !== WebSocket.OPEN) {
 			  console.error('WebSocket connection failed to open within 1 seconds');
@@ -180,7 +168,6 @@ export default class Pong2DView extends BaseView {
 			if (msg.player_list[i] === authenticatedUser.username || msg.player_list[i].split('.')[0] === authenticatedUser.username) {
 				if (this.isGuestId(msg.player_list[i])) this.isLocalMatch = true;
 				this.isSpectator = false;
-				console.log(`${msg.player_list[i]} joined the game`);
 				this.socket.send(JSON.stringify({ type: "join_game", username: `${msg.player_list[i]}` }));
 			}
 			if (msg.player_list[i] !== '!wall') {
@@ -192,7 +179,6 @@ export default class Pong2DView extends BaseView {
 				}
 			} 
 		}
-		console.log(this.playerInfos);
 	}
 
 	async updateGameState(msg) {
@@ -233,7 +219,6 @@ export default class Pong2DView extends BaseView {
 	}
 
 	onGameStart() {
-		console.log("onGameStart");
 		this.findPlayerDirection();
 		this.createScoreBoard();
 		this.displayControls();
@@ -247,13 +232,11 @@ export default class Pong2DView extends BaseView {
 
 	displayControls() {
 		if (this.isLocalMatch) {
-			console.log("local");
-			document.getElementById('controls-local').classList.remove('d-none');  // Show local controls
-			document.getElementById('controls-online').classList.add('d-none');   // Hide online controls
+			document.getElementById('controls-local').classList.remove('d-none');
+			document.getElementById('controls-online').classList.add('d-none');
 		} else {
-			console.log("online");
-			document.getElementById('controls-online').classList.remove('d-none'); // Show online controls
-			document.getElementById('controls-local').classList.add('d-none');   // Hide local controls
+			document.getElementById('controls-online').classList.remove('d-none');
+			document.getElementById('controls-local').classList.add('d-none');
 		}
 	}
 
@@ -271,7 +254,6 @@ export default class Pong2DView extends BaseView {
 	}
 
 	startGameLoop() {
-		console.log("startGameLoop");
 		const loop = (timestamp) => {
 			this.handleInput();
 			this.draw3D();
@@ -313,8 +295,6 @@ export default class Pong2DView extends BaseView {
 			else
 				player_position = -this.players[this.direction].x;
 
-
-
 			if (this.mousePosition) {
 				if (this.mousePosition > player_position + PLAYER_SPEED)
 					this.socket.send(JSON.stringify({ type: 'key_input', username: this.username, input: "up" }));
@@ -339,10 +319,8 @@ export default class Pong2DView extends BaseView {
 	}
 
 	setupInputListeners() {
-		console.log("setupInputListeners");
 
 		if (this.isLocalMatch) {
-			console.log("-> is localMatch");
 			if (this.isGuestId(this.players[DIRECTIONS.WEST].id)) {
 				const keydownListener = (e) => this.handleKeyDown(e, 0, DIRECTIONS.WEST);
 				window.addEventListener("keydown", keydownListener);
@@ -384,39 +362,7 @@ export default class Pong2DView extends BaseView {
 			this.mousePosition = (event.clientY / window.innerHeight - 0.5) * -1.5;
 		else
 			this.mousePosition = (event.clientX / window.innerWidth - 0.5) * -1.5;
-
 	}
-
-	// setupInputListeners() {
-	// 	console.log("setupInputListeners");
-
-	// 	if (this.isLocalMatch) {
-	// 		console.log("-> is localMatch");
-	// 		if (this.isGuestId(this.players[DIRECTIONS.WEST].id)) {
-	// 			window.addEventListener("keydown", (e) => this.handleKeyDown(e, 0, DIRECTIONS.WEST));
-	// 			window.addEventListener("keyup", (e) => this.handleKeyUp(e, 0, DIRECTIONS.WEST));
-	// 		}
-	// 		if (this.isGuestId(this.players[DIRECTIONS.EAST].id)) {
-	// 			window.addEventListener("keydown", (e) => this.handleKeyDown(e, 1, DIRECTIONS.EAST));
-	// 			window.addEventListener("keyup", (e) => this.handleKeyUp(e, 1, DIRECTIONS.EAST));
-	// 		}
-	// 	} else {
-	// 		// find player direction
-	// 		console.log("-> is not localMatch");
-	// 		let direction = 0;
-	// 		for (let i = 0; i < 4; i++) {
-	// 			if (this.username === this.players[i].id) {
-	// 				direction = i;
-	// 				break;
-	// 			}
-	// 		}
-	// 		console.log("direction is = ", direction);
-	// 		console.log("Key Down:", CONTROLS[1][direction].down);
-	// 		console.log("Key Up:", CONTROLS[1][direction].up);
-	// 		window.addEventListener("keydown", (e) => this.handleKeyDown(e, 1, direction));
-	// 		window.addEventListener("keyup", (e) => this.handleKeyUp(e, 1, direction));
-	// 	}
-	// }
 
 	handleKeyDown(e, player, direction) {
 		if (e.key === CONTROLS[player][direction].up) 
@@ -447,7 +393,6 @@ export default class Pong2DView extends BaseView {
 		newWidth = (newWidth > maxHeight ? maxHeight : newWidth);
 		this.renderer.domElement.style.width = `${newWidth}px`;
 		this.renderer.domElement.style.height = `${newWidth}px`;
-		// const 
 	}
 
 
@@ -502,16 +447,6 @@ export default class Pong2DView extends BaseView {
 		}
 	}
 
-	// updateNameTag() {
-	// 	for (let i = 0; i < this.number_of_players; i++) {
-	// 		if (this.objects.nameTag[i]) {
-	// 			this.objects.nameTag[i].position.x = this.objects.paddle[i].position.x;
-	// 			this.objects.nameTag[i].position.y = this.objects.paddle[i].position.y;
-	// 			this.objects.nameTag[i].position.z = this.objects.paddle[i].position.z + 0.5;
-	// 		}
-	// 	}
-	// }
-
 	getName(id) {
 		let name = this.playerInfos[id].display_name;
 		if (name.length > 10)
@@ -533,11 +468,11 @@ export default class Pong2DView extends BaseView {
 
 			// avatar
 			const player_avatar = document.createElement('img');
-			player_avatar.src = this.playerInfos[id].avatar; // Set the new image path
-			player_avatar.className = player.querySelector('img').className; // Copy the same class/style if needed
-			player_avatar.style.width = '40px'; // Set width and other styles as required
+			player_avatar.src = this.playerInfos[id].avatar;
+			player_avatar.className = player.querySelector('img').className;
+			player_avatar.style.width = '40px';
 			player_avatar.style.height = '40px';
-			player_avatar.style.borderRadius = '50%'; // Same styling for round shape
+			player_avatar.style.borderRadius = '50%';
 
 			const oldAvatar = player.querySelector('img');
 			player.replaceChild(player_avatar, oldAvatar);
@@ -549,7 +484,6 @@ export default class Pong2DView extends BaseView {
 		for (let i = 0; i < this.number_of_players; i++) {
 			const score = this.players[i].lives;
 			if (this.previous_score[i] !== score) {
-				console.log("score = ", score)
 				let player = document.getElementById(`player${i}`);
 				let player_score = player.querySelector('.player-score');
 				player_score.textContent = score;
@@ -582,7 +516,6 @@ export default class Pong2DView extends BaseView {
 	}
 
 	cleanupView() {
-		console.log("Cleaning Pong2d view");
 		if (this.animationId) cancelAnimationFrame(this.animationId);
 		if (this.socket) this.socket.close();
 		this.cleanupListeners();
@@ -591,7 +524,6 @@ export default class Pong2DView extends BaseView {
 
 	cleanupListeners() {
 		for (const { type, listener } of this.eventListeners) {
-			console.log("type: " + type + ", listener: " + listener + " removed;")
 			window.removeEventListener(type, listener);
 		}
 		this.eventListeners = []; // Clear the array after removing
@@ -617,9 +549,7 @@ export default class Pong2DView extends BaseView {
 
 	createRenderer() {
 		this.renderer = new THREE.WebGLRenderer({ antialias: true });
-		// const containerCanva = document.getElementById('container-canva');
 		this.renderer.setSize(1200, 1200);
-		// this.renderer.setSize(containerCanva.clientWidth, containerCanva.clientHeight);
 		this.renderer.shadowMap.enabled = true;
 		this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 		document.getElementById('container-canva').appendChild(this.renderer.domElement);
@@ -729,42 +659,8 @@ export default class Pong2DView extends BaseView {
 		mesh.receiveShadow = true;
 		return mesh;
 	}
-
-////////////////////////////////////////////////////////////////////////////////
 }
 
-function createTextSprite(message, color, size) {
-	console.log("createTextSprite");
-	const fontSize = 40;
-
-	const tempCanvas = document.createElement('canvas');
-	const tempContext = tempCanvas.getContext('2d');
-	tempContext.font = `${fontSize}px Arial`;
-	const textWidth = tempContext.measureText(message).width;
-
-	const canvas = document.createElement('canvas');
-	canvas.width = textWidth;
-	canvas.height = fontSize * 1.2;
-
-	const context = canvas.getContext('2d');
-	context.font = `${fontSize}px Arial`;
-	context.fillStyle = color;
-
-	context.clearRect(0, 0, canvas.width, canvas.height);
-
-	const xPosition = (canvas.width - textWidth) / 2; // Center the text
-	context.fillText(message, xPosition, fontSize) ; // Draw the text
-
-	const texture = new THREE.Texture(canvas);
-	texture.needsUpdate = true;
-
-	const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
-	const sprite = new THREE.Sprite(spriteMaterial);
-
-	sprite.scale.set((textWidth / fontSize) * size, size, size)
-
-	return sprite;
-}
 
 function centerTextGeometry(geometry) {
 	geometry.computeBoundingBox();
@@ -804,11 +700,14 @@ function createPaddle(width, height, depth, color) {
 	paddle.position.z = -1;
 
 	paddle.castShadow = true;
-	// paddle.receiveShadow = true;
 
 	return paddle;
 }
 
+
+
+
+// FPS COUNTER
 var callCount = 0;
 var lastTimestamp = 0;
 

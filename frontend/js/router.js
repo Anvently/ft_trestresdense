@@ -12,7 +12,6 @@ export class Router {
     }
 
     defaultErrorHandler(error) {
-        console.log('Error changing view: ', error);
         alert(`Une erreur est survenue lors du changement de page : ${error.message}`);
     }
 
@@ -31,12 +30,7 @@ export class Router {
             history.pushState(null, '', path);
             const success = await this.handleLocationChange();
             if (!success && this.previousRoute) {
-                // Revenir à la route précédente en cas d'échec
-                console.log('Loading view has failed. Redirecting to previous view.');
-                // history.pushState(null, '', this.previousRoute.path);
-                console.log(this.previousRoute);
                 window.location.hash = this.previousPath;
-                // await this.handleLocationChange(); 
             }
         } else {
             console.error(`Route not found: ${path}`);
