@@ -69,3 +69,6 @@ class ListLobbyView(APIView):
 		serializer = GameSerializer(lobbies_list.values(), many=True)
 		return Response(serializer.data)
 
+class HealthCheckView(APIView):
+	async def get(self, request):
+		return Response(status=200)

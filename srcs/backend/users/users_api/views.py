@@ -131,3 +131,10 @@ class FriendsUpdateView(APIView):
 			user.friends.remove(friend)
 
 		return Response({"friends": [user.username for user in user.friends.all()]}, status=status.HTTP_200_OK)
+
+from django.http import HttpResponse
+from django.views import View
+
+class HealthCheckView(View):
+	def dispatch(self, *args, **kwargs):
+		return HttpResponse(status=200)

@@ -22,3 +22,8 @@ class PostResultView(APIView):
 		else:
 			return Response({f'no associated lobby exists for lobby {lobby_id}'},
 				   status=status.HTTP_400_BAD_REQUEST)
+
+
+class HealthCheckView(APIView):
+	async def get(self, request):
+		return Response(status=200)

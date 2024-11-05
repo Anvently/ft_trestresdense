@@ -21,7 +21,7 @@ from django.conf.urls.static import static
 
 from users_api.views import UserViewSet, LobbyViewSet, ScoreViewSet,\
 	AvatarView, ApiUserView, TournamentViewSet, LobbyPostViewSet, MeUserView, \
-	BatchUsersView, FriendsUpdateView
+	BatchUsersView, FriendsUpdateView, HealthCheckView
 from rest_framework.routers import SimpleRouter
 from rest_framework_nested.routers import NestedSimpleRouter
 from rest_framework.authtoken import views
@@ -49,5 +49,6 @@ urlpatterns = [
 	path('api/users-batch/', BatchUsersView.as_view()),
 	path('api/friends-update/', FriendsUpdateView.as_view()),
 	path('api/me/', MeUserView.as_view()),
+	path('health/', HealthCheckView.as_view(), name='health-check'),
 	path('', include(internal_router.urls)),
 ]
