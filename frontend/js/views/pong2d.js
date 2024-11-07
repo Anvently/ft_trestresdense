@@ -643,11 +643,9 @@ export default class Pong2DView extends BaseView {
 			this.scene.add(mesh);
 		}
 
-		var winner = 'AI';
 		var winner_idx = 0;
 		for (winner_idx = 0; winner_idx < this.number_of_players; winner_idx++) {
 			if (this.players[winner_idx].lives != 0) {
-				winner = this.playerInfos[this.players[winner_idx].id].display_name
 				break;
 			}
 		}

@@ -271,7 +271,6 @@ class PongLobby:
 
 		self.winner = self.check_winner()
 		if self.winner:
-			logger.info(f"{self.winner} won the game")
 			self.gameState = 3
 
 		return self.generate_JSON()
@@ -309,12 +308,3 @@ class PongLobby:
 	@abstractmethod
 	def generate_JSON(self) -> Dict[str, Any]:
 		pass
-
-	# def get_winner(self) -> str:
-	# 	for i in range(self.player_num):
-	# 		if self.players[i].is_bot:
-	# 			print(f"{self.players[i].player_id} won the game")
-	# 			self.winner = self.players[i].player_id
-	# 			return self.winner
-	# 	return None
-
