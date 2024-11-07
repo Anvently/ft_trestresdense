@@ -394,10 +394,12 @@ export default class Pong3DView extends BaseView {
 		}
 
 
-		let winner = (this.players[0].points > this.players[1].points) ? this.playerInfos[this.players[0].id].display_name : this.playerInfos[this.players[1].id].display_name;
-		let winner_idx = (this.players[0].points > this.players[1].points) ? 0 : 1;
+		// let winner = (this.players[0].points > this.players[1].points) ? this.playerInfos[this.players[0].id].display_name : this.playerInfos[this.players[1].id].display_name;
+		// let winner_idx = (this.players[0].points > this.players[1].points) ? 0 : 1;
 
-		var geometry = new TextGeometry(`${winner} won the game !`, {
+		let winner_idx = (this.players[0].id === this.winner) ? 0 : 1;
+
+		var geometry = new TextGeometry(`${this.winner} won the game !`, {
 			font: this.font,
 			size: 2,
 			depth: 0.5,

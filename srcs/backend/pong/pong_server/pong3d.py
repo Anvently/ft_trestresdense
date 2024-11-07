@@ -300,11 +300,11 @@ class PongLobby3D(PongLobby):
 	# 	return False
 
 	def check_winner(self) -> str:
-		if (self.players[0].points >= self.points_to_win and self.players[0].points >= self.players[1].points + 2):
+		if (self.players[0].points >= self.points_to_win and self.players[0].points >= self.players[1].points + 2) or not self.players[1].lives:
 			self.players[0].lives = self.players[0].points
 			self.players[1].lives = self.players[1].points
 			return self.players[0].player_id
-		elif (self.players[1].points >= self.points_to_win and self.players[1].points >= self.players[0].points + 2):
+		elif (self.players[1].points >= self.points_to_win and self.players[1].points >= self.players[0].points + 2) or not self.players[0].lives:
 			self.players[0].lives = self.players[0].points
 			self.players[1].lives = self.players[1].points
 			return self.players[1].player_id
