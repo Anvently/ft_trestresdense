@@ -496,7 +496,7 @@ class LocalTournamentLobby(Lobby):
 
 	async def handle_results(self, results: Dict[str, Any]):
 		online_players[self.tournament.hostname]['status'] = PlayerStatus.IN_LOCAL_TOURNAMENT_LOBBY
-		await self.tournament.handle_result(results)
+		self.tournament.handle_result(results)
 
 	def delete(self):
 		if self.tournament.hostname in online_players:
