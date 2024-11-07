@@ -174,7 +174,7 @@ export default class Pong3DView extends BaseView {
 					const user = new User(msg.player_list[i], await userManager.getUserInfo(msg.player_list[i], false, true));
 					this.playerInfos[msg.player_list[i]] = user;
 				}
-			} 
+			}
 		}
 	}
 
@@ -274,26 +274,43 @@ export default class Pong3DView extends BaseView {
 		let paddle_screen_pos = new THREE.Vector3();
 		paddle_screen_pos = paddle_screen_pos.setFromMatrixPosition(this.objects.paddle[this.direction].matrixWorld);
 		paddle_screen_pos.project(this.camera);
-		
+
 		let widthHalf = this.renderer.domElement.clientWidth / 2;
 		let heightHalf = this.renderer.domElement.clientHeight / 2;
-		
+
 		paddle_screen_pos.x = (paddle_screen_pos.x * widthHalf) + widthHalf;
 		paddle_screen_pos.y = - (paddle_screen_pos.y * heightHalf) + heightHalf;
 		paddle_screen_pos.z = 0;
-		
+
 		// console.log(paddle_screen_pos);
 		if (this.mousePosition.toggle) {
 			if (this.mousePosition.x > paddle_screen_pos.x + PLAYER_SPEED * 1000)
 				this.socket.send(JSON.stringify({type: 'key_input', username: this.username,  input: "right" }));
 			else if (this.mousePosition.x < paddle_screen_pos.x - PLAYER_SPEED * 1000)
 				this.socket.send(JSON.stringify({ type: 'key_input', username: this.username, input: "left" }));
-					
+
 			if (this.mousePosition.y > paddle_screen_pos.y + PLAYER_SPEED * 1000)
 				this.socket.send(JSON.stringify({ type: 'key_input', username: this.username, input: "down" }));
 			else if (this.mousePosition.y < paddle_screen_pos.y - PLAYER_SPEED * 1000)
 				this.socket.send(JSON.stringify({type: 'key_input', username: this.username,  input: "up" }));
 		}
+
+		// OLD MOUSE CONTROLS
+		// var player_rel_pos = {
+		// 	x: (this.players[this.direction].x + 1.1) / 0.6,// - (PADDLE_MAX_X[this.direction] - PADDLE_MIN_X[this.direction]),
+		// 	y: (this.players[this.direction].y * PADDLE_LEFT_DIR[this.direction]) / 2
+		// }
+		// if (this.mousePosition.toggle) {
+		// 	if (this.mousePosition.x > player_rel_pos.x + PLAYER_SPEED)
+		// 		this.socket.send(JSON.stringify({type: 'key_input', username: this.username,  input: "up" }));
+		// 	else if (this.mousePosition.x < player_rel_pos.x - PLAYER_SPEED)
+		// 		this.socket.send(JSON.stringify({ type: 'key_input', username: this.username, input: "down" }));
+
+		// 	if (this.mousePosition.y > player_rel_pos.y + PLAYER_SPEED)
+		// 		this.socket.send(JSON.stringify({type: 'key_input', username: this.username,  input: "right" }));
+		// 	else if (this.mousePosition.y < player_rel_pos.y - PLAYER_SPEED)
+		// 		this.socket.send(JSON.stringify({ type: 'key_input', username: this.username, input: "left" }));
+		// }
 
 		// KEYBOARD
 		if (this.pressKey.key_up === true) {
@@ -312,7 +329,7 @@ export default class Pong3DView extends BaseView {
 			this.socket.send(JSON.stringify({type: 'key_input', username: this.username,  input: "right" }));
 			this.mousePosition.toggle = false;
 		}
-		
+
 	}
 
 	draw3D() {
@@ -370,14 +387,10 @@ export default class Pong3DView extends BaseView {
 			groupMesh.add(mesh);
 		}
 
-		var winner = 'AI';
-		var winner_idx = 0;
-		for (winner_idx = 0; winner_idx < this.number_of_players; winner_idx++) {
-			if (this.players[winner_idx].lives != 0) {
-				winner = this.playerInfos[this.players[winner_idx].id].display_name
-				break;
-			}
-		}
+
+		let winner = (this.players[0].points > this.players[1].points) ? this.playerInfos[this.players[0].id].display_name : this.playerInfos[this.players[1].id].display_name;
+		let winner_idx = (this.players[0].points > this.players[1].points) ? 0 : 1;
+
 		var geometry = new TextGeometry(`${winner} won the game !`, {
 			font: this.font,
 			size: 2,
@@ -413,7 +426,7 @@ export default class Pong3DView extends BaseView {
 			this.ball.y * 10,
 			this.setBallHeight()
 		);
-	
+
 		this.objects.ball.position.lerp(targetPosition, 0.8); // value is the lerp factor
 	}
 
@@ -434,7 +447,7 @@ export default class Pong3DView extends BaseView {
 				this.players[i].y * 10,
 				paddle.position.z
 			);
-	
+
 			paddle.position.lerp(targetPosition, 0.8); // Adjust lerp for speed
 			paddle.rotation.z = this.players[i].angle + Math.PI / 2;
 			this.setPaddleHeight(i);
@@ -638,7 +651,7 @@ export default class Pong3DView extends BaseView {
 		if (e.key === "ArrowUp") this.pressKey.key_up = false;
 		else if (e.key === "ArrowDown") this.pressKey.key_down = false;
 		else if (e.key === "ArrowLeft") this.pressKey.key_left = false;
-		else if (e.key === "ArrowRight") this.pressKey.key_right = false;	
+		else if (e.key === "ArrowRight") this.pressKey.key_right = false;
 	}
 
 	cleanupView() {
@@ -749,7 +762,7 @@ export default class Pong3DView extends BaseView {
 	createLights() {
 		this.scene.add(createSpotLight({x: -5, y: 2, z: 15}));
 		this.scene.add(createSpotLight({x: 7, y: -10, z: 5}));
-		
+
 		const ambientLight = new THREE.AmbientLight( 0x404040 , 6);
 		this.scene.add( ambientLight );
 	}
@@ -793,7 +806,7 @@ export default class Pong3DView extends BaseView {
 		});
 		const material = new THREE.MeshStandardMaterial({ color: color });
 		const textMesh = new THREE.Mesh(geometry, material);
-		
+
 		if (side == WEST)
 		{
 			textMesh.position.set(-3, 5, 0.2);  // Adjust position
@@ -803,7 +816,7 @@ export default class Pong3DView extends BaseView {
 			textMesh.position.set(3, -5, 0.2);  // Adjust position
 			textMesh.rotation.y = Math.PI
 		}
-		
+
 		textMesh.rotation.x = Math.PI/2
 		return(textMesh)
 	}
