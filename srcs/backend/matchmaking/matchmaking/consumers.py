@@ -408,6 +408,7 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 					new_lobby = TournamentInitialLobby(data)
 					game_type = PlayerStatus.IN_LOBBY
 				case "local_tournament_lobby":
+					data['game_type'] = "pong2d"
 					new_lobby = LocalTournamentInitialLobby(data)
 					game_type = PlayerStatus.IN_LOBBY
 				case _:

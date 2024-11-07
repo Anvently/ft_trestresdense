@@ -60,6 +60,7 @@ export default class MatchmakingView extends BaseView {
 		const matchTypeSelect = document.getElementById('matchType');
 		const spectatorsSelect = document.getElementById('spectators');
 		const privacyStatus = document.getElementById('lobbyPrivacy');
+		const gameType = document.getElementById('gameType');
 
 		matchTypeSelect.addEventListener('change', () => {
 		  const selectedMatchType = matchTypeSelect.value;
@@ -68,11 +69,15 @@ export default class MatchmakingView extends BaseView {
 			spectatorsSelect.disabled = true;
 			privacyStatus.value = 'private';
 			privacyStatus.disabled = true;
+			gameType.value = 'pong2d';
+			gameType.disabled = true;
 		  } else {
 			spectatorsSelect.disabled = false;
 			spectatorsSelect.value = 'allowed';
 			privacyStatus.disabled = false;
 			privacyStatus.value = 'public';
+			gameType.value = 'pong2d';
+			gameType.disabled = false;
 		  }
 		});
 	}
