@@ -16,8 +16,8 @@ from auth_api.requests import post_new_user
 from django.utils.crypto import get_random_string
 from django.http import HttpResponseRedirect
 from typing import Any
-
 import time
+from datetime import datetime, timedelta
 
 def	get_or_create_user(infos: dict[str, Any], request) -> User:
 	try:
@@ -82,7 +82,7 @@ class LoginView(APIView):
 				data = {"username": user.username}
 				token = generate_jwt_token(data, ttl_based=True)
 				response = Response({'token': token}, status= status.HTTP_200_OK)
-				response.set_cookie('auth-token', token, expires=time.time() + settings.RSA_KEY_EXPIRATION, samesite='Lax')
+				response.set_cookie('auth-token', token, max_age=settings.RSA_KEY_EXPIRATION, samesite='Lax')
 			except Exception as e:
 				return Response(
 					{"error": f"Failed to generate token: {e}"}, status=status.HTTP_400_BAD_REQUEST
@@ -115,7 +115,7 @@ class TwoFactorAuthView(APIView):
 				data = {"username": user.username}
 				token = generate_jwt_token(data, ttl_based=True)
 				response = Response({'token': token}, status= status.HTTP_200_OK)
-				response.set_cookie('auth-token', token, expires=time.time() + settings.RSA_KEY_EXPIRATION, samesite='Lax')
+				response.set_cookie('auth-token', token, max_age=settings.RSA_KEY_EXPIRATION, samesite='Lax')
 				response.delete_cookie('2fa-token', samesite='Lax')
 				return response
 			except Exception as e:
@@ -175,7 +175,7 @@ class SignIn42CallbackView(APIView):
 			try:
 				data = {"username": user.username}
 				token = generate_jwt_token(data, ttl_based=True)
-				response.set_cookie('auth-token', token, expires=time.time() + settings.RSA_KEY_EXPIRATION, samesite='Lax')
+				response.set_cookie('auth-token', token, max_age=settings.RSA_KEY_EXPIRATION, samesite='Lax')
 			except Exception as e:
 				return Response(
 					{"error": f"Failed to generate token: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
