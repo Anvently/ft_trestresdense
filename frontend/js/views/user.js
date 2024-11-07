@@ -87,6 +87,7 @@ export default class UserView extends BaseView {
 		if (!this.userInfo.friends || !this.userInfo.friends.length)
 			return;
 		const friendsList = document.getElementById('friends-list');
+		if (!friendsList) return;
 		friendsList.innerHTML = ''; // Clear existing content
 		Promise.all(this.userInfo.friends.map(async user => {
 			const friend = new User(user, await userManager.getUserInfo(user));

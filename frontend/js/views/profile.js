@@ -234,6 +234,7 @@ export default class ProfileView extends BaseView {
 	async updateFriendsList() {
 		const friendsList = document.getElementById('friends-list');
 
+		if (!friendsList) return;
 		friendsList.innerHTML = '';
 		await Promise.all(authenticatedUser.friends.map(async user => {
 			const friend = new User(user, await userManager.getUserInfo(user));

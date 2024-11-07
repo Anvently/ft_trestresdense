@@ -167,7 +167,7 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 
 	async def cancel(self, content):
 		await self.send_json(content)
-		await self.close(4000, "game cancelled")
+		await self.close(4000, "game canceled")
 
 	async def game_start(self, content):
 		await self.send_json(content)

@@ -535,7 +535,7 @@ export default class MatchmakingView extends BaseView {
 
 	lobby_canceled(content)
 	{
-		// this.errorHandler("Lobby got cancelled");
+		// this.errorHandler("Lobby got canceled");
 		this.lobbyId = undefined;
 		this.isReady = false;
 		this.isHost = false;

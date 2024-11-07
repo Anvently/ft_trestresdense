@@ -130,7 +130,6 @@ class AuthenticatedUser extends User {
 		document.getElementById("userAvatar").src = this._avatar + "#" + new Date().getTime();
 	}
 	get isAuthenticated() {
-		console.log("checking authenticated");
 		return document.cookie.includes('auth-token');
 	}
 	logOut() {

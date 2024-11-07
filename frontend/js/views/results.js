@@ -55,6 +55,7 @@ export default class ResultsView extends BaseView {
 			return;
 		}
 		const lobbiesTable = document.getElementById('lobbies-table');
+		if (!lobbiesTable) return;
 		lobbiesTable.innerHTML = "";
 		await Promise.all(this.lobbiesResults.map(async lobby => {
 			const hostName = (lobby.host ? lobby.host : lobby.tournament_host);
@@ -84,6 +85,7 @@ export default class ResultsView extends BaseView {
 			return;
 		}
 		const tournamentsTable = document.getElementById('tournaments-table');
+		if (!tournamentsTable) return;
 		tournamentsTable.innerHTML = "";
 		await Promise.all(this.tournaments.map(async tournament => {
 			const host = new User(tournament.host, await userManager.getUserInfo(tournament.host)); 

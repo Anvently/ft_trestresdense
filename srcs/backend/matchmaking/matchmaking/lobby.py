@@ -195,24 +195,23 @@ class Lobby():
 
 	async def handle_results(self, results: dict[str, Any]):
 		""" register in database"""
-		if results['status'] != 'cancelled':
-			if self.hostname:
-				results['host'] = self.hostname
-			results['lobby_name'] = self.name
-			# results['scores_set'] = [el for el in results['scores_set'] if el['username'][0] != '!']
-			try:
-				response = await sync_to_async(requests.post)('http://users-api:8001/post-result/?format=json',
-						data=json.dumps(results),
-						headers = {
-							'Host': 'localhost',
-							'Content-type': 'application/json',
-							'Authorization': "Bearer {0}".format(settings.API_TOKEN.decode('ASCII'))
-							}
-						)
-				if response.status_code != 201:
-					raise Exception(f"expected status 201 got {response.status_code} ({response.content})")
-			except Exception as e:
-				logger.error(f"Failed to post results to users_info: {e}")
+		if self.hostname:
+			results['host'] = self.hostname
+		results['lobby_name'] = self.name
+		# results['scores_set'] = [el for el in results['scores_set'] if el['username'][0] != '!']
+		try:
+			response = await sync_to_async(requests.post)('http://users-api:8001/post-result/?format=json',
+					data=json.dumps(results),
+					headers = {
+						'Host': 'localhost',
+						'Content-type': 'application/json',
+						'Authorization': "Bearer {0}".format(settings.API_TOKEN.decode('ASCII'))
+						}
+					)
+			if response.status_code != 201:
+				raise Exception(f"expected status 201 got {response.status_code} ({response.content})")
+		except Exception as e:
+			logger.error(f"Failed to post results to users_info: {e}")
 
 	def check_time_out(self):
 		pass
@@ -240,7 +239,6 @@ class Lobby():
 class SimpleMatchLobby(Lobby):
 
 	def __init__(self, settings: Dict[str, Any], prefix:str='S') -> None:
-		print(f"init simple match {settings}")
 		super().__init__(settings, prefix=prefix)
 		self.add_player(self.hostname)
 

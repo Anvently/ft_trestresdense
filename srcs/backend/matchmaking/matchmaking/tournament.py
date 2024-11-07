@@ -221,11 +221,11 @@ class LocalTournament(Tournament):
 		match['scores_set'].append({'username' : match['players'][1], 'score' : 0, 'has_win' : False})
 		self.handle_result(match, match['lobby_id'])
 
-	def handle_result(self, results: Dict[str, Any], lobby_id = None):
+	async def handle_result(self, results: Dict[str, Any], lobby_id = None):
 		""" Instantiate the next lobby if any. Assign the winner
 		 to its and update loser's status. """
 		from matchmaking.consumers import MatchMakingConsumer
-		if results['status'] == 'cancelled':
+		if results['status'] == 'canceled':
 			self.delete()
 			return
 		if not lobby_id:
