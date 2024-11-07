@@ -162,7 +162,7 @@ class UserSerializer(serializers.HyperlinkedModelSerializer):
 	scores_set = ScoreSerializer(many=True, read_only=True, fields=['lobby_id', 'lobby_name', 'game_name', 'tournament_id', 'score', 'has_win', 'date',], required=False)
 	avatar = serializers.SerializerMethodField(read_only=True)
 	uploaded_avatar = serializers.ImageField(required = False, write_only = True)
-	url_avatar = serializers.URLField(write_only=True, source='external_avatar', required=False)
+	url_avatar = serializers.URLField(write_only=True, source='external_avatar', required=False, max_length=200)
 	display_name = serializers.CharField(max_length=30, required=False)
 	friends = serializers.SerializerMethodField(read_only=True)
 
