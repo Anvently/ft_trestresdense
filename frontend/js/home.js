@@ -192,40 +192,35 @@ function errorHandler(error, attemptReconnect = false) {
 		(typeof error === 'object' && error.data !== undefined) ?
 		error.data :
 		error;
-	const successPopup = document.getElementById('successPopup');
-	if (successPopup)
-		successPopup.style.display = 'none';
 	const errorPopup = document.getElementById('errorPopup');
-	errorPopup.style.display = 'block';
+	errorPopup.classList.remove('d-none');
 	// if (!attemptReconnect)
 	// 	this.received_error = true;
 	// Masquer le pop-up après quelques secondes (optionnel)
 	setTimeout(() => {
-		errorPopup.style.display = 'none';
+		errorPopup.classList.add('d-none');
 	}, 5000); // Masquer après 5 secondes
 	// throw error; //UNCOMMENT TO TRACK ERROR IN CONSOLE
 }
 
 // Fonction pour fermer le pop-up
 function closeErrorPopup() {
-	document.getElementById('errorPopup').style.display = 'none';
+	document.getElementById('errorPopup').classList.add('d-none');
 }
 
 // Fonction pour afficher le pop-up de success
 function successHandler(message) {
 	document.getElementById('successMessage').textContent = message;
 	const successPopup = document.getElementById('successPopup');
-	successPopup.style.display = 'block';
-	const errorPopup = document.getElementById('errorPopup');
-	errorPopup.style.display = 'none';
+	successPopup.classList.remove('d-none');
 	setTimeout(() => {
-		successPopup.style.display = 'none';
+		successPopup.classList.add('d-none');
 	}, 3000); // Masquer après 5 secondes
 }
 
 // Fonction pour fermer le pop-up
 function closeSuccessPopup() {
-	document.getElementById('successPopup').style.display = 'none';
+	document.getElementById('successPopup').classList.add('d-none');
 }
 
 function logOut() {
@@ -299,3 +294,6 @@ document.querySelectorAll('#themeMenu .dropdown-menu li a').forEach(el => {
 		themeLink.href = `assets/${value}.bootstrap.min.css`;
 	});
 });
+
+document.querySelector("#successPopup button").addEventListener('click', () => closeSuccessPopup());
+document.querySelector("#errorPopup button").addEventListener('click', () => closeErrorPopup());

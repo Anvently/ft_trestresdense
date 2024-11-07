@@ -42,7 +42,7 @@ const WALL_POSITION = {
 	rotY: [Math.PI/2, 0, Math.PI/2, 0]
 };
 
-const MAX_WIDTH = 1200; // in pixels
+const MAX_WIDTH = 1500; // in pixels
 
 // SOUND
 var ping_sound = new Audio("sound/ping_sound.mp3");
@@ -103,6 +103,8 @@ export default class Pong3DView extends BaseView {
 
 		this.animationId = undefined;
 		this.eventListeners = [];
+
+		this.spectator_camera_type = 0;
 	}
 
 	async initView() {
@@ -216,9 +218,20 @@ export default class Pong3DView extends BaseView {
 
 		this.findPlayerDirection();
 		this.createScoreBoards();
+		this.displayControls();
 		this.createNameTag();
-		if (!this.isSpectator) this.setupInputListeners();
+		this.setupInputListeners();
 		this.startGameLoop();
+	}
+
+	displayControls() {
+		if (this.isSpectator) {
+			document.getElementById('controls-spectator').classList.remove('d-none');
+			document.getElementById('controls-player').classList.add('d-none');
+		} else {
+			document.getElementById('controls-player').classList.remove('d-none');
+			document.getElementById('controls-spectator').classList.add('d-none');
+		}
 	}
 
 	findPlayerDirection() {
@@ -245,8 +258,8 @@ export default class Pong3DView extends BaseView {
 		if (this.socket && this.socket.readyState === WebSocket.OPEN && this.direction != -1) {
 			this.sendInput();
 		}
-		else if (this.game_state != 3) {
-			console.log("Error: Socket is not open !");
+		else if (this.game_state != 3 && this.direction != -1) {
+			// console.log("Error: Socket is not open !");
 			cancelAnimationFrame(this.animationId);
 			return;
 		}
@@ -377,7 +390,7 @@ export default class Pong3DView extends BaseView {
 
 		let winner = (this.players[0].points > this.players[1].points) ? this.playerInfos[this.players[0].id].display_name : this.playerInfos[this.players[1].id].display_name;
 		let winner_idx = (this.players[0].points > this.players[1].points) ? 0 : 1;
-	
+
 		var geometry = new TextGeometry(`${winner} won the game !`, {
 			font: this.font,
 			size: 2,
@@ -400,19 +413,44 @@ export default class Pong3DView extends BaseView {
 		return groupMesh;
 	}
 
+	// updateBall() {
+	// 	this.objects.ball.position.x = this.ball.x * 10;
+	// 	this.objects.ball.position.y = this.ball.y * 10;
+	// 	this.objects.ball.position.z = this.setBallHeight();
+	// }
 
+	// WITH LERP TO SMOOTH MVMENT
 	updateBall() {
-		this.objects.ball.position.x = this.ball.x * 10;
-		this.objects.ball.position.y = this.ball.y * 10;
-		this.objects.ball.position.z = this.setBallHeight();
+		const targetPosition = new THREE.Vector3(
+			this.ball.x * 10,
+			this.ball.y * 10,
+			this.setBallHeight()
+		);
+
+		this.objects.ball.position.lerp(targetPosition, 0.8); // value is the lerp factor
 	}
 
+	// updatePaddles() {
+	// 	this.objects.paddle.forEach((paddle, i) => {
+	// 		paddle.position.x = this.players[i].x * 10;
+	// 		paddle.position.y = this.players[i].y * 10;
+	// 		this.setPaddleHeight(i);
+	// 		paddle.rotation.z = this.players[i].angle + Math.PI / 2;
+	// 	});
+	// }
+
+	// WITH LERP TO SMOOTH MVMENT
 	updatePaddles() {
 		this.objects.paddle.forEach((paddle, i) => {
-			paddle.position.x = this.players[i].x * 10;
-			paddle.position.y = this.players[i].y * 10;
-			this.setPaddleHeight(i);
+			const targetPosition = new THREE.Vector3(
+				this.players[i].x * 10,
+				this.players[i].y * 10,
+				paddle.position.z
+			);
+
+			paddle.position.lerp(targetPosition, 0.8); // Adjust lerp for speed
 			paddle.rotation.z = this.players[i].angle + Math.PI / 2;
+			this.setPaddleHeight(i);
 		});
 	}
 
@@ -428,38 +466,65 @@ export default class Pong3DView extends BaseView {
 
 	updateCamera() {
 		if (this.direction == -1 || this.game_state == 3)
-			this.spectatorCamera()
+			this.spectatorCamera(this.spectator_camera_type)
 		else
-			this.POVCamera()
+			this.POVCamera(this.direction)
 	}
 
-	spectatorCamera() {
+	spectatorCamera(camera_type) {
 		const radius = 20;
 
-		this.angle += 0.005;
-		this.camera.position.x = radius * Math.cos(this.angle);
-		this.camera.position.y = radius * Math.sin(this.angle);
-		this.camera.position.z = 10;
-		this.camera.lookAt(0, 0, 0);
+		switch (camera_type % 5) {
+			case 0:
+				this.angle += 0.005;
+				this.camera.position.x = radius * Math.cos(this.angle);
+				this.camera.position.y = radius * Math.sin(this.angle);
+				this.camera.position.z = 10;
+				this.camera.lookAt(0, 0, -1);
+				break;
+			case 1:
+				this.POVCamera(0);
+				break;
+			case 2:
+				this.POVCamera(1);
+				break;
+			case 3:
+				this.camera.position.x = 0;
+				this.camera.position.y = -5;
+				this.camera.position.z = 1;
+				this.camera.lookAt(this.objects.ball.position);
+				break;
+			case 4:
+				this.camera.position.x = 0;
+				this.camera.position.y = 0;
+				this.camera.position.z = 20;
+				this.camera.rotation.set(0, 0, Math.PI)
+				// this.camera.lookAt(this.objects.ball.position.x, this.objects.ball.position.y, this.objects.ball.position.z);
+				// this.camera.lookAt(0, 0, 0);
+			default:
+				break;
+		}
+
+
 	}
 
-	POVCamera() {
+	POVCamera(direction) {
 		// calculate camera destination
 		var camera_destination = {x: 0, y: 0, z: 0}
 
-		var radius = 15;
+		var radius = 12;
 		var camera_angle = 0;
-		var player_angle = this.players[this.direction].angle;
+		var player_angle = this.players[direction].angle;
 		var middle_angle = 0
 
-		if (this.direction == WEST)
+		if (direction == WEST)
 			middle_angle = Math.PI
-		else if (this.direction == EAST)
+		else if (direction == EAST)
 			player_angle += Math.PI;
 
-		radius = Math.abs(this.players[this.direction].x**2 + this.players[this.direction].y**2) * 5 + 10
+		radius = Math.abs(this.players[direction].x**2 + this.players[direction].y**2) * 5 + 10
 		player_angle = normalizeAngle(player_angle);
-		camera_angle = middle_angle + player_angle / 2;
+		camera_angle = middle_angle + player_angle / 1; // 2 for half angle
 
 		camera_destination.x = radius * Math.cos(camera_angle);
 		camera_destination.y = radius * Math.sin(camera_angle);
@@ -572,6 +637,14 @@ export default class Pong3DView extends BaseView {
 		else if (e.key === "ArrowDown") this.pressKey.key_down = true;
 		else if (e.key === "ArrowLeft") this.pressKey.key_left = true;
 		else if (e.key === "ArrowRight") this.pressKey.key_right = true;
+
+		if (this.isSpectator) {
+			console.log("IS SPECTATOR")
+			if (e.key === ' ') {
+				this.spectator_camera_type += 1
+				console.log("Spectator camera type = ", this.spectator_camera_type);
+			}
+		}
 	}
 
 	handleKeyUp(e) {

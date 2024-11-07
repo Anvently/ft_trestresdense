@@ -220,9 +220,9 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 						self._lobby_id = None
 				if status not in (PlayerStatus.IN_GAME, PlayerStatus.IN_TOURNAMENT_LOBBY, PlayerStatus.IN_LOCAL_TOURNAMENT_LOBBY):
 					del online_players[self.username]
+		await self.send_general_update()
 		await self.channel_layer.group_discard(self.username, self.channel_name)
 		await self.channel_layer.group_discard(MatchMakingConsumer.matchmaking_group, self.channel_name)
-		await self.send_general_update()
 
 	async def send_json(self, content, close=False):
 		if self._messageId != None:

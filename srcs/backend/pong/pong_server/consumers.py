@@ -106,9 +106,11 @@ class PongConsumer(AsyncJsonWebsocketConsumer):
 	async def connect(self):
 		await self.accept()
 		if self._is_valid_client():
-			await self.channel_layer.group_add(self.lobby_id, self.channel_name)
 			lobbies_list[self.lobby_id].nbr_websocket += 1
+			await self.channel_layer.group_add(self.lobby_id, self.channel_name)
 		else:
+			if self.lobby_id in lobbies_list:
+				lobbies_list[self.lobby_id].nbr_websocket += 1
 			await self._send_error(self.scope['error'], self.scope['error_code'], True)
 			logger.info("Connection rejected because: {0}".format(self.scope['error']))
 			return

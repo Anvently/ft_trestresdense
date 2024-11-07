@@ -8,7 +8,7 @@
     <link id="themeLink" href="assets/sketchy.bootstrap.min.css" rel="stylesheet">
     <style>
         #content {
-            margin-top: 90px;
+            margin-top: 65px;
         }
 
         #userMenu .btn {
@@ -62,17 +62,32 @@
         .navbar-toggler {
             margin-left: auto;
         }
+        #popupContainer {
+            position: fixed;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1050;
+            background-color: transparent;
+            width: fit-content;
+            height: fit-content;
+        }
     </style>
 </head>
 <body>
-    <div id="errorPopup" class="alert alert-danger alert-dismissible fade show" role="alert" style="position: fixed; top: 20px; left: 50%; transform: translateX(-50%); display: none; z-index: 1050;">
-		<span id="errorMessage"></span>
-		<button type="button" class="btn-close" aria-label="Close" onclick="closeErrorPopup()"></button>
-	</div>
-    <div id="successPopup" class="alert alert-success alert-dismissible fade show" onclick="closeSuccessPopup()" role="alert" style="position: fixed; top: 20px; left: 50%; transform: translateX(-50%); display: none; z-index: 1050;">
-		<span id="successMessage"></span>
-		<button type="button" class="btn-close" aria-label="Close"></button>
-	</div>
+    <div id="popupContainer">
+        <div id="errorPopup" class="alert alert-danger alert-dismissible fade show d-none" role="alert">
+            <span id="errorMessage"></span>
+            <button type="button" class="btn-close" aria-label="Close"></button>
+        </div>
+        <div id="successPopup" class="alert alert-success alert-dismissible fade show d-none" role="alert">
+            <span id="successMessage"></span>
+            <button type="button" class="btn-close" aria-label="Close"></button>
+        </div>
+    </div>
     <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top">
         <div id='menu' class="container-fluid">
             <a class="navbar-brand" href="#">ft-trestresdense</a>
