@@ -6,14 +6,23 @@ export class ViewManager {
         this.currentView = null;
         this.errorHandler = this.defaultErrorHandler;
         this.successHandler = this.defaultSuccessHandler;
+        this.warningHandler = this.defaultWarningHandler;
     }
 
     setSuccessHandler(handler) {
         this.successHandler = handler;
     }
 
+    defaultWarningHandler(msg) {
+        console.warn(msg);
+    }
+
     defaultSuccessHandler(msg) {
-        console.log(msg);
+        console.info(msg);
+    }
+
+    setWarningHandler(handler) {
+        this.warningHandler = handler;
     }
 
     setErrorHandler(handler) {
@@ -21,7 +30,7 @@ export class ViewManager {
     }
 
     defaultErrorHandler(error) {
-        alert(`Une erreur est survenue lors du chargement de la page : ${error.message}`);
+        console.error(msg);
     }
 
     async loadView(jsPath, htmlPath) {
@@ -41,6 +50,7 @@ export class ViewManager {
 
             this.currentView = new ViewClass();
             this.currentView.setErrorHandler(this.errorHandler);
+            this.currentView.setWarningHandler(this.warningHandler);
             this.currentView.setSuccessHandler(this.successHandler);
 
             // Injecter le HTML dans l'élément de la vue
@@ -84,15 +94,20 @@ export class BaseView {
         this.element.id = name;
         this.errorHandler = this.defautErrorHandler;
         this.successHandler = this.defautSuccessHandler;
+        this.warningHandler = this.defaultWarningHandler;
         this.urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
     }
 
-    defautErrorHandler() {
-
+    defautErrorHandler(error) {
+        console.error(error);
     }
 
-    defautSuccessHandler() {
-        
+    defautSuccessHandler(msg) {
+        console.info(msg);
+    }
+
+    defaultWarningHandler(msg) {
+        console.warn(msg);
     }
 
     setErrorHandler(handler) {
@@ -101,6 +116,10 @@ export class BaseView {
 
     setSuccessHandler(handler) {
         this.successHandler = handler;
+    }
+
+    setWarningHandler(handler) {
+        this.warningHandler = handler;
     }
 
     async initView() {

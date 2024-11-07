@@ -127,7 +127,7 @@ class Tournament:
 		from channels.layers import get_channel_layer
 		channel_layer = get_channel_layer()
 		logger.debug(results)
-		if results['status'] == 'cancelled':
+		if results['status'] == 'canceled':
 			self.delete()
 			return
 		lobby_id:str = results['lobby_id']
@@ -157,6 +157,9 @@ class Tournament:
 								await lobbies[next_match_id].handle_default_results(absent)
 								logger.info(f"asbent player is {absent}")
 					asyncio.create_task(countdown())
+			elif score['has_win'] == True and stage == 0:
+				if score['username'][0] != '!':
+					await channel_layer.group_send(score['username'], {'type': 'reset_lobby'})
 			else:
 				""" If someone lose or it was a final, it's up to the
 				 lobby result handler to update status of associated players. """

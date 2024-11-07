@@ -46,7 +46,7 @@ class UserViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixins.Upd
 		request.user.delete()
 		logout(request)
 		response = Response(status=status.HTTP_204_NO_CONTENT)
-		response.delete_cookie('auth-token')
+		response.delete_cookie('auth-token', samesite='Lax')
 		return response
 
 class GenerateToken(APIView):
@@ -76,13 +76,13 @@ class LoginView(APIView):
 		if user.is_2fa_active:
 			token = generate_2fa_token(user)
 			response = Response({'message': "2fa required. A token valid for 15min was transmitted in a cookie."}, status= status.HTTP_202_ACCEPTED)
-			response.set_cookie('2fa-token', token, max_age=900, httponly=True)
+			response.set_cookie('2fa-token', token, max_age=900, httponly=True, samesite='Lax')
 		else:
 			try:
 				data = {"username": user.username}
 				token = generate_jwt_token(data, ttl_based=True)
 				response = Response({'token': token}, status= status.HTTP_200_OK)
-				response.set_cookie('auth-token', token, expires=time.time() + settings.RSA_KEY_EXPIRATION)
+				response.set_cookie('auth-token', token, expires=time.time() + settings.RSA_KEY_EXPIRATION, samesite='Lax')
 			except Exception as e:
 				return Response(
 					{"error": f"Failed to generate token: {e}"}, status=status.HTTP_400_BAD_REQUEST
@@ -115,8 +115,8 @@ class TwoFactorAuthView(APIView):
 				data = {"username": user.username}
 				token = generate_jwt_token(data, ttl_based=True)
 				response = Response({'token': token}, status= status.HTTP_200_OK)
-				response.set_cookie('auth-token', token, expires=time.time() + settings.RSA_KEY_EXPIRATION)
-				response.delete_cookie('2fa-token')
+				response.set_cookie('auth-token', token, expires=time.time() + settings.RSA_KEY_EXPIRATION, samesite='Lax')
+				response.delete_cookie('2fa-token', samesite='Lax')
 				return response
 			except Exception as e:
 				return Response(
@@ -130,7 +130,7 @@ class LogoutView(APIView):
 	def get(self, request):
 		logout(request)
 		response = Response(status=status.HTTP_204_NO_CONTENT)
-		response.delete_cookie('auth-token')
+		response.delete_cookie('auth-token', samesite='Lax')
 		return response
 
 class VerifyToken(APIView):
@@ -170,12 +170,12 @@ class SignIn42CallbackView(APIView):
 		response = HttpResponseRedirect(f'https://{request.META["HTTP_HOST"]}:8083/')
 		if user.is_2fa_active:
 			token = generate_2fa_token(user)
-			response.set_cookie('2fa-token', token, max_age=900)
+			response.set_cookie('2fa-token', token, max_age=900, samesite='Lax')
 		else:
 			try:
 				data = {"username": user.username}
 				token = generate_jwt_token(data, ttl_based=True)
-				response.set_cookie('auth-token', token, expires=time.time() + settings.RSA_KEY_EXPIRATION)
+				response.set_cookie('auth-token', token, expires=time.time() + settings.RSA_KEY_EXPIRATION, samesite='Lax')
 			except Exception as e:
 				return Response(
 					{"error": f"Failed to generate token: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR

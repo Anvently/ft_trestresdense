@@ -2,8 +2,11 @@ import { Router } from './router.js';
 import { ViewManager } from './view-manager.js';
 import { UserInfoManager } from './user-infos-manager.js';
 
+// console.log("loading page");
+
 const router = new Router();
 const viewManager = new ViewManager(document.getElementById('content'));
+
 
 /**
  * @note
@@ -127,10 +130,11 @@ class AuthenticatedUser extends User {
 		document.getElementById("userAvatar").src = this._avatar + "#" + new Date().getTime();
 	}
 	get isAuthenticated() {
+		console.log("checking authenticated");
 		return document.cookie.includes('auth-token');
 	}
 	logOut() {
-		document.cookie = 'auth-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+		document.cookie = 'auth-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Lax;';
 		Object.assign(this, new AuthenticatedUser());
 		this.updateUserMenu();
 	}
@@ -194,6 +198,7 @@ function errorHandler(error, attemptReconnect = false) {
 		error;
 	const errorPopup = document.getElementById('errorPopup');
 	errorPopup.classList.remove('d-none');
+	console.error(error);
 	// if (!attemptReconnect)
 	// 	this.received_error = true;
 	// Masquer le pop-up après quelques secondes (optionnel)
@@ -206,6 +211,26 @@ function errorHandler(error, attemptReconnect = false) {
 // Fonction pour fermer le pop-up
 function closeErrorPopup() {
 	document.getElementById('errorPopup').classList.add('d-none');
+}
+
+function warningHandler(error) {
+	document.getElementById('warningMessage').textContent =
+		(typeof error === 'object' && error.data !== undefined) ?
+		error.data :
+		error;
+	const warningPopup = document.getElementById('warningPopup');
+	warningPopup.classList.remove('d-none');
+	// if (!attemptReconnect)
+	// 	this.received_error = true;
+	// Masquer le pop-up après quelques secondes (optionnel)
+	setTimeout(() => {
+		warningPopup.classList.add('d-none');
+	}, 5000); // Masquer après 5 secondes
+	// throw error; //UNCOMMENT TO TRACK ERROR IN CONSOLE
+}
+
+function closeWarningPopup() {
+	document.getElementById('warningPopup').classList.add('d-none');
 }
 
 // Fonction pour afficher le pop-up de success
@@ -265,6 +290,7 @@ router.onRouteChange(async (route) => {
 
 viewManager.setErrorHandler(errorHandler);
 viewManager.setSuccessHandler(successHandler);
+viewManager.setWarningHandler(warningHandler);
 router.setErrorHandler(errorHandler);
 
 if (authenticatedUser.isAuthenticated) {
@@ -297,3 +323,4 @@ document.querySelectorAll('#themeMenu .dropdown-menu li a').forEach(el => {
 
 document.querySelector("#successPopup button").addEventListener('click', () => closeSuccessPopup());
 document.querySelector("#errorPopup button").addEventListener('click', () => closeErrorPopup());
+document.querySelector("#warningPopup button").addEventListener('click', () => closeWarningPopup());

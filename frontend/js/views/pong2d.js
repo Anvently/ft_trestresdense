@@ -159,6 +159,11 @@ export default class Pong2DView extends BaseView {
 		if (msg["type"] === "ping") {
 			await this.sendJoinGame(msg);
 		}
+		else if (msg["type"] === "cancel") {
+			console.info("Game canceled");
+			window.location.hash = '#';
+			this.warningHandler(msg.message);
+		}
 		else if (msg["type"] === "send_game_state")
 			await this.updateGameState(msg);
 	}
@@ -190,6 +195,7 @@ export default class Pong2DView extends BaseView {
 		this.ball.speedY = parseFloat(msg.ball_speed_y);
 		this.ball.last_hit = parseInt(msg.ball_last_hit);
 		this.game_state  = msg['game_state'];
+		this.winner = msg.winner;
 
 		for (var i = 0; i < 4; i++) {
 			this.players[i] = {
@@ -640,7 +646,7 @@ export default class Pong2DView extends BaseView {
 				break;
 			}
 		}
-		var geometry = new TextGeometry(`${winner} won the game !`, {
+		var geometry = new TextGeometry(`${this.playerInfos[this.winner].display_name} won the game !`, {
 			font: this.font,
 			size: 2,
 			depth: 0.5,

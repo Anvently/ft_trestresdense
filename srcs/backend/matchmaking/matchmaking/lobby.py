@@ -252,15 +252,12 @@ class SimpleMatchLobby(Lobby):
 		return "simple_match"
 
 	def check_rules(self):
-		print(f"rules check on {self.game_type} {self.player_num} {self.settings['lives']}")
 		match (self.game_type, self.player_num, self.settings['lives']):
 			case ("pong2d", x, y) if x in (2, 4) and y > 0:
-				print("OK")
 				pass
 			case ("pong3d", x, y) if x == 2 and y > 0:
 				pass
 			case _:
-				print("NOT OK")
 				raise KeyError("Wrong settings")
 
 
@@ -432,6 +429,10 @@ class TournamentMatchLobby(Lobby):
 			await tournaments[self.tournament_id].handle_result(results)
 		self.delete()
 
+	def remove_player(self, player_id):
+		if player_id in self.players:
+			del self.players[player_id]
+
 	async def handle_default_results(self, leaver_id):
 		result = dict()
 		result['status'] = 'terminated'
@@ -473,6 +474,7 @@ class TournamentMatchLobby(Lobby):
 
 	async def get_default_winner(self):
 		player_joined = 0
+		absent = None
 		for player in self.players:
 			if self.players[player]['has_joined']:
 				player_joined += 1

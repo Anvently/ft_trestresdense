@@ -3,6 +3,11 @@ Failles possibles :
 
 TODO:
 
+	- lives counting upward in pong3d
+	- ai won the game
+	- disconnect/reconnect in matchmaking
+	- front button margin
+
 	Devops:
 	- implement correct order for docker compose
 		- add healthcheck for django app

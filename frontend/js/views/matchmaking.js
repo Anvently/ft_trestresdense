@@ -122,14 +122,14 @@ export default class MatchmakingView extends BaseView {
 
 		} catch (error) {
 			console.error("Error initializing websocket:", error);
-      		this.reconnect();
+			this.reconnect();
 		}
     }
 
 	reconnect() {
 		if (this.reconnectAttempts < this.maxReconnectAttempts) {
 			this.reconnectAttempts++;
-			this.errorHandler(`Reconnection attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts} in ${this.reconnectInterval / 1000} seconds...`, true);
+			this.warningHandler(`Reconnection attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts} in ${this.reconnectInterval / 1000} seconds...`, true);
 			setTimeout(async () => await this.initWebSocket(), this.reconnectInterval);
 		} else {
 			this.errorHandler(`Max reconnection attempts number reached.`, false);
@@ -1134,8 +1134,11 @@ export default class MatchmakingView extends BaseView {
 
 	// Connecter le WebSocket au chargement de la page
 	dispatch(message) {
-		if (message.type === 'error')
+		this.received_error = false;
+		if (message.type === 'error') {
+			this.received_error = true;
 			this.errorHandler(message);
+		}
 		else if (typeof this[message.type] === "function") {
 			this[message.type](message);
 		} else {

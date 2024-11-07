@@ -40,7 +40,7 @@ class Player:
 		self.lives = lives
 		# self.coordinates = START_POS[side]
 		# self.coordinates = 0
-		self.has_joined = 0
+		self.has_joined = self.is_bot
 		# AI specific variables
 		self.last_time = int(time.time())
 
@@ -128,7 +128,9 @@ class PongLobby:
 
 	def player_leave(self, player_id: str):
 		""" Template of player_list: ["user1", "user1_guest"] """
-		self.waiting_for += 1
+		if player_id in self.match_id_pos:
+			self.waiting_for += 1
+			self.players[self.match_id_pos[player_id]].has_joined = False
 
 	async def send_result(self):
 		data = {}
@@ -136,11 +138,22 @@ class PongLobby:
 		data['game_name'] = self.game_type
 		if self.tournId:
 			data['tournament_id'] = self.tournId
-		if self.gameState <= 0:
+		data['scores_set'] = []
+		if self.gameState <= 0 and not self.tournId:
 			data['status'] = 'canceled'
+		if self.tournId and self.gameState <= 0:
+				data['status'] = 'terminated'
+				for player in self.players:
+					if player.player_id == '!wall': continue
+					data['scores_set'].append({
+						'username': player.player_id,
+						'score': 0,
+						'has_win': player.has_joined
+					})
+				if self.waiting_for == 2:
+					data['scores_set'][0]['has_win'] = True
 		else:
 			data['status'] = 'terminated'
-			data['scores_set'] = []
 			for player in self.players:
 				if (player.player_id != '!wall'):
 					data['scores_set'].append({
@@ -192,7 +205,7 @@ class PongLobby:
 			loop_start = time.time()
 			player_channel = get_channel_layer()
 			# pregame : check that all players are present
-			while time.time() - loop_start < 3600 and self.gameState == 0:
+			while time.time() - loop_start < 30 and self.gameState == 0:
 				await asyncio.sleep(0.016)
 				data = self.compute_game()
 				if self.nbr_websocket: await player_channel.group_send(self.lobby_id, data)
@@ -201,7 +214,7 @@ class PongLobby:
 					self.gameState = 1
 			if self.gameState <= 0:
 				if self.nbr_websocket: await player_channel.group_send(self.lobby_id, {"type": "cancel",
-																"message": "A Player failed to load"
+																"message": "Game canceled, a player failed to join."
 																})
 				await self.send_result()
 				return
@@ -225,7 +238,7 @@ class PongLobby:
 				if self.nbr_websocket: await player_channel.group_send(self.lobby_id, data)
 			if self.gameState < 0:
 				if self.nbr_websocket: await player_channel.group_send(self.lobby_id, {"type": "cancel",
-																"message": "Cancel by matchmaking."
+																"message": "Canceled by matchmaking."
 																})
 			else:
 				if self.nbr_websocket: await player_channel.group_send(

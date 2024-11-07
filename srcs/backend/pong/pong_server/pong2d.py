@@ -328,7 +328,8 @@ class PongLobby2D(PongLobby):
 			'ball_speed_x': self.ball["speed"]['x'],
 			'ball_speed_y': self.ball["speed"]['y'],
 			'ball_last_hit': self.ball["last_hit"],
-			'game_state': self.gameState
+			'game_state': self.gameState,
+			'winner': self.winner
 		}
 
 		for index in range(4):

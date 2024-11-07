@@ -190,8 +190,8 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 				await self.send_lobby_update(self._lobby_id)
 		else:
 			online_players[self.username] = copy.deepcopy(default_status)
-			await self.channel_layer.group_add(self.username, self.channel_name)
 			await self.channel_layer.group_add(MatchMakingConsumer.matchmaking_group, self.channel_name)
+		await self.channel_layer.group_add(self.username, self.channel_name)
 
 	async def connect(self):
 		await self.accept()
@@ -251,9 +251,17 @@ class MatchMakingConsumer(AsyncJsonWebsocketConsumer):
 		if close:
 			await self.close(code.value, msg)
 
+	async def reset_lobby(self, content):
+		await self.send_json({'type': 'lobby_canceled'})
+		if self._lobby_id: await self.channel_layer.group_discard(self._lobby_id, self.channel_name)
+		self._lobby_id = None
+		self._is_host = False
+		online_players[self.username] = copy.deepcopy(default_status)
+		await self.channel_layer.group_add(MatchMakingConsumer.matchmaking_group, self.channel_name)
+		await self.send_general_update()
 
 	async def lobby_canceled(self, content):
-		if online_players[self.username]['status'] not in (PlayerStatus.IN_LOBBY, PlayerStatus.IN_TOURNAMENT_LOBBY, PlayerStatus.IN_LOCAL_TOURNAMENT_LOBBY):
+		if self.username in online_players and online_players[self.username]['status'] not in (PlayerStatus.IN_LOBBY, PlayerStatus.IN_TOURNAMENT_LOBBY, PlayerStatus.IN_LOCAL_TOURNAMENT_LOBBY):
 			return
 		if not self._is_host:
 			await self.send_json(content)
