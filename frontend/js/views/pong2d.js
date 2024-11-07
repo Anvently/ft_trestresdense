@@ -438,12 +438,11 @@ export default class Pong2DView extends BaseView {
 				this.objects.paddle[dir].position.x = this.players[dir].x * 10;
 				this.objects.paddle[dir].position.y = this.players[dir].y * 10;
 				this.objects.paddle[dir].position.z = 0;
-				this.objects.environment.wall[dir].position.z = -0.5
 				this.objects.paddleLight[dir].position.x = this.players[dir].x * 10;
 				this.objects.paddleLight[dir].position.y = this.players[dir].y * 10;
 				this.objects.paddleLight[dir].position.z = 0.5;
 			} else {
-				this.objects.environment.wall[dir].position.z = 0
+				this.objects.environment.wall[dir].visible = true;
 				this.objects.paddle[dir].position.z = -1;
 				this.objects.paddleLight[dir].position.z = -1;
 			}
@@ -546,7 +545,7 @@ export default class Pong2DView extends BaseView {
 
 	createCamera() {
 		this.camera = new THREE.PerspectiveCamera( 75, 1, 0.1, 1000);
-		this.camera.position.z = 10;
+		this.camera.position.z = 9;
 		this.camera.lookAt(0, 0, 0);
 	}
 
@@ -561,6 +560,11 @@ export default class Pong2DView extends BaseView {
 	createEnvironment() {
 		const planeGeometry = new THREE.PlaneGeometry( 30, 30 );
 		const planeMaterial = new THREE.MeshStandardMaterial( {color: 0x666666, roughness: 0.7, metalness: 0.5 } );
+		// const planeMaterial = new THREE.MeshPhysicalMaterial({
+		// 	roughness: 0.5,
+		// 	transmission: 1,
+		// 	thickness: 10
+		// });
 		this.objects.environment.field = new THREE.Mesh(planeGeometry, planeMaterial);
 		this.objects.environment.field.castShadow = true;
 		this.objects.environment.field.receiveShadow = true;
@@ -585,7 +589,8 @@ export default class Pong2DView extends BaseView {
 				const geometry = new THREE.BoxGeometry( 10, 10, 0.5 );
 				const material = new THREE.MeshStandardMaterial ( {color: 0xffffff});
 				const wall = new THREE.Mesh(geometry, material);
-				wall.position.set(WALL_POSITION.X[i], WALL_POSITION.Y[i], -1)
+				wall.position.set(WALL_POSITION.X[i], WALL_POSITION.Y[i], 0)
+				wall.visible = false;
 				this.objects.environment.wall.push(wall);
 				this.scene.add(wall);
 			}
@@ -600,7 +605,7 @@ export default class Pong2DView extends BaseView {
 		const material = new THREE.MeshBasicMaterial({ color: 0xff0000});
 		const sphere = new THREE.Mesh( geometry, material );
 		group.add(sphere);
-	
+
 		//create light
 		const light = new THREE.PointLight( 0xffff00, 5, 0, 1 ); 
 		light.position.z = BALL_RADIUS*10;
@@ -699,6 +704,7 @@ function createPaddleLight(color) {
 function createPaddle(width, height, depth, color) {
 	const geometry = new THREE.BoxGeometry(width, height, depth);
 	const material = new THREE.MeshStandardMaterial({color: color, roughness: 1, metalness: 0.2});
+
 	const paddle = new THREE.Mesh(geometry, material);
 	paddle.position.z = -1;
 
